@@ -3,6 +3,11 @@
 
 #include "assemble.h"
 
+void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne)
+{
+    (*(assembler->f))(assembler->p, emat, ids, ne);
+}
+
 void add_to_band(void* p, double* emat, int* ids, int ne)
 {
     band_assembler_t* assembler = (band_assembler_t*) p;

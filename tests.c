@@ -3,7 +3,8 @@
 #include <string.h>
 #include <math.h>
 
-#include "cholesky.h"
+//#include "cholesky.h"
+#include "bandmat.h"
 #include "assemble.h"
 #include "gaussquad.h"
 #include "shapes1d.h"
@@ -105,26 +106,17 @@ void test_check_solution()
     printf("%g\n", check_solution(x));
 }
 
-// Convert dense n-by-n A to band matrix P with bandwidth bw
-void dense_to_band(double* A, double* P, int n, int bw)
-{
-    for (int d = 0; d <= bw; ++d)
-        for (int j = d; j < n; ++j) {
-            int i = j-d;
-            P[j+d*n] = A[i+j*n];
-        }
-}
-
 void test_band_cholesky()
 {
     double A[36], PA[18], b[6];
     get_Aref(A);
     get_bref(b);
-    dense_to_band(A, PA, 6, 2);
-    band_cholesky(PA, 6, 2);
-    bcholesky_solve(PA, b, 6, 2);
+    bandmat_t* BA = dense_to_band(A, 6, 2);
+    bandmat_factor(BA);
+    bandmat_solve(BA, b);
     printf("Check that band Cholesky in band storage works: %g\n",
            check_solution(b));
+    free_bandmat(BA);
 }
 
 void test_band_assembler()
@@ -141,18 +133,21 @@ void test_band_assembler()
 
     // Set up assembly
     double PA[6*2];
-    band_assembler_t assembler;
+    band_assembler_t bassembler;
     memset(PA, 0, 6*2*sizeof(double));
-    assembler.P = PA;
-    assembler.n = 6;
-    assembler.b = 1;
+    bassembler.P = PA;
+    bassembler.n = 6;
+    bassembler.b = 1;
+    assemble_t assembler;
+    assembler.p = &bassembler;
+    assembler.f = add_to_band;
 
     // Element matrix template
     double emat[4] = {1.0, -1.0, -1.0, 1.0};
 
     // Assembly loop
     for (int i = 0; i < 7; ++i) {
-        add_to_band(&assembler, emat, ids+2*i, 2);
+        assemble_add(&assembler, emat, ids+2*i, 2);
     }
 
     // Check the band matrix
