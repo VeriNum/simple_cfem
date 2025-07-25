@@ -213,7 +213,7 @@ void test_dshapes1d()
     double Np[4], Nm[4], dN[4];
     double xtest = 0.707107;
     double err = 0.0;
-    double h = 1e-8;
+    double h = 1e-6;
 
     for (int d = 1; d <= 3; ++d) {
 
