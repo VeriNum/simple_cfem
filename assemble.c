@@ -22,3 +22,13 @@ void add_to_band(void* p, double* emat, int* ids, int ne)
         }
     }
 }
+
+void add_to_vec(void* p, double* evec, int* ids, int ne)
+{
+    double* vec = (double*) p;
+    for (int ie = 0; ie < ne; ++ie) {
+        int i = ids[ie];
+        if (i >= 0)
+            vec[i] += evec[ie];
+    }
+}
