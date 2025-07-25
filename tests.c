@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include "cholesky.h"
+#include "band_assemble.h"
 
 void get_Aref(double* A)
 {
@@ -77,14 +78,6 @@ void get_xref(double* x)
     memcpy(x, xref, 6*sizeof(double));
 }
 
-//ldoc on
-/**
-The `check_solution` function returns the norm of the residual
-$r = b-Ax$ for a proposed solution.  We have a healthy sense of paranoia,
-so we will check to make sure that our tester produces a small residual
-with the reference solution.
-*/
-
 double check_solution(double* x)
 {
     double A[36], b[6];
@@ -132,9 +125,48 @@ void test_band_cholesky()
            check_solution(b));    
 }
 
+void test_band_assembler()
+{
+    // Set up element connectivity
+    int ids[14] = {
+        -1, 0,
+        0, 1,
+        1, 2,
+        2, 3,
+        3, 4,
+        4, 5,
+        5, -2};
+
+    // Set up assembly
+    double PA[6*2];
+    band_assembler_t assembler;
+    memset(PA, 0, 6*2*sizeof(double));
+    assembler.P = PA;
+    assembler.n = 6;
+    assembler.b = 1;
+
+    // Element matrix template
+    double emat[4] = {1.0, -1.0, -1.0, 1.0};
+
+    // Assembly loop
+    for (int i = 0; i < 7; ++i) {
+        add_to_band(&assembler, emat, ids+2*i, 2);
+    }
+
+    // Check the band matrix
+    double err = 0.0;
+    for (int j = 0; j < 6; ++j)
+        err += (PA[j]-2.0)*(PA[j]-2.0);
+    for (int j = 1; j < 6; ++j)
+        err += (PA[j+6]+1.0)*(PA[j+6]+1.0);
+    err = sqrt(err);
+    printf("Check on band assembler: %g\n", err);
+}
+
 int main()
 {
     test_check_solution();
     test_band_cholesky();
+    test_band_assembler();
     return 0;
 }
