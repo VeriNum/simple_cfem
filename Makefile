@@ -3,7 +3,7 @@ all: tests.x
 %.o: %.c
 	gcc -Wall -c $<
 
-tests.x: tests.o cholesky.o band_assemble.o
+tests.x: tests.o cholesky.o band_assemble.o gaussquad.o
 	gcc -Wall -o $@ $^
 
 clean:
