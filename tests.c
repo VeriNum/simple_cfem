@@ -6,6 +6,7 @@
 #include "cholesky.h"
 #include "band_assemble.h"
 #include "gaussquad.h"
+#include "shapes1d.h"
 
 void get_Aref(double* A)
 {
@@ -123,7 +124,7 @@ void test_band_cholesky()
     band_cholesky(PA, 6, 2);
     bcholesky_solve(PA, b, 6, 2);
     printf("Check that band Cholesky in band storage works: %g\n",
-           check_solution(b));    
+           check_solution(b));
 }
 
 void test_band_assembler()
@@ -185,11 +186,60 @@ void test_gauss()
     printf("\n");
 }
 
+void test_shapes1d()
+{
+    double N[4];
+    double err = 0.0;
+    for (int d = 1; d <= 3; ++d) {
+        for (int j = 0; j <= d; ++j) {
+
+            // Evaluate at the ith nodal point
+            double xj = -1.0 + 2.0*j/d;
+            shapes1d(N, xj, d);
+
+            // Check that these are Lagrange functions (Ni(xj) = delta_ij)
+            N[j] -= 1.0;
+            for (int i = 0; i <= d; ++i)
+                err += N[i]*N[i];
+
+        }
+    }
+    err = sqrt(err);
+    printf("Check correctness of 1D shape functions: %g\n", err);
+}
+
+void test_dshapes1d()
+{
+    double Np[4], Nm[4], dN[4];
+    double xtest = 0.707107;
+    double err = 0.0;
+    double h = 1e-8;
+
+    for (int d = 1; d <= 3; ++d) {
+
+        // Evaluate near the test point
+        shapes1d(Np, xtest+h, d);
+        shapes1d(Nm, xtest-h, d);
+        dshapes1d(dN, xtest, d);
+
+        // Finite difference check
+        for (int i = 0; i <= d; ++i) {
+            double dNi_fd = (Np[i]-Nm[i])/2/h;
+            double err_i  = dNi_fd - dN[i];
+            err += err_i*err_i;
+        }
+    }
+    err = sqrt(err);
+    printf("Check correctness of 1D shape derivs vs fd: %g\n", err);
+}
+
 int main()
 {
     test_check_solution();
     test_band_cholesky();
     test_band_assembler();
     test_gauss();
+    test_shapes1d();
+    test_dshapes1d();
     return 0;
 }
