@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "cholesky.h"
-#include "band_assemble.h"
+#include "assemble.h"
 #include "gaussquad.h"
 #include "shapes1d.h"
 

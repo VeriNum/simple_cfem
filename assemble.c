@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "band_assemble.h"
+#include "assemble.h"
 
 void add_to_band(void* p, double* emat, int* ids, int ne)
 {
