@@ -1,30 +1,19 @@
 #ifndef ASSEMBLE_H
 #define ASSEMBLE_H
 
-
-// Interface for general assembler callback
-typedef void (*assemble_fun_t)(void*, double*, int*, int);
-
 // Interface for general assembler object (callback + context)
 typedef struct {
-    void* p;           // Assembler context object
-    assemble_fun_t f;  // Assembler function
+    void* p;                                // Context
+    void (*add)(void*, double*, int*, int); // Add contribution
 } assemble_t;
 
-void assemble_add(assemble_t* assembler, double*, int*, int);
+struct bandmat_t;
 
+// Assembler setups
+void init_assemble_band(assemble_t* assembler, struct bandmat_t* b);
+void init_assemble_vector(assemble_t* assembler, double* v);
 
-typedef struct {
-    double* P;  // Column-major n-by-b storage (for b diagonals)
-    int n, b;
-} band_assembler_t;
-
-// Assemble into a band matrix
-void add_to_band(void* p, double* emat, int* ids, int ne);
-
-
-// Assemble into a vector
-void add_to_vector(void* p, double* evec, int* ids, int ne);
-
+// Assembler methods
+void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne);
 
 #endif /* ASSEMBLE_H */

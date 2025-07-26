@@ -132,15 +132,9 @@ void test_band_assembler()
         5, -2};
 
     // Set up assembly
-    double PA[6*2];
-    band_assembler_t bassembler;
-    memset(PA, 0, 6*2*sizeof(double));
-    bassembler.P = PA;
-    bassembler.n = 6;
-    bassembler.b = 1;
     assemble_t assembler;
-    assembler.p = &bassembler;
-    assembler.f = add_to_band;
+    bandmat_t* A = malloc_bandmat(6, 2);
+    init_assemble_band(&assembler, A);
 
     // Element matrix template
     double emat[4] = {1.0, -1.0, -1.0, 1.0};
@@ -153,11 +147,14 @@ void test_band_assembler()
     // Check the band matrix
     double err = 0.0;
     for (int j = 0; j < 6; ++j)
-        err += (PA[j]-2.0)*(PA[j]-2.0);
+        err += (A->P[j]-2.0)*(A->P[j]-2.0);
     for (int j = 1; j < 6; ++j)
-        err += (PA[j+6]+1.0)*(PA[j+6]+1.0);
+        err += (A->P[j+6]+1.0)*(A->P[j+6]+1.0);
     err = sqrt(err);
     printf("Check on band assembler: %g\n", err);
+
+    // Clean up
+    free_bandmat(A);
 }
 
 void test_gauss()
