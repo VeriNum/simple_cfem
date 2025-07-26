@@ -57,7 +57,7 @@ static void assemble_vecmat_clear(void* p)
  */
 
 // Initialize a dense assembler
-void init_assembler_dense(assemble_t* assembler, double* A)
+void init_assemble_dense(assemble_t* assembler, double* A)
 {
     assembler->p = A;
     assembler->add = assemble_dense_add;

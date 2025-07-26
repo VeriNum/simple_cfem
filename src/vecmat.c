@@ -77,12 +77,12 @@ void vecmat_csolve(double* R, double* x)
     for (int i = 0; i < n; ++i) {
         double bi = x[i];
         for (int j = 0; j < i; ++j)
-            bi -= R[i+j*n]*x[i];
+            bi -= R[j+i*n]*x[j];
         x[i] = bi/R[i+i*n];
     }
 
     // Backward substitution
-    for (int i = 0; i < n; ++i) {
+    for (int i = n; i >= 0; --i) {
         double yi = x[i];
         for (int j = i+1; j < n; ++j)
             yi -= R[i+n*j]*x[j];
