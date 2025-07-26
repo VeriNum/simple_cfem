@@ -9,10 +9,11 @@ typedef struct element_t {
     void (*add)(void* p, struct fem_t* fe, int eltid,
                 struct assemble_t* Rassembler,
                 struct assemble_t* Kassembler);
+    void (*free)(void* p);
 } element_t;
 
 element_t* malloc_poisson_element();
-void free_poisson_element(element_t* e);
+void free_element(element_t* e);
 
 void element_add(element_t* e, struct fem_t* fe, int eltid,
                  struct assemble_t* Rassembler,

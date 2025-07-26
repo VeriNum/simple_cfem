@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "assemble.h"
+#include "element.h"
 #include "fem.h"
 
 
@@ -19,6 +21,7 @@ fem_t* malloc_fem(int numelt, int degree)
     fe->numnp = numnp;
     fe->numelt = numelt;
     fe->nen = nen;
+    fe->nactive = numnp * ndof;
 
     fe->X   = (double*) malloc(d    * numnp  * sizeof(double));
     fe->U   = (double*) malloc(ndof * numnp  * sizeof(double));
@@ -68,6 +71,7 @@ int fem_assign_ids(fem_t* fe)
     for (int i = 0; i < numnp; ++i)
         if (id[i] >= 0)
             id[i] = next_id++;
+    fe->nactive = next_id;
     return next_id;
 }
 
@@ -77,6 +81,14 @@ void fem_get_elt_ids(fem_t* fe, int eltid, int* ids)
     int* elt = fe->elt + eltid*nen;
     for (int i = 0; i < nen; ++i)
         ids[i] = fe->id[elt[i]];
+}
+
+void fem_assemble(fem_t* fe, assemble_t* Rassembler, assemble_t* Kassembler)
+{
+    int numelt = fe->numelt;
+    element_t* etype = fe->etype;
+    for (int i = 0; i < numelt; ++i)
+        element_add(etype, fe, i, Rassembler, Kassembler);
 }
 
 void fem_print(fem_t* fe)

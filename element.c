@@ -105,6 +105,11 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
     if (Kassembler) assemble_add(Kassembler, Ke, ids, nen);
 }
 
+static void poisson_elt_free(void* p)
+{
+    free(p);
+}
+
 /*
  * Public interface
  */
@@ -114,12 +119,13 @@ element_t* malloc_poisson_element()
     poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
     le->e.p = le;
     le->e.add = poisson_elt_add;
+    le->e.free = poisson_elt_free;
     return &(le->e);
 }
 
-void free_poisson_element(element_t* e)
+void free_element(element_t* e)
 {
-    free(e->p);
+    (*(e->free))(e->p);
 }
 
 void element_add(element_t* e, struct fem_t* fe, int eltid,

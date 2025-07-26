@@ -2,6 +2,7 @@
 #define FEM1D_H
 
 struct element_t;
+struct assembler_t;
 
 typedef struct fem_t {
 
@@ -16,11 +17,12 @@ typedef struct fem_t {
     int* elt;   // Element connectivity array (nen-by-numelt)
 
     // Dimensions
-    int d;      // Spatial dimension of problem (d = 1)
-    int ndof;   // Number of unknowns per nodal point (ndof = 1)
-    int numnp;  // Number of nodal points
-    int numelt; // Number of elements
-    int nen;    // Number of element nodes
+    int d;       // Spatial dimension of problem (d = 1)
+    int ndof;    // Number of unknowns per nodal point (ndof = 1)
+    int numnp;   // Number of nodal points
+    int numelt;  // Number of elements
+    int nen;     // Number of element nodes
+    int nactive; // Number of active dofs
 
 } fem_t;
 
@@ -36,6 +38,11 @@ int fem_assign_ids(fem_t* fe);
 
 // Get IDs for element dofs (ndof-by-nen)
 void fem_get_elt_ids(fem_t* fe, int eltid, int* ids);
+
+// Assemble matrix and RHS
+void fem_assemble(fem_t* fe,
+                  struct assemble_t* Rassembler,
+                  struct assemble_t* Kassembler);
 
 // Print the mesh
 void fem_print(fem_t* fe);

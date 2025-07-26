@@ -238,8 +238,10 @@ void test_mesh_setup()
     int nactive = fem_assign_ids(fe);
     fem_print(fe);
 
+    // Attach an element type to the mesh
+    fe->etype = malloc_poisson_element();
+
     // Set up element and assembly space;
-    element_t* e = malloc_poisson_element();
     double* R = (double*) malloc(nactive * sizeof(double));
     bandmat_t* K = malloc_bandmat(nactive, 1);
     assemble_t Rassembler, Kassembler;
@@ -248,8 +250,8 @@ void test_mesh_setup()
     memset(R, 0, nactive * sizeof(double));
     bandmat_clear(K);
 
-    for (int i = 0; i < fe->numelt; ++i)
-        element_add(e, fe, i, &Rassembler, &Kassembler);
+    fem_assemble(fe, &Rassembler, &Kassembler);
+
     printf("K matrix:\n");
     bandmat_print(K);
     printf("R vector:\n");
@@ -264,7 +266,7 @@ void test_mesh_setup()
 
     free_bandmat(K);
     free(R);
-    free_poisson_element(e);
+    free_element(fe->etype);
     free_fem(fe);
 }
 
