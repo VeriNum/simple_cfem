@@ -43,7 +43,7 @@ void free_fem(fem_t* fe)
     free(fe);
 }
 
-void fem_mesh(fem_t* fe, double a, double b)
+void fem_mesh1d(fem_t* fe, double a, double b)
 {
     int numnp = fe->numnp;
     int numelt = fe->numelt;
@@ -138,15 +138,21 @@ void fem_assemble_band(fem_t* fe, double* R, double* K)
 void fem_print(fem_t* fe)
 {
     printf("\nNodal information:\n");
-    printf("   : ID :      X      U      F\n");
+    printf("       ID ");
+    for (int j = 0; j < fe->d; ++j)     printf("     X%d", j);
+    for (int j = 0; j < fe->ndof; ++j)  printf("     U%d", j);
+    printf("\n");
     for (int i = 0; i < fe->numnp; ++i) {
-        printf("%3d: % 3d: % 6.2g % 6.2g % 6.2g\n",
-               i, fe->id[i], fe->X[i], fe->U[i], fe->F[i]);
+        printf("%3d : % 3d ", i, fe->id[i]);
+        for (int j = 0; j < fe->d; ++j)
+            printf(" %6.2g", fe->X[j+fe->d*i]);
+        for (int j = 0; j < fe->ndof; ++j)
+            printf(" % 6.2g\n", fe->U[j+fe->ndof*i]);
     }
 
     printf("\nElement connectivity:\n");
     for (int i = 0; i < fe->numelt; ++i) {
-        printf("% 3d:", i);
+        printf("% 3d :", i);
         for (int j = 0; j < fe->nen; ++j)
             printf("  % 3d", fe->elt[j + i*(fe->nen)]);
         printf("\n");

@@ -231,7 +231,7 @@ void test_dshapes1d()
 fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 {
     fem_t* fe = malloc_fem(numelt, degree);
-    fem_mesh(fe, 0.0, 1.0);
+    fem_mesh1d(fe, 0.0, 1.0);
     fe->id[0]           = -1;
     fe->id[fe->numnp-1] = -1;
     fe->U[0]           = u0;

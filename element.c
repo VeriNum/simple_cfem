@@ -30,6 +30,7 @@ typedef struct poisson_elt_t {
 static void set_qpoint1d(double* N, double* dN, double* xout, double* wtout,
                          fem_t* fe, int* elt, int k)
 {
+    int d      = fe->d;
     int nen    = fe->nen;
     int degree = nen-1;
 
@@ -45,8 +46,8 @@ static void set_qpoint1d(double* N, double* dN, double* xout, double* wtout,
     double* X = fe->X;
     for (int i = 0; i < nen; ++i) {
         int ni = elt[i];
-        x += N[i]*X[ni];
-        dx_dxi += dN[i]*X[ni];
+        x += N[i]*X[ni*d];
+        dx_dxi += dN[i]*X[ni*d];
     }
 
     // Transform gradients and quadrature weight

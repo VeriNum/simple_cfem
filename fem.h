@@ -31,7 +31,7 @@ fem_t* malloc_fem(int numelt, int degree);
 void free_fem(fem_t* fe);
 
 // Initialize a regular mesh for an FEM problem
-void fem_mesh(fem_t* fe, double a, double b);
+void fem_mesh1d(fem_t* fe, double a, double b);
 
 // Assign dof IDs (and return the number of free dofs)
 int fem_assign_ids(fem_t* fe);
