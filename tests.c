@@ -227,10 +227,11 @@ void test_dshapes1d()
 
 void test_mesh_setup()
 {
-    fem1d_t* fe = malloc_fem1d(6, 2);
+    fem1d_t* fe = malloc_fem1d(6, 1);
     fem1d_mesh(fe, 0.0, 1.0);
     fe->id[0]           = -1;
     fe->id[fe->numnp-1] = -1;
+    fe->U[fe->numnp-1] = 1.0;
     fem1d_assign_ids(fe);
     fem1d_print(fe);
     free_fem1d(fe);

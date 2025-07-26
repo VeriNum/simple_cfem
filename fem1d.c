@@ -70,6 +70,14 @@ int fem1d_assign_ids(fem1d_t* fe)
     return next_id;
 }
 
+void fem1d_get_elt_ids(fem1d_t* fe, int eltid, int* ids)
+{
+    int nen = fe->nen;
+    int* elt = fe->elt + eltid*nen;
+    for (int i = 0; i < nen; ++i)
+        ids[i] = fe->id[elt[i]];
+}
+
 void fem1d_print(fem1d_t* fe)
 {
     printf("\nNodal information:\n");

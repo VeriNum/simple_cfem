@@ -29,6 +29,9 @@ void fem1d_mesh(fem1d_t* fe, double a, double b);
 // Assign dof IDs (and return the number of free dofs)
 int fem1d_assign_ids(fem1d_t* fe);
 
+// Get IDs for element dofs (ndof-by-nen)
+void fem1d_get_elt_ids(fem1d_t* fe, int eltid, int* ids);
+
 // Print the mesh
 void fem1d_print(fem1d_t* fe);
 

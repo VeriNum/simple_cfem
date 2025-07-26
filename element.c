@@ -1,0 +1,130 @@
+#include <stdlib.h>
+#include <string.h>
+
+#include "shapes1d.h"
+#include "gaussquad.h"
+#include "assemble.h"
+#include "fem1d.h"
+#include "element.h"
+
+typedef struct poisson_elt_t {
+
+    // Scratch storage
+    double Re[4];
+    double Ke[4*4];
+
+    // Scratch storage for quadrature point stuff
+    double N[4];
+    double dN[4];
+    double x;
+    double wt;
+
+    // Dispatch object
+    element_t e;
+
+} poisson_elt_t;
+
+static void set_qpoint1d(double* N, double* dN, double* xout, double* wtout,
+                         fem1d_t* fe, int* elt, int k)
+{
+    int nen    = fe->nen;
+    int degree = nen-1;
+
+    // Get reference domain quantities
+    double xi = gauss_point(k, degree);
+    double wt = gauss_weight(k, degree);
+    shapes1d(N, xi, degree);
+    dshapes1d(dN, xi, degree);
+
+    // Map xi to spatial domain (and derivative dx/dxi)
+    double x = 0.0;
+    double dx_dxi = 0.0;
+    double* X = fe->X;
+    for (int i = 0; i < nen; ++i) {
+        int ni = elt[i];
+        x += N[i]*X[ni];
+        dx_dxi += dN[i]*X[ni];
+    }
+
+    // Transform gradients and quadrature weight
+    for (int i = 0; i < nen; ++i)
+        dN[i] /= dx_dxi;
+    wt *= dx_dxi;
+
+    // Set output parameters
+    *xout = x;
+    *wtout = wt;
+}
+
+static void poisson_elt_add(void* p, struct fem1d_t* fe, int eltid,
+                            struct assemble_t* Rassembler,
+                            struct assemble_t* Kassembler)
+{
+    int nen = fe->nen;
+    int degree = nen-1;
+    int nquad = degree; // Would need one more for mass matrix...
+    int* elt = fe->elt + eltid*nen;
+
+    // Clear element storage
+    poisson_elt_t* le = (poisson_elt_t*) p;
+    double* Re = le->Re;
+    double* Ke = le->Ke;
+    if (Rassembler) memset(Re, 0, nen*sizeof(double));
+    if (Kassembler) memset(Ke, 0, nen*nen*sizeof(double));
+
+    for (int k = 0; k < nquad; ++k) {
+
+        // Get information about quadrature point (spatial)
+        double* N  = le->N;
+        double* dN = le->dN;
+        double x, wt;
+        set_qpoint1d(N, dN, &x, &wt, fe, fe->elt + eltid*nen, k);
+
+        // Add RHS
+        if (Rassembler) {
+            double du = 0.0;
+            double* U = fe->U;
+            for (int j = 0; j < nen; ++j)
+                du += dN[j]*U[elt[j]];
+            for (int i = 0; i < nen; ++i)
+                Re[i] += dN[i]*du * wt;
+        }
+
+        // Add tangent stiffness
+        if (Kassembler) {
+            for (int j = 0; j < nen; ++j)
+                for (int i = 0; i < nen; ++i)
+                    Ke[i+j*nen] += dN[i]*dN[j] * wt;
+        }
+    }
+
+    // Pass the local contribution to the assembler
+    int ids[4];
+    fem1d_get_elt_ids(fe, eltid, ids);
+    if (Rassembler) assemble_add(Rassembler, Re, ids, nen);
+    if (Kassembler) assemble_add(Kassembler, Ke, ids, nen);
+}
+
+/*
+ * Public interface
+ */
+
+element_t* malloc_poisson_element()
+{
+    poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
+    le->e.p = le;
+    le->e.add = poisson_elt_add;
+    return &(le->e);
+}
+
+void free_poisson_element(element_t* e)
+{
+    free(e->p);
+}
+
+void element_add(element_t* e, struct fem1d_t* fe, int eltid,
+                 struct assemble_t* Rassembler,
+                 struct assemble_t* Kassembler)
+{
+    (*(e->add))(e->p, fe, eltid, Rassembler, Kassembler);
+}

@@ -1,0 +1,21 @@
+#ifndef ELEMENT_H
+#define ELEMENT_H
+
+struct fem1d_t;
+struct assemble_t;
+
+typedef struct element_t {
+    void *p; // Context pointer
+    void (*add)(void* p, struct fem1d_t* fe, int eltid,
+                struct assemble_t* Rassembler,
+                struct assemble_t* Kassembler);
+} element_t;
+
+element_t* malloc_poisson_element();
+void free_poisson_element(element_t* e);
+
+void element_add(element_t* e, struct fem1d_t* fe, int eltid,
+                 struct assemble_t* Rassembler,
+                 struct assemble_t* Kassembler);
+
+#endif /* ELEMENT_H */

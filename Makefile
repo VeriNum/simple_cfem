@@ -2,7 +2,8 @@ OBJS=	fem1d.o \
 	bandmat.o \
 	assemble.o \
 	gaussquad.o \
-	shapes1d.o
+	shapes1d.o \
+	element.o
 
 all: tests.x 
 
