@@ -52,7 +52,7 @@ void init_assemble_band(assemble_t* assembler, bandmat_t* b)
 }
 
 // Initialize a vector assembler
-void init_assemble_vec(assemble_t* assembler, double* v)
+void init_assemble_vector(assemble_t* assembler, double* v)
 {
     assembler->p = v;
     assembler->add = add_to_vec;

@@ -92,7 +92,7 @@ void bandmat_solve(bandmat_t* bandmat, double* x)
 }
 
 // Print band format array
-void print_bandmat(bandmat_t* bandmat)
+void bandmat_print(bandmat_t* bandmat)
 {
     double* PA = bandmat->P;
     int n = bandmat->n;

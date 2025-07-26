@@ -8,6 +8,7 @@
 #include "gaussquad.h"
 #include "shapes1d.h"
 #include "fem1d.h"
+#include "element.h"
 
 void get_Aref(double* A)
 {
@@ -228,12 +229,42 @@ void test_dshapes1d()
 void test_mesh_setup()
 {
     fem1d_t* fe = malloc_fem1d(6, 1);
+
+    // Set up the mesh
     fem1d_mesh(fe, 0.0, 1.0);
     fe->id[0]           = -1;
     fe->id[fe->numnp-1] = -1;
     fe->U[fe->numnp-1] = 1.0;
-    fem1d_assign_ids(fe);
+    int nactive = fem1d_assign_ids(fe);
     fem1d_print(fe);
+
+    // Set up element and assembly space;
+    element_t* e = malloc_poisson_element();
+    double* R = (double*) malloc(nactive * sizeof(double));
+    bandmat_t* K = malloc_bandmat(nactive, 1);
+    assemble_t Rassembler, Kassembler;
+    init_assemble_vector(&Rassembler, R);
+    init_assemble_band(&Kassembler, K);
+    memset(R, 0, nactive * sizeof(double));
+    bandmat_clear(K);
+
+    for (int i = 0; i < fe->numelt; ++i)
+        element_add(e, fe, i, &Rassembler, &Kassembler);
+    printf("K matrix:\n");
+    bandmat_print(K);
+    printf("R vector:\n");
+    for (int i = 0; i < nactive; ++i)
+        printf("%g\n", R[i]);
+
+    bandmat_factor(K);
+    bandmat_solve(K, R);
+    printf("Solution vector:\n");
+    for (int i = 0; i < nactive; ++i)
+        printf("%g\n", R[i]);
+
+    free_bandmat(K);
+    free(R);
+    free_poisson_element(e);
     free_fem1d(fe);
 }
 

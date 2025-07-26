@@ -22,6 +22,6 @@ void bandmat_factor(bandmat_t* bandmat);
 void bandmat_solve(bandmat_t* bandmat, double* x);
 
 // Print a bandmat
-void print_bandmat(bandmat_t* bandmat);
+void bandmat_print(bandmat_t* bandmat);
 
 #endif /* BANDMAT_H */

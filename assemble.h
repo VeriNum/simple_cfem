@@ -2,7 +2,7 @@
 #define ASSEMBLE_H
 
 // Interface for general assembler object (callback + context)
-typedef struct {
+typedef struct assemble_t {
     void* p;                                // Context
     void (*add)(void*, double*, int*, int); // Add contribution
 } assemble_t;
