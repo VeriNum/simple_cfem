@@ -243,7 +243,7 @@ fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 void test_fem1()
 {
     fem_t* fe = setup_test_mesh(6, 1, 0.0, 1.0);
-    fe->etype = malloc_poisson_element(NULL);
+    fe->etype = malloc_poisson_element();
     fem_print(fe);
 
     // Set up globals and assemble system
@@ -268,15 +268,12 @@ void test_fem1()
     free_fem(fe);
 }
 
-double rhs_const1(double x)
-{
-    return 1.0;
-}
-
 void test_fem2()
 {
     fem_t* fe = setup_test_mesh(6, 2, 0.0, 0.0);
-    fe->etype = malloc_poisson_element(rhs_const1);
+    fe->etype = malloc_poisson_element();
+    for (int i = 0; i < fe->numnp; ++i)
+        fe->F[i] = 1.0;
 
     // Set up globals and assemble system
     double* R = malloc_vecmat(fe->nactive, 1);

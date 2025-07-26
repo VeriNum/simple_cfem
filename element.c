@@ -9,9 +9,6 @@
 
 typedef struct poisson_elt_t {
 
-    // Right hand side
-    double (*f)(double x);
-
     // Scratch storage
     double Re[4];
     double Ke[4*4];
@@ -63,7 +60,8 @@ static void set_qpoint1d(double* N, double* dN, double* xout, double* wtout,
 static void poisson_elt_dR(void* p, fem_t* fe, int eltid,
                            double* Re, double* Ke)
 {
-    int nen = fe->nen;
+    int ndof = fe->ndof;
+    int nen  = fe->nen;
     int degree = nen-1;
     int nquad = degree; // Would need one more for mass matrix...
     int* elt = fe->elt + eltid*nen;
@@ -84,13 +82,15 @@ static void poisson_elt_dR(void* p, fem_t* fe, int eltid,
         // Add residual
         if (Re) {
             double du = 0.0;
+            double fx = 0.0;
             double* U = fe->U;
-            for (int j = 0; j < nen; ++j)
-                du += dN[j]*U[elt[j]];
-            for (int i = 0; i < nen; ++i) {
-                double fx = le->f ? le->f(x) : 0.0;
-                Re[i] += (dN[i]*du - N[i]*fx) * wt;
+            double* F = fe->F;
+            for (int j = 0; j < nen; ++j) {
+                du += dN[j]*U[ndof*elt[j]];
+                fx += N[j]*F[ndof*elt[j]];
             }
+            for (int i = 0; i < nen; ++i)
+                Re[i] += (dN[i]*du - N[i]*fx) * wt;
         }
 
         // Add tangent stiffness
@@ -111,10 +111,9 @@ static void poisson_elt_free(void* p)
  * Public interface
  */
 
-element_t* malloc_poisson_element(double (*f)(double))
+element_t* malloc_poisson_element()
 {
     poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
-    le->f = f;
     le->e.p = le;
     le->e.dR = poisson_elt_dR;
     le->e.free = poisson_elt_free;

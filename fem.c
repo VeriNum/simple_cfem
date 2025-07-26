@@ -80,10 +80,12 @@ void fem_update_U(fem_t* fe, double* ured)
 {
     double* U = fe->U;
     int* id = fe->id;
+    int ndof = fe->ndof;
     int numnp = fe->numnp;
     for (int i = 0; i < numnp; ++i)
-        if (id[i] >= 0)
-            U[i] -= ured[id[i]];
+        for (int j = 0; j < ndof; ++j)
+            if (id[j+i*ndof] >= 0)
+                U[j+i*ndof] -= ured[id[j+i*ndof]];
 }
 
 void fem_assemble(fem_t* fe, double* R, assemble_t* K)
