@@ -7,7 +7,7 @@
 #include "assemble.h"
 #include "gaussquad.h"
 #include "shapes1d.h"
-#include "fem1d.h"
+#include "fem.h"
 #include "element.h"
 
 void get_Aref(double* A)
@@ -228,15 +228,15 @@ void test_dshapes1d()
 
 void test_mesh_setup()
 {
-    fem1d_t* fe = malloc_fem1d(6, 1);
+    fem_t* fe = malloc_fem(6, 1);
 
     // Set up the mesh
-    fem1d_mesh(fe, 0.0, 1.0);
+    fem_mesh(fe, 0.0, 1.0);
     fe->id[0]           = -1;
     fe->id[fe->numnp-1] = -1;
     fe->U[fe->numnp-1] = 1.0;
-    int nactive = fem1d_assign_ids(fe);
-    fem1d_print(fe);
+    int nactive = fem_assign_ids(fe);
+    fem_print(fe);
 
     // Set up element and assembly space;
     element_t* e = malloc_poisson_element();
@@ -265,7 +265,7 @@ void test_mesh_setup()
     free_bandmat(K);
     free(R);
     free_poisson_element(e);
-    free_fem1d(fe);
+    free_fem(fe);
 }
 
 int main()

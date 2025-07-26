@@ -4,7 +4,7 @@
 #include "shapes1d.h"
 #include "gaussquad.h"
 #include "assemble.h"
-#include "fem1d.h"
+#include "fem.h"
 #include "element.h"
 
 typedef struct poisson_elt_t {
@@ -25,7 +25,7 @@ typedef struct poisson_elt_t {
 } poisson_elt_t;
 
 static void set_qpoint1d(double* N, double* dN, double* xout, double* wtout,
-                         fem1d_t* fe, int* elt, int k)
+                         fem_t* fe, int* elt, int k)
 {
     int nen    = fe->nen;
     int degree = nen-1;
@@ -56,7 +56,7 @@ static void set_qpoint1d(double* N, double* dN, double* xout, double* wtout,
     *wtout = wt;
 }
 
-static void poisson_elt_add(void* p, struct fem1d_t* fe, int eltid,
+static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
                             struct assemble_t* Rassembler,
                             struct assemble_t* Kassembler)
 {
@@ -100,7 +100,7 @@ static void poisson_elt_add(void* p, struct fem1d_t* fe, int eltid,
 
     // Pass the local contribution to the assembler
     int ids[4];
-    fem1d_get_elt_ids(fe, eltid, ids);
+    fem_get_elt_ids(fe, eltid, ids);
     if (Rassembler) assemble_add(Rassembler, Re, ids, nen);
     if (Kassembler) assemble_add(Kassembler, Ke, ids, nen);
 }
@@ -122,7 +122,7 @@ void free_poisson_element(element_t* e)
     free(e->p);
 }
 
-void element_add(element_t* e, struct fem1d_t* fe, int eltid,
+void element_add(element_t* e, struct fem_t* fe, int eltid,
                  struct assemble_t* Rassembler,
                  struct assemble_t* Kassembler)
 {

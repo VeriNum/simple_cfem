@@ -1,7 +1,12 @@
 #ifndef FEM1D_H
 #define FEM1D_H
 
-typedef struct fem1d_t {
+struct element_t;
+
+typedef struct fem_t {
+
+    // Element type (NB: can generalize with multiple types)
+    struct element_t* etype;
 
     // Mesh storage
     double* X;  // Node locations (d-by-numnp)
@@ -17,22 +22,22 @@ typedef struct fem1d_t {
     int numelt; // Number of elements
     int nen;    // Number of element nodes
 
-} fem1d_t;
+} fem_t;
 
 // Allocate/free an FEM problem structure
-fem1d_t* malloc_fem1d(int numelt, int degree);
-void free_fem1d(fem1d_t* fe);
+fem_t* malloc_fem(int numelt, int degree);
+void free_fem(fem_t* fe);
 
 // Initialize a regular mesh for an FEM problem
-void fem1d_mesh(fem1d_t* fe, double a, double b);
+void fem_mesh(fem_t* fe, double a, double b);
 
 // Assign dof IDs (and return the number of free dofs)
-int fem1d_assign_ids(fem1d_t* fe);
+int fem_assign_ids(fem_t* fe);
 
 // Get IDs for element dofs (ndof-by-nen)
-void fem1d_get_elt_ids(fem1d_t* fe, int eltid, int* ids);
+void fem_get_elt_ids(fem_t* fe, int eltid, int* ids);
 
 // Print the mesh
-void fem1d_print(fem1d_t* fe);
+void fem_print(fem_t* fe);
 
 #endif /* FEM1D_H */

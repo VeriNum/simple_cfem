@@ -1,4 +1,4 @@
-OBJS=	fem1d.o \
+OBJS=	fem.o \
 	bandmat.o \
 	assemble.o \
 	gaussquad.o \

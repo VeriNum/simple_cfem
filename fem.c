@@ -2,23 +2,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "fem1d.h"
+#include "fem.h"
 
 
-fem1d_t* malloc_fem1d(int numelt, int degree)
+fem_t* malloc_fem(int numelt, int degree)
 {
-    fem1d_t* fe = malloc(sizeof(fem1d_t));
+    fem_t* fe = malloc(sizeof(fem_t));
     int d = 1;
     int ndof = 1;
     int numnp = numelt * degree + 1;
     int nen = degree + 1;
 
+    fe->etype = NULL;
     fe->d = d;
     fe->ndof = ndof;
     fe->numnp = numnp;
     fe->numelt = numelt;
     fe->nen = nen;
-    
+
     fe->X   = (double*) malloc(d    * numnp  * sizeof(double));
     fe->U   = (double*) malloc(ndof * numnp  * sizeof(double));
     fe->F   = (double*) malloc(ndof * numnp  * sizeof(double));
@@ -28,7 +29,7 @@ fem1d_t* malloc_fem1d(int numelt, int degree)
     return fe;
 }
 
-void free_fem1d(fem1d_t* fe)
+void free_fem(fem_t* fe)
 {
     free(fe->elt);
     free(fe->id);
@@ -38,12 +39,12 @@ void free_fem1d(fem1d_t* fe)
     free(fe);
 }
 
-void fem1d_mesh(fem1d_t* fe, double a, double b)
+void fem_mesh(fem_t* fe, double a, double b)
 {
     int numnp = fe->numnp;
     int numelt = fe->numelt;
     int nen = fe->nen;
-    
+
     // Set up equispaced mesh of points
     for (int i = 0; i < numnp; ++i)
         fe->X[i] = (i*b + (numnp-i-1)*a)/(numnp-1);
@@ -59,7 +60,7 @@ void fem1d_mesh(fem1d_t* fe, double a, double b)
     memset(fe->id, 0, numnp * sizeof(int));
 }
 
-int fem1d_assign_ids(fem1d_t* fe)
+int fem_assign_ids(fem_t* fe)
 {
     int numnp = fe->numnp;
     int* id = fe->id;
@@ -70,7 +71,7 @@ int fem1d_assign_ids(fem1d_t* fe)
     return next_id;
 }
 
-void fem1d_get_elt_ids(fem1d_t* fe, int eltid, int* ids)
+void fem_get_elt_ids(fem_t* fe, int eltid, int* ids)
 {
     int nen = fe->nen;
     int* elt = fe->elt + eltid*nen;
@@ -78,7 +79,7 @@ void fem1d_get_elt_ids(fem1d_t* fe, int eltid, int* ids)
         ids[i] = fe->id[elt[i]];
 }
 
-void fem1d_print(fem1d_t* fe)
+void fem_print(fem_t* fe)
 {
     printf("\nNodal information:\n");
     printf("   : ID :      X      U      F\n");
