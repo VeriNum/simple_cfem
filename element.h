@@ -11,7 +11,7 @@ typedef struct element_t {
     void (*free)(void* p);
 } element_t;
 
-element_t* malloc_poisson_element();
+element_t* malloc_poisson_element(double (*f)(double));
 void free_element(element_t* e);
 
 void element_add(element_t* e, struct fem_t* fe, int eltid,

@@ -9,6 +9,9 @@
 
 typedef struct poisson_elt_t {
 
+    // Right hand side
+    double (*f)(double x);
+
     // Scratch storage
     double Re[4];
     double Ke[4*4];
@@ -79,14 +82,16 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
         double x, wt;
         set_qpoint1d(N, dN, &x, &wt, fe, fe->elt + eltid*nen, k);
 
-        // Add RHS
+        // Add residual
         if (R) {
             double du = 0.0;
             double* U = fe->U;
             for (int j = 0; j < nen; ++j)
                 du += dN[j]*U[elt[j]];
-            for (int i = 0; i < nen; ++i)
-                Re[i] += dN[i]*du * wt;
+            for (int i = 0; i < nen; ++i) {
+                double fx = le->f ? le->f(x) : 0.0;
+                Re[i] += (dN[i]*du - N[i]*fx) * wt;
+            }
         }
 
         // Add tangent stiffness
@@ -113,9 +118,10 @@ static void poisson_elt_free(void* p)
  * Public interface
  */
 
-element_t* malloc_poisson_element()
+element_t* malloc_poisson_element(double (*f)(double))
 {
     poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
+    le->f = f;
     le->e.p = le;
     le->e.add = poisson_elt_add;
     le->e.free = poisson_elt_free;

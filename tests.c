@@ -226,24 +226,30 @@ void test_dshapes1d()
     printf("Check correctness of 1D shape derivs vs fd: %g\n", err);
 }
 
-void test_mesh_setup()
+// Set up the mesh on [0,1] with Dirichlet BC
+fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 {
-    fem_t* fe = malloc_fem(6, 2);
-
-    // Set up the mesh
+    fem_t* fe = malloc_fem(numelt, degree);
     fem_mesh(fe, 0.0, 1.0);
     fe->id[0]           = -1;
     fe->id[fe->numnp-1] = -1;
-    fe->U[fe->numnp-1] = 1.0;
-    int nactive = fem_assign_ids(fe);
+    fe->U[0]           = u0;
+    fe->U[fe->numnp-1] = u1;
+    fem_assign_ids(fe);
+    return fe;
+}
+
+void test_fem1()
+{
+    fem_t* fe = setup_test_mesh(6, 2, 0.0, 1.0);
     fem_print(fe);
 
     // Attach an element type to the mesh
-    fe->etype = malloc_poisson_element();
+    fe->etype = malloc_poisson_element(NULL);
 
     // Set up element and assembly space;
-    double* R = (double*) malloc(nactive * sizeof(double));
-    bandmat_t* K = malloc_bandmat(nactive, 2);
+    double* R = (double*) malloc(fe->nactive * sizeof(double));
+    bandmat_t* K = malloc_bandmat(fe->nactive, 2);
 
     // Assemble system
     fem_assemble_band(fe, R, K);
@@ -252,7 +258,7 @@ void test_mesh_setup()
     printf("K matrix:\n");
     bandmat_print(K);
     printf("R vector:\n");
-    for (int i = 0; i < nactive; ++i)
+    for (int i = 0; i < fe->nactive; ++i)
         printf("%g\n", R[i]);
 
     // Factor, solve, and update
@@ -275,6 +281,6 @@ int main()
     test_gauss();
     test_shapes1d();
     test_dshapes1d();
-    test_mesh_setup();
+    test_fem1();
     return 0;
 }
