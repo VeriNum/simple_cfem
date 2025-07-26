@@ -9,6 +9,7 @@ typedef struct assemble_t {
 } assemble_t;
 
 // Assembler setups
+void init_assemble_dense(assemble_t* assembler, double* A);
 void init_assemble_band(assemble_t* assembler, double* b);
 
 // Assembler methods

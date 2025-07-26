@@ -12,6 +12,10 @@ void free_vecmat(double* data);
 vecmat_head_t* vecmat(double* data);
 void vecmat_clear(double* data);
 void vecmat_print(double* data);
+
+void vecmat_cfactor(double* A);
+void vecmat_csolve(double* R, double* x);
+
 double vecmat_norm2(double* data);
 double vecmat_norm(double* data);
 

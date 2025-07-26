@@ -5,7 +5,8 @@ struct fem_t;
 
 typedef struct element_t {
     void *p; // Context pointer
-    void (*dR)(void* p, struct fem_t* fe, int eltid, double* Re, double* Ke);
+    void (*dR)(void* p, struct fem_t* fe, int eltid,
+              double* Re, double* Ke);
     void (*free)(void* p);
 } element_t;
 

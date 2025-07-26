@@ -9,6 +9,23 @@
  * Private implementations
  */
 
+// Add to a dense matrix
+static void assemble_dense_add(void* p, double* emat, int* ids, int ne)
+{
+    vecmat_head_t* head = vecmat(p);
+    double* A = head->data;
+    int n = head->m;
+
+    for (int je = 0; je < ne; ++je) {
+        int j = ids[je];
+        for (int ie = 0; ie <= je; ++ie) {
+            int i = ids[ie];
+            if (i >= 0 && j >= i)
+                A[i+n*j] += emat[ie+ne*je];
+        }
+    }
+}
+
 // Add to band matrix
 static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
 {
@@ -30,7 +47,7 @@ static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
     }
 }
 
-static void assemble_bandmat_clear(void* p)
+static void assemble_vecmat_clear(void* p)
 {
     vecmat_clear((double*) p);
 }
@@ -39,12 +56,20 @@ static void assemble_bandmat_clear(void* p)
  * Public interface routines
  */
 
+// Initialize a dense assembler
+void init_assembler_dense(assemble_t* assembler, double* A)
+{
+    assembler->p = A;
+    assembler->add = assemble_dense_add;
+    assembler->clear = assemble_vecmat_clear;
+}
+
 // Initialize a band assembler
 void init_assemble_band(assemble_t* assembler, double* b)
 {
     assembler->p = b;
     assembler->add = assemble_bandmat_add;
-    assembler->clear = assemble_bandmat_clear;
+    assembler->clear = assemble_vecmat_clear;
 }
 
 // Add a contribution to an assembler
