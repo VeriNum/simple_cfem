@@ -4,6 +4,7 @@
 
 #include "assemble.h"
 #include "element.h"
+#include "bandmat.h"
 #include "fem.h"
 
 
@@ -83,12 +84,29 @@ void fem_get_elt_ids(fem_t* fe, int eltid, int* ids)
         ids[i] = fe->id[elt[i]];
 }
 
-void fem_assemble(fem_t* fe, assemble_t* Rassembler, assemble_t* Kassembler)
+void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 {
     int numelt = fe->numelt;
     element_t* etype = fe->etype;
+
+    // Clear storage
+    if (R) memset(R, 0, fe->nactive * sizeof(double));
+    if (K) assemble_clear(K);
+
+    // Assemble contributions
     for (int i = 0; i < numelt; ++i)
-        element_add(etype, fe, i, Rassembler, Kassembler);
+        element_add(etype, fe, i, R, K);
+}
+
+void fem_assemble_band(fem_t* fe, double* R, bandmat_t* K)
+{
+    if (K) {
+        assemble_t Kassembler;
+        init_assemble_band(&Kassembler, K);
+        fem_assemble(fe, R, &Kassembler);
+    } else {
+        fem_assemble(fe, R, NULL);
+    }
 }
 
 void fem_print(fem_t* fe)

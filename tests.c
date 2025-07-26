@@ -244,20 +244,18 @@ void test_mesh_setup()
     // Set up element and assembly space;
     double* R = (double*) malloc(nactive * sizeof(double));
     bandmat_t* K = malloc_bandmat(nactive, 1);
-    assemble_t Rassembler, Kassembler;
-    init_assemble_vector(&Rassembler, R);
-    init_assemble_band(&Kassembler, K);
-    memset(R, 0, nactive * sizeof(double));
-    bandmat_clear(K);
 
-    fem_assemble(fe, &Rassembler, &Kassembler);
+    // Assemble system
+    fem_assemble_band(fe, R, K);
 
+    // Print system
     printf("K matrix:\n");
     bandmat_print(K);
     printf("R vector:\n");
     for (int i = 0; i < nactive; ++i)
         printf("%g\n", R[i]);
 
+    // Factor and solve
     bandmat_factor(K);
     bandmat_solve(K, R);
     printf("Solution vector:\n");

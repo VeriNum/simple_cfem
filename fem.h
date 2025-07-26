@@ -3,6 +3,7 @@
 
 struct element_t;
 struct assembler_t;
+struct bandmat_t;
 
 typedef struct fem_t {
 
@@ -40,9 +41,8 @@ int fem_assign_ids(fem_t* fe);
 void fem_get_elt_ids(fem_t* fe, int eltid, int* ids);
 
 // Assemble matrix and RHS
-void fem_assemble(fem_t* fe,
-                  struct assemble_t* Rassembler,
-                  struct assemble_t* Kassembler);
+void fem_assemble(fem_t* fe, double* R, struct assemble_t* Kassembler);
+void fem_assemble_band(fem_t* fe, double* R, struct bandmat_t* K);
 
 // Print the mesh
 void fem_print(fem_t* fe);

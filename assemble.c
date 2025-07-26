@@ -9,12 +9,12 @@
  */
 
 // Add to band matrix
-static void add_to_bandmat(void* p, double* emat, int* ids, int ne)
+static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
 {
-    bandmat_t* assembler = (bandmat_t*) p;
-    double* P = assembler->P;
-    int n = assembler->n;
-    int b = assembler->b;
+    bandmat_t* bm = (bandmat_t*) p;
+    double* P = bm->P;
+    int n = bm->n;
+    int b = bm->b;
 
     for (int je = 0; je < ne; ++je) {
         int j = ids[je];
@@ -29,15 +29,9 @@ static void add_to_bandmat(void* p, double* emat, int* ids, int ne)
     }
 }
 
-// Add to vector
-static void add_to_vec(void* p, double* evec, int* ids, int ne)
+static void assemble_bandmat_clear(void* p)
 {
-    double* vec = (double*) p;
-    for (int ie = 0; ie < ne; ++ie) {
-        int i = ids[ie];
-        if (i >= 0)
-            vec[i] += evec[ie];
-    }
+    bandmat_clear((bandmat_t*) p);
 }
 
 /*
@@ -48,18 +42,28 @@ static void add_to_vec(void* p, double* evec, int* ids, int ne)
 void init_assemble_band(assemble_t* assembler, bandmat_t* b)
 {
     assembler->p = b;
-    assembler->add = add_to_bandmat;
-}
-
-// Initialize a vector assembler
-void init_assemble_vector(assemble_t* assembler, double* v)
-{
-    assembler->p = v;
-    assembler->add = add_to_vec;
+    assembler->add = assemble_bandmat_add;
+    assembler->clear = assemble_bandmat_clear;
 }
 
 // Add a contribution to an assembler
 void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne)
 {
     (*(assembler->add))(assembler->p, emat, ids, ne);
+}
+
+// Clear assembler
+void assemble_clear(assemble_t* assembler)
+{
+    (*(assembler->clear))(assembler->p);
+}
+
+// Add to vector
+void assemble_vector(double* v, double* ve, int* ids, int ne)
+{
+    for (int ie = 0; ie < ne; ++ie) {
+        int i = ids[ie];
+        if (i >= 0)
+            v[i] += ve[ie];
+    }
 }

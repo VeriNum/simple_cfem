@@ -57,8 +57,7 @@ static void set_qpoint1d(double* N, double* dN, double* xout, double* wtout,
 }
 
 static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
-                            struct assemble_t* Rassembler,
-                            struct assemble_t* Kassembler)
+                            double* R, struct assemble_t* K)
 {
     int nen = fe->nen;
     int degree = nen-1;
@@ -69,8 +68,8 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
     poisson_elt_t* le = (poisson_elt_t*) p;
     double* Re = le->Re;
     double* Ke = le->Ke;
-    if (Rassembler) memset(Re, 0, nen*sizeof(double));
-    if (Kassembler) memset(Ke, 0, nen*nen*sizeof(double));
+    if (R) memset(Re, 0, nen*sizeof(double));
+    if (K) memset(Ke, 0, nen*nen*sizeof(double));
 
     for (int k = 0; k < nquad; ++k) {
 
@@ -81,7 +80,7 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
         set_qpoint1d(N, dN, &x, &wt, fe, fe->elt + eltid*nen, k);
 
         // Add RHS
-        if (Rassembler) {
+        if (R) {
             double du = 0.0;
             double* U = fe->U;
             for (int j = 0; j < nen; ++j)
@@ -91,7 +90,7 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
         }
 
         // Add tangent stiffness
-        if (Kassembler) {
+        if (K) {
             for (int j = 0; j < nen; ++j)
                 for (int i = 0; i < nen; ++i)
                     Ke[i+j*nen] += dN[i]*dN[j] * wt;
@@ -101,8 +100,8 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
     // Pass the local contribution to the assembler
     int ids[4];
     fem_get_elt_ids(fe, eltid, ids);
-    if (Rassembler) assemble_add(Rassembler, Re, ids, nen);
-    if (Kassembler) assemble_add(Kassembler, Ke, ids, nen);
+    if (R) assemble_vector(R, Re, ids, nen);
+    if (K) assemble_add(K, Ke, ids, nen);
 }
 
 static void poisson_elt_free(void* p)
@@ -129,8 +128,7 @@ void free_element(element_t* e)
 }
 
 void element_add(element_t* e, struct fem_t* fe, int eltid,
-                 struct assemble_t* Rassembler,
-                 struct assemble_t* Kassembler)
+                 double* R, struct assemble_t* K)
 {
-    (*(e->add))(e->p, fe, eltid, Rassembler, Kassembler);
+    (*(e->add))(e->p, fe, eltid, R, K);
 }
