@@ -113,7 +113,7 @@ void test_band_cholesky()
     double A[36], b[6];
     get_Aref(A);
     get_bref(b);
-    bandmat_t* BA = dense_to_band(A, 6, 2);
+    double* BA = dense_to_band(A, 6, 2);
     bandmat_factor(BA);
     bandmat_solve(BA, b);
     printf("Check that band Cholesky in band storage works: %g\n",
@@ -135,7 +135,7 @@ void test_band_assembler()
 
     // Set up assembly
     assemble_t assembler;
-    bandmat_t* A = malloc_bandmat(6, 2);
+    double* A = malloc_bandmat(6, 2);
     init_assemble_band(&assembler, A);
 
     // Element matrix template
@@ -248,7 +248,7 @@ void test_fem1()
 
     // Set up globals and assemble system
     double* R = malloc_vecmat(fe->nactive, 1);
-    bandmat_t* K = malloc_bandmat(fe->nactive, 1);
+    double* K = malloc_bandmat(fe->nactive, 1);
     fem_assemble_band(fe, R, K);
 
     // Print system
@@ -280,7 +280,7 @@ void test_fem2()
 
     // Set up globals and assemble system
     double* R = malloc_vecmat(fe->nactive, 1);
-    bandmat_t* K = malloc_bandmat(fe->nactive, 2);
+    double* K = malloc_bandmat(fe->nactive, 2);
     fem_assemble_band(fe, R, K);
 
     // Factor, solve, and update

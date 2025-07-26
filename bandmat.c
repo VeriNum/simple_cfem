@@ -7,13 +7,13 @@
 #include "bandmat.h"
 
 // Allocate a band matrix
-bandmat_t* malloc_bandmat(int n, int b)
+double* malloc_bandmat(int n, int b)
 {
     return malloc_vecmat(n, b+1);
 }
 
 // Convert dense n-by-n A to band matrix P with bandwidth bw
-bandmat_t* dense_to_band(double* A, int n, int bw)
+double* dense_to_band(double* A, int n, int bw)
 {
     double* P = malloc_bandmat(n, bw);
     for (int d = 0; d <= bw; ++d)
@@ -25,12 +25,10 @@ bandmat_t* dense_to_band(double* A, int n, int bw)
 }
 
 // Factor a band matrix
-void bandmat_factor(bandmat_t* bandmat)
+void bandmat_factor(double* PA)
 {
-    vecmat_head_t* head = vecmat(bandmat);
-    double* PA = bandmat;
-    int n = head->m;
-    int bw = head->n-1;
+    vecmat_head_t* head = vecmat(PA);
+    int n = head->m, bw=head->n-1;
     
     for (int k = 0; k < n; ++k) {
 
@@ -49,12 +47,10 @@ void bandmat_factor(bandmat_t* bandmat)
 }
 
 // Solve a linear system with a band Cholesky factorization
-void bandmat_solve(bandmat_t* bandmat, double* x)
+void bandmat_solve(double* PR, double* x)
 {
-    vecmat_head_t* head = vecmat(bandmat);
-    double* PR = bandmat;
-    int n = head->m;
-    int bw = head->n-1;
+    vecmat_head_t* head = vecmat(PR);
+    int n = head->m, bw = head->n-1;
     
     // Forward substitution
     for (int i = 0; i < n; ++i) {
@@ -74,12 +70,10 @@ void bandmat_solve(bandmat_t* bandmat, double* x)
 }
 
 // Print band format array
-void bandmat_print(bandmat_t* bandmat)
+void bandmat_print(double* PA)
 {
-    vecmat_head_t* head = vecmat(bandmat);
-    double* PA = bandmat;
-    int n = head->m;
-    int bw = head->n-1;
+    vecmat_head_t* head = vecmat(PA);
+    int n = head->m, bw = head->n-1;
 
     for (int i = 0; i < n; ++i) {
         for (int d = 0; d <= bw && d <= i; ++d)

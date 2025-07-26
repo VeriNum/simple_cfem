@@ -16,10 +16,6 @@ static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
     double* P = head->data;
     int n = head->m;
     int b = head->n-1;
-//    bandmat_t* bm = (bandmat_t*) p;
-//    double* P = bm->P;
-//    int n = bm->n;
-//    int b = bm->b;
 
     for (int je = 0; je < ne; ++je) {
         int j = ids[je];
