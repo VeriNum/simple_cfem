@@ -241,7 +241,7 @@ fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 
 void test_fem1()
 {
-    fem_t* fe = setup_test_mesh(6, 2, 0.0, 1.0);
+    fem_t* fe = setup_test_mesh(6, 1, 0.0, 1.0);
     fem_print(fe);
 
     // Attach an element type to the mesh
@@ -249,7 +249,7 @@ void test_fem1()
 
     // Set up element and assembly space;
     double* R = (double*) malloc(fe->nactive * sizeof(double));
-    bandmat_t* K = malloc_bandmat(fe->nactive, 2);
+    bandmat_t* K = malloc_bandmat(fe->nactive, 1);
 
     // Assemble system
     fem_assemble_band(fe, R, K);

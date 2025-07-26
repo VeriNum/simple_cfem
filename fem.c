@@ -86,26 +86,42 @@ void fem_update_U(fem_t* fe, double* ured)
             U[i] -= ured[id[i]];
 }
 
-void fem_get_elt_ids(fem_t* fe, int eltid, int* ids)
-{
-    int nen = fe->nen;
-    int* elt = fe->elt + eltid*nen;
-    for (int i = 0; i < nen; ++i)
-        ids[i] = fe->id[elt[i]];
-}
-
 void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 {
     int numelt = fe->numelt;
     element_t* etype = fe->etype;
+    int nen = fe->nen;
 
-    // Clear storage
+    // Set up local storage for element contributions
+    int* ids = (int*) malloc(nen * sizeof(int));
+    double* Re = (double*) malloc(nen * sizeof(double));
+    double* Ke = (double*) malloc(nen*nen * sizeof(double));
+
+    // Clear storage for assembly
     if (R) memset(R, 0, fe->nactive * sizeof(double));
     if (K) assemble_clear(K);
 
     // Assemble contributions
-    for (int i = 0; i < numelt; ++i)
-        element_add(etype, fe, i, R, K);
+    for (int i = 0; i < numelt; ++i) {
+
+        // Get element contributions
+        element_dR(etype, fe, i, R ? Re : NULL, K ? Ke : NULL);
+
+        // Figure out where to put them
+        int* elt = fe->elt + i*nen;
+        for (int j = 0; j < nen; ++j)
+            ids[j] = fe->id[elt[j]];
+
+        // Put them into the global vector/matrix
+        if (R) assemble_vector(R, Re, ids, nen);
+        if (K) assemble_add(K, Ke, ids, nen);
+
+    }
+
+    // Free local storage
+    free(Ke);
+    free(Re);
+    free(ids);
 }
 
 void fem_assemble_band(fem_t* fe, double* R, bandmat_t* K)

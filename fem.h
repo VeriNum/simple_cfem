@@ -37,9 +37,6 @@ void fem_mesh(fem_t* fe, double a, double b);
 // Assign dof IDs (and return the number of free dofs)
 int fem_assign_ids(fem_t* fe);
 
-// Get IDs for element dofs (ndof-by-nen)
-void fem_get_elt_ids(fem_t* fe, int eltid, int* ids);
-
 // Update active part of U
 void fem_update_U(fem_t* fe, double* ured);
 

@@ -59,8 +59,8 @@ static void set_qpoint1d(double* N, double* dN, double* xout, double* wtout,
     *wtout = wt;
 }
 
-static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
-                            double* R, struct assemble_t* K)
+static void poisson_elt_dR(void* p, fem_t* fe, int eltid,
+                           double* Re, double* Ke)
 {
     int nen = fe->nen;
     int degree = nen-1;
@@ -69,10 +69,8 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
 
     // Clear element storage
     poisson_elt_t* le = (poisson_elt_t*) p;
-    double* Re = le->Re;
-    double* Ke = le->Ke;
-    if (R) memset(Re, 0, nen*sizeof(double));
-    if (K) memset(Ke, 0, nen*nen*sizeof(double));
+    if (Re) memset(Re, 0, nen*sizeof(double));
+    if (Ke) memset(Ke, 0, nen*nen*sizeof(double));
 
     for (int k = 0; k < nquad; ++k) {
 
@@ -83,7 +81,7 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
         set_qpoint1d(N, dN, &x, &wt, fe, fe->elt + eltid*nen, k);
 
         // Add residual
-        if (R) {
+        if (Re) {
             double du = 0.0;
             double* U = fe->U;
             for (int j = 0; j < nen; ++j)
@@ -95,18 +93,12 @@ static void poisson_elt_add(void* p, struct fem_t* fe, int eltid,
         }
 
         // Add tangent stiffness
-        if (K) {
+        if (Ke) {
             for (int j = 0; j < nen; ++j)
                 for (int i = 0; i < nen; ++i)
                     Ke[i+j*nen] += dN[i]*dN[j] * wt;
         }
     }
-
-    // Pass the local contribution to the assembler
-    int ids[4];
-    fem_get_elt_ids(fe, eltid, ids);
-    if (R) assemble_vector(R, Re, ids, nen);
-    if (K) assemble_add(K, Ke, ids, nen);
 }
 
 static void poisson_elt_free(void* p)
@@ -123,7 +115,7 @@ element_t* malloc_poisson_element(double (*f)(double))
     poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
     le->f = f;
     le->e.p = le;
-    le->e.add = poisson_elt_add;
+    le->e.dR = poisson_elt_dR;
     le->e.free = poisson_elt_free;
     return &(le->e);
 }
@@ -133,8 +125,8 @@ void free_element(element_t* e)
     (*(e->free))(e->p);
 }
 
-void element_add(element_t* e, struct fem_t* fe, int eltid,
-                 double* R, struct assemble_t* K)
+void element_dR(element_t* e, struct fem_t* fe, int eltid,
+                double* Re, double* Ke)
 {
-    (*(e->add))(e->p, fe, eltid, R, K);
+    (*(e->dR))(e->p, fe, eltid, Re, Ke);
 }
