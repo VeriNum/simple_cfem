@@ -94,8 +94,8 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 
     // Set up local storage for element contributions
     int* ids = (int*) malloc(nen * sizeof(int));
-    double* Re = (double*) malloc(nen * sizeof(double));
-    double* Ke = (double*) malloc(nen*nen * sizeof(double));
+    double* Re = R ? malloc(nen * sizeof(double)) : NULL;
+    double* Ke = K ? malloc(nen * nen * sizeof(double)) : NULL;
 
     // Clear storage for assembly
     if (R) memset(R, 0, fe->nactive * sizeof(double));
@@ -105,7 +105,7 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
     for (int i = 0; i < numelt; ++i) {
 
         // Get element contributions
-        element_dR(etype, fe, i, R ? Re : NULL, K ? Ke : NULL);
+        element_dR(etype, fe, i, Re, Ke);
 
         // Figure out where to put them
         int* elt = fe->elt + i*nen;
@@ -119,8 +119,8 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
     }
 
     // Free local storage
-    free(Ke);
-    free(Re);
+    if (Ke) free(Ke);
+    if (Re) free(Re);
     free(ids);
 }
 
