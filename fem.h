@@ -40,6 +40,9 @@ int fem_assign_ids(fem_t* fe);
 // Get IDs for element dofs (ndof-by-nen)
 void fem_get_elt_ids(fem_t* fe, int eltid, int* ids);
 
+// Update active part of U
+void fem_update_U(fem_t* fe, double* ured);
+
 // Assemble matrix and RHS
 void fem_assemble(fem_t* fe, double* R, struct assemble_t* Kassembler);
 void fem_assemble_band(fem_t* fe, double* R, struct bandmat_t* K);

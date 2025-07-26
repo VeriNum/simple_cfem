@@ -228,7 +228,7 @@ void test_dshapes1d()
 
 void test_mesh_setup()
 {
-    fem_t* fe = malloc_fem(6, 1);
+    fem_t* fe = malloc_fem(6, 2);
 
     // Set up the mesh
     fem_mesh(fe, 0.0, 1.0);
@@ -243,7 +243,7 @@ void test_mesh_setup()
 
     // Set up element and assembly space;
     double* R = (double*) malloc(nactive * sizeof(double));
-    bandmat_t* K = malloc_bandmat(nactive, 1);
+    bandmat_t* K = malloc_bandmat(nactive, 2);
 
     // Assemble system
     fem_assemble_band(fe, R, K);
@@ -255,12 +255,11 @@ void test_mesh_setup()
     for (int i = 0; i < nactive; ++i)
         printf("%g\n", R[i]);
 
-    // Factor and solve
+    // Factor, solve, and update
     bandmat_factor(K);
     bandmat_solve(K, R);
-    printf("Solution vector:\n");
-    for (int i = 0; i < nactive; ++i)
-        printf("%g\n", R[i]);
+    fem_update_U(fe, R);
+    fem_print(fe);
 
     free_bandmat(K);
     free(R);

@@ -76,6 +76,16 @@ int fem_assign_ids(fem_t* fe)
     return next_id;
 }
 
+void fem_update_U(fem_t* fe, double* ured)
+{
+    double* U = fe->U;
+    int* id = fe->id;
+    int numnp = fe->numnp;
+    for (int i = 0; i < numnp; ++i)
+        if (id[i] >= 0)
+            U[i] -= ured[id[i]];
+}
+
 void fem_get_elt_ids(fem_t* fe, int eltid, int* ids)
 {
     int nen = fe->nen;
