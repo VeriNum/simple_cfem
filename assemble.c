@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "assemble.h"
+#include "vecmat.h"
 #include "bandmat.h"
 
 /*
@@ -11,10 +12,14 @@
 // Add to band matrix
 static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
 {
-    bandmat_t* bm = (bandmat_t*) p;
-    double* P = bm->P;
-    int n = bm->n;
-    int b = bm->b;
+    vecmat_head_t* head = vecmat(p);
+    double* P = head->data;
+    int n = head->m;
+    int b = head->n-1;
+//    bandmat_t* bm = (bandmat_t*) p;
+//    double* P = bm->P;
+//    int n = bm->n;
+//    int b = bm->b;
 
     for (int je = 0; je < ne; ++je) {
         int j = ids[je];
@@ -31,7 +36,7 @@ static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
 
 static void assemble_bandmat_clear(void* p)
 {
-    bandmat_clear((bandmat_t*) p);
+    vecmat_clear((double*) p);
 }
 
 /*
@@ -39,7 +44,7 @@ static void assemble_bandmat_clear(void* p)
  */
 
 // Initialize a band assembler
-void init_assemble_band(assemble_t* assembler, bandmat_t* b)
+void init_assemble_band(assemble_t* assembler, double* b)
 {
     assembler->p = b;
     assembler->add = assemble_bandmat_add;

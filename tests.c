@@ -118,7 +118,7 @@ void test_band_cholesky()
     bandmat_solve(BA, b);
     printf("Check that band Cholesky in band storage works: %g\n",
            check_solution(b));
-    free_bandmat(BA);
+    free_vecmat(BA);
 }
 
 void test_band_assembler()
@@ -149,14 +149,14 @@ void test_band_assembler()
     // Check the band matrix
     double err = 0.0;
     for (int j = 0; j < 6; ++j)
-        err += (A->P[j]-2.0)*(A->P[j]-2.0);
+        err += (A[j]-2.0)*(A[j]-2.0);
     for (int j = 1; j < 6; ++j)
-        err += (A->P[j+6]+1.0)*(A->P[j+6]+1.0);
+        err += (A[j+6]+1.0)*(A[j+6]+1.0);
     err = sqrt(err);
     printf("Check on band assembler: %g\n", err);
 
     // Clean up
-    free_bandmat(A);
+    free_vecmat(A);
 }
 
 void test_gauss()
@@ -262,7 +262,7 @@ void test_fem1()
     fem_print(fe);
 
     // Clean up
-    free_bandmat(K);
+    free_vecmat(K);
     free_vecmat(R);
     free_element(fe->etype);
     free_fem(fe);
@@ -290,7 +290,7 @@ void test_fem2()
     fem_print(fe);
 
     // Clean up
-    free_bandmat(K);
+    free_vecmat(K);
     free_vecmat(R);
     free_element(fe->etype);
     free_fem(fe);

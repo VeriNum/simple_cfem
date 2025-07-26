@@ -3,53 +3,34 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "vecmat.h"
 #include "bandmat.h"
 
 // Allocate a band matrix
 bandmat_t* malloc_bandmat(int n, int b)
 {
-    bandmat_t* bandmat = (bandmat_t*) malloc(sizeof(bandmat_t));
-    bandmat->P = malloc(n * (b+1) * sizeof(double));
-    bandmat->n = n;
-    bandmat->b = b;
-    return bandmat;
+    return malloc_vecmat(n, b+1);
 }
 
 // Convert dense n-by-n A to band matrix P with bandwidth bw
 bandmat_t* dense_to_band(double* A, int n, int bw)
 {
-    bandmat_t* B = malloc_bandmat(n, bw);
-    double* P = B->P;
+    double* P = malloc_bandmat(n, bw);
     for (int d = 0; d <= bw; ++d)
         for (int j = d; j < n; ++j) {
             int i = j-d;
             P[j+d*n] = A[i+j*n];
         }
-    return B;
-}
-
-// Free a band matrix
-void free_bandmat(bandmat_t* bandmat)
-{
-    free(bandmat->P);
-    free(bandmat);
-}
-
-// Clear the contents of a band matrix
-void bandmat_clear(bandmat_t* bandmat)
-{
-    double* P = bandmat->P;
-    int n = bandmat->n;
-    int b = bandmat->b;
-    memset(P, 0, n * (b+1) * sizeof(double));
+    return P;
 }
 
 // Factor a band matrix
 void bandmat_factor(bandmat_t* bandmat)
 {
-    double* PA = bandmat->P;
-    int n = bandmat->n;
-    int bw = bandmat->b;
+    vecmat_head_t* head = vecmat(bandmat);
+    double* PA = bandmat;
+    int n = head->m;
+    int bw = head->n-1;
     
     for (int k = 0; k < n; ++k) {
 
@@ -70,9 +51,10 @@ void bandmat_factor(bandmat_t* bandmat)
 // Solve a linear system with a band Cholesky factorization
 void bandmat_solve(bandmat_t* bandmat, double* x)
 {
-    double* PR = bandmat->P;
-    int n = bandmat->n;
-    int bw = bandmat->b;
+    vecmat_head_t* head = vecmat(bandmat);
+    double* PR = bandmat;
+    int n = head->m;
+    int bw = head->n-1;
     
     // Forward substitution
     for (int i = 0; i < n; ++i) {
@@ -94,13 +76,14 @@ void bandmat_solve(bandmat_t* bandmat, double* x)
 // Print band format array
 void bandmat_print(bandmat_t* bandmat)
 {
-    double* PA = bandmat->P;
-    int n = bandmat->n;
-    int bw = bandmat->b;
+    vecmat_head_t* head = vecmat(bandmat);
+    double* PA = bandmat;
+    int n = head->m;
+    int bw = head->n-1;
 
     for (int i = 0; i < n; ++i) {
         for (int d = 0; d <= bw && d <= i; ++d)
             printf("  % 6.3g", PA[i+d*n]);
         printf("\n");
-    }    
+    }
 }

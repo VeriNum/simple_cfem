@@ -3,7 +3,6 @@
 
 struct element_t;
 struct assembler_t;
-struct bandmat_t;
 
 typedef struct fem_t {
 
@@ -42,7 +41,7 @@ void fem_update_U(fem_t* fe, double* ured);
 
 // Assemble matrix and RHS
 void fem_assemble(fem_t* fe, double* R, struct assemble_t* Kassembler);
-void fem_assemble_band(fem_t* fe, double* R, struct bandmat_t* K);
+void fem_assemble_band(fem_t* fe, double* R, double* K);
 
 // Print the mesh
 void fem_print(fem_t* fe);

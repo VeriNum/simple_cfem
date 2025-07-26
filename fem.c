@@ -124,7 +124,7 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
     free(ids);
 }
 
-void fem_assemble_band(fem_t* fe, double* R, bandmat_t* K)
+void fem_assemble_band(fem_t* fe, double* R, double* K)
 {
     if (K) {
         assemble_t Kassembler;

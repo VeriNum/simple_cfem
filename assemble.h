@@ -8,10 +8,8 @@ typedef struct assemble_t {
     void (*clear)(void*);                   // Clear
 } assemble_t;
 
-struct bandmat_t;
-
 // Assembler setups
-void init_assemble_band(assemble_t* assembler, struct bandmat_t* b);
+void init_assemble_band(assemble_t* assembler, double* b);
 
 // Assembler methods
 void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne);
