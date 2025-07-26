@@ -9,6 +9,7 @@
 #include "shapes1d.h"
 #include "fem.h"
 #include "element.h"
+#include "vecmat.h"
 
 void get_Aref(double* A)
 {
@@ -242,24 +243,17 @@ fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 void test_fem1()
 {
     fem_t* fe = setup_test_mesh(6, 1, 0.0, 1.0);
+    fe->etype = malloc_poisson_element(NULL);
     fem_print(fe);
 
-    // Attach an element type to the mesh
-    fe->etype = malloc_poisson_element(NULL);
-
-    // Set up element and assembly space;
-    double* R = (double*) malloc(fe->nactive * sizeof(double));
+    // Set up globals and assemble system
+    double* R = malloc_vecmat(fe->nactive, 1);
     bandmat_t* K = malloc_bandmat(fe->nactive, 1);
-
-    // Assemble system
     fem_assemble_band(fe, R, K);
 
     // Print system
-    printf("K matrix:\n");
-    bandmat_print(K);
-    printf("R vector:\n");
-    for (int i = 0; i < fe->nactive; ++i)
-        printf("%g\n", R[i]);
+    printf("K matrix:\n"); bandmat_print(K);
+    printf("R vector:\n"); vecmat_print(R);
 
     // Factor, solve, and update
     bandmat_factor(K);
@@ -267,8 +261,9 @@ void test_fem1()
     fem_update_U(fe, R);
     fem_print(fe);
 
+    // Clean up
     free_bandmat(K);
-    free(R);
+    free_vecmat(R);
     free_element(fe->etype);
     free_fem(fe);
 }
