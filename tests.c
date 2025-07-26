@@ -3,11 +3,11 @@
 #include <string.h>
 #include <math.h>
 
-//#include "cholesky.h"
 #include "bandmat.h"
 #include "assemble.h"
 #include "gaussquad.h"
 #include "shapes1d.h"
+#include "fem1d.h"
 
 void get_Aref(double* A)
 {
@@ -108,7 +108,7 @@ void test_check_solution()
 
 void test_band_cholesky()
 {
-    double A[36], PA[18], b[6];
+    double A[36], b[6];
     get_Aref(A);
     get_bref(b);
     bandmat_t* BA = dense_to_band(A, 6, 2);
@@ -225,6 +225,17 @@ void test_dshapes1d()
     printf("Check correctness of 1D shape derivs vs fd: %g\n", err);
 }
 
+void test_mesh_setup()
+{
+    fem1d_t* fe = malloc_fem1d(6, 2);
+    fem1d_mesh(fe, 0.0, 1.0);
+    fe->id[0]           = -1;
+    fe->id[fe->numnp-1] = -1;
+    fem1d_assign_ids(fe);
+    fem1d_print(fe);
+    free_fem1d(fe);
+}
+
 int main()
 {
     test_check_solution();
@@ -233,5 +244,6 @@ int main()
     test_gauss();
     test_shapes1d();
     test_dshapes1d();
+    test_mesh_setup();
     return 0;
 }
