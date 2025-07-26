@@ -39,6 +39,9 @@ int fem_assign_ids(fem_t* fe);
 // Update active part of U
 void fem_update_U(fem_t* fe, double* ured);
 
+// Visit nodes
+void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx));
+
 // Assemble matrix and RHS
 void fem_assemble(fem_t* fe, double* R, struct assemble_t* Kassembler);
 void fem_assemble_band(fem_t* fe, double* R, double* K);

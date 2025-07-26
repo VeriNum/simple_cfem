@@ -9,10 +9,6 @@
 
 typedef struct poisson_elt_t {
 
-    // Scratch storage
-    double Re[4];
-    double Ke[4*4];
-
     // Scratch storage for quadrature point stuff
     double N[4];
     double dN[4];

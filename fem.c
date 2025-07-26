@@ -88,6 +88,17 @@ void fem_update_U(fem_t* fe, double* ured)
                 U[j+i*ndof] -= ured[id[j+i*ndof]];
 }
 
+void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx))
+{
+    int d     = fe->d;
+    int ndof  = fe->ndof;
+    int numnp = fe->numnp;
+    double* X = fe->X;
+    double* F = fe->F;
+    for (int i = 0; i < numnp; ++i)
+        (*f)(X+i*d, F+i*ndof);
+}
+
 void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 {
     int numelt = fe->numelt;
@@ -143,13 +154,17 @@ void fem_print(fem_t* fe)
     printf("       ID ");
     for (int j = 0; j < fe->d; ++j)     printf("     X%d", j);
     for (int j = 0; j < fe->ndof; ++j)  printf("     U%d", j);
+    for (int j = 0; j < fe->ndof; ++j)  printf("     F%d", j);
     printf("\n");
     for (int i = 0; i < fe->numnp; ++i) {
         printf("%3d : % 3d ", i, fe->id[i]);
         for (int j = 0; j < fe->d; ++j)
             printf(" %6.2g", fe->X[j+fe->d*i]);
         for (int j = 0; j < fe->ndof; ++j)
-            printf(" % 6.2g\n", fe->U[j+fe->ndof*i]);
+            printf(" % 6.2g", fe->U[j+fe->ndof*i]);
+        for (int j = 0; j < fe->ndof; ++j)
+            printf(" % 6.2g", fe->F[j+fe->ndof*i]);
+        printf("\n");
     }
 
     printf("\nElement connectivity:\n");

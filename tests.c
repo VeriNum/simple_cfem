@@ -268,12 +268,16 @@ void test_fem1()
     free_fem(fe);
 }
 
+void rhs_const1(double* x, double* fx)
+{
+    *fx = 1.0;
+}
+
 void test_fem2()
 {
     fem_t* fe = setup_test_mesh(6, 2, 0.0, 0.0);
     fe->etype = malloc_poisson_element();
-    for (int i = 0; i < fe->numnp; ++i)
-        fe->F[i] = 1.0;
+    fem_set_load(fe, rhs_const1);
 
     // Set up globals and assemble system
     double* R = malloc_vecmat(fe->nactive, 1);
