@@ -268,6 +268,34 @@ void test_fem1()
     free_fem(fe);
 }
 
+double rhs_const1(double x)
+{
+    return 1.0;
+}
+
+void test_fem2()
+{
+    fem_t* fe = setup_test_mesh(6, 2, 0.0, 0.0);
+    fe->etype = malloc_poisson_element(rhs_const1);
+
+    // Set up globals and assemble system
+    double* R = malloc_vecmat(fe->nactive, 1);
+    bandmat_t* K = malloc_bandmat(fe->nactive, 2);
+    fem_assemble_band(fe, R, K);
+
+    // Factor, solve, and update
+    bandmat_factor(K);
+    bandmat_solve(K, R);
+    fem_update_U(fe, R);
+    fem_print(fe);
+
+    // Clean up
+    free_bandmat(K);
+    free_vecmat(R);
+    free_element(fe->etype);
+    free_fem(fe);
+}
+
 int main()
 {
     test_check_solution();
@@ -277,5 +305,6 @@ int main()
     test_shapes1d();
     test_dshapes1d();
     test_fem1();
+    test_fem2();
     return 0;
 }
