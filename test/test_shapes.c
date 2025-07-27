@@ -88,6 +88,7 @@ int main()
     test_dshape(shapes1dP3, x1test, 1, 4);
     test_dshape(shapes2dP1, x2test, 2, 4);
     test_dshape(shapes2dP2, x2test, 2, 9);
+    test_dshape(shapes2dS2, x2test, 2, 8);
     test_dshape(shapes2dT1, x2test, 2, 3);
 
     return 0;
