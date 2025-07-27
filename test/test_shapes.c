@@ -1,58 +1,96 @@
 #include <math.h>
 #include <assert.h>
+#include <string.h>
+#include <stdio.h>
 
+#include "vecmat.h"
 #include "shapes.h"
 
-double test_shapes1d()
+void test_shape(void (*shape)(double*, double*, double*),
+                double* nodes, int d, int numnodes)
 {
-    double N[4];
-    double err = 0.0;
-    for (int d = 1; d <= 3; ++d) {
-        for (int j = 0; j <= d; ++j) {
-
-            // Evaluate at the ith nodal point
-            double xj = -1.0 + 2.0*j/d;
-            shapes1d(N, xj, d);
-
-            // Check that these are Lagrange functions (Ni(xj) = delta_ij)
-            N[j] -= 1.0;
-            for (int i = 0; i <= d; ++i)
-                err += N[i]*N[i];
-
-        }
+    double* N = malloc_vecmat(numnodes,1);
+    for (int i = 0; i < numnodes; ++i) {
+        shape(N, NULL, nodes+i*d);
+        N[i] -= 1.0;
+        assert(vecmat_norm(N) < 1e-8);
     }
-    err = sqrt(err);
-    return err;
+    free_vecmat(N);
 }
 
-double test_dshapes1d()
+
+void test_dshape(void (*shape)(double*, double*, double*),
+                 double* x0, int d, int numnodes)
 {
-    double Np[4], Nm[4], dN[4];
-    double xtest = 0.707107;
-    double err = 0.0;
+    double* Np = malloc_vecmat(numnodes,1);
+    double* Nm = malloc_vecmat(numnodes,1);
+    double* dN = malloc_vecmat(numnodes,d);
     double h = 1e-6;
 
-    for (int d = 1; d <= 3; ++d) {
-
-        // Evaluate near the test point
-        shapes1d(Np, xtest+h, d);
-        shapes1d(Nm, xtest-h, d);
-        dshapes1d(dN, xtest, d);
-
-        // Finite difference check
-        for (int i = 0; i <= d; ++i) {
-            double dNi_fd = (Np[i]-Nm[i])/2/h;
-            double err_i  = dNi_fd - dN[i];
-            err += err_i*err_i;
+    double xp[3], xm[3];
+    shape(NULL, dN, x0);
+    for (int j = 0; j < d; ++j) {
+        memcpy(xp, x0, d*sizeof(double));
+        memcpy(xm, x0, d*sizeof(double));
+        xp[j] += h;  shape(Np, NULL, xp);
+        xm[j] -= h;  shape(Nm, NULL, xm);
+        for (int k = 0; k < numnodes; ++k) {
+            double dN_kj_fd = (Np[k]-Nm[k])/2/h;
+            assert(fabs(dN_kj_fd - dN[k+j*numnodes]) < 1e-8);
         }
     }
-    err = sqrt(err);
-    return err;
+
+    free_vecmat(dN);
+    free_vecmat(Nm);
+    free_vecmat(Np);
 }
+
+
+static double nodes_1dP1[] = { -1.0, 1.0 };
+static double nodes_1dP2[] = { -1.0, 0.0, 1.0 };
+static double nodes_1dP3[] = { -1.0, -1.0/3, 1.0/3, 1.0 };
+static double x1test[] = { 0.876 };
+
+static double nodes_2dP1[] = {
+    -1.0, -1.0,
+     1.0, -1.0,
+     1.0,  1.0,
+    -1.0,  1.0};
+
+static double nodes_2dP2[] = {
+    -1.0, -1.0,
+     0.0, -1.0,
+     1.0, -1.0,
+     1.0,  0.0,
+     1.0,  1.0,
+     0.0,  1.0,
+    -1.0,  1.0,
+    -1.0,  0.0,
+     0.0,  0.0};
+
+static double nodes_2dT1[] = {
+    0.0, 0.0,
+    1.0, 0.0,
+    0.0, 1.0};
+
+static double x2test[] = { 0.1312, 0.2488 };
 
 int main()
 {
-    assert(test_shapes1d() < 1e-8);
-    assert(test_dshapes1d() < 1e-8);
+    test_shape(shapes1dP1, nodes_1dP1, 1, 2);
+    test_shape(shapes1dP2, nodes_1dP2, 1, 3);
+    test_shape(shapes1dP3, nodes_1dP3, 1, 4);
+    test_shape(shapes2dP1, nodes_2dP1, 2, 4);
+    test_shape(shapes2dP2, nodes_2dP2, 2, 9);
+    test_shape(shapes2dS2, nodes_2dP2, 2, 8);
+    test_shape(shapes2dT1, nodes_2dT1, 2, 3);
+
+    test_dshape(shapes1dP1, x1test, 1, 2);
+    test_dshape(shapes1dP2, x1test, 1, 3);
+    test_dshape(shapes1dP3, x1test, 1, 4);
+    test_dshape(shapes2dP1, x2test, 2, 4);
+    test_dshape(shapes2dP2, x2test, 2, 9);
+    test_dshape(shapes2dT1, x2test, 2, 3);
+
     return 0;
 }
