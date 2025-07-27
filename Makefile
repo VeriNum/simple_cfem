@@ -1,5 +1,5 @@
 DOCS=	docs/gaussquad.qmd \
-	docs/shapes1d.qmd \
+	docs/shapes.qmd \
 	docs/vecmat.qmd \
 	docs/bandmat.qmd \
 	docs/mesh.qmd \
@@ -8,7 +8,7 @@ DOCS=	docs/gaussquad.qmd \
 	docs/element.qmd 
 
 OBJS=	obj/gaussquad.o \
-	obj/shapes1d.o \
+	obj/shapes.o \
 	obj/vecmat.o \
 	obj/bandmat.o \
 	obj/mesh.o \
@@ -17,7 +17,7 @@ OBJS=	obj/gaussquad.o \
 	obj/element.o
 
 TESTS=	exe/test_gauss.x \
-	exe/test_shapes1d.x \
+	exe/test_shapes.x \
 	exe/test_vecmat.x \
 	exe/test_bandmat.x \
 	exe/test_assemble.x \
@@ -62,17 +62,17 @@ clean:
 
 src/assemble.o: src/assemble.h src/vecmat.h src/bandmat.h
 src/bandmat.o: src/vecmat.h src/bandmat.h
-src/element.o: src/shapes1d.h src/gaussquad.h src/assemble.h src/mesh.h
+src/element.o: src/shapes.h src/gaussquad.h src/assemble.h src/mesh.h
 src/element.o: src/fem.h src/element.h
 src/fem.o: src/assemble.h src/element.h src/bandmat.h src/mesh.h src/fem.h
 src/gaussquad.o: src/gaussquad.h
 src/mesh.o: src/mesh.h
-src/shapes1d.o: src/shapes1d.h
+src/shapes.o: src/shapes.h
 src/vecmat.o: src/vecmat.h
 test/test_assemble.o: src/vecmat.h src/bandmat.h src/assemble.h
 test/test_bandmat.o: src/vecmat.h src/bandmat.h
 test/test_fem1d.o: src/vecmat.h src/bandmat.h src/mesh.h src/assemble.h
 test/test_fem1d.o: src/element.h src/fem.h
 test/test_gauss.o: src/gaussquad.h
-test/test_shapes1d.o: src/shapes1d.h
+test/test_shapes.o: src/shapes.h
 test/test_vecmat.o: src/vecmat.h

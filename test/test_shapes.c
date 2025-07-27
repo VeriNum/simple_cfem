@@ -1,7 +1,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include "shapes1d.h"
+#include "shapes.h"
 
 double test_shapes1d()
 {

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "shapes1d.h"
+#include "shapes.h"
 #include "gaussquad.h"
 #include "assemble.h"
 #include "mesh.h"

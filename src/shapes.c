@@ -1,5 +1,5 @@
 #include <stddef.h>
-#include "shapes1d.h"
+#include "shapes.h"
 
 void shapes1d(double* N, double x, int degree)
 {
