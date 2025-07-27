@@ -20,19 +20,20 @@ fem_t* malloc_fem(int numelt, int degree)
     int numnp = numelt * degree + 1;
     int nen = degree + 1;
 
+    fe->mesh.d = d;
+    fe->mesh.numnp = numnp;
+    fe->mesh.numelt = numelt;
+    fe->mesh.nen = nen;
+    fe->mesh.X   = (double*) malloc(d    * numnp  * sizeof(double));
+    fe->mesh.elt = (int*)    malloc(nen  * numelt * sizeof(int));
+
     fe->etype = NULL;
-    fe->d = d;
     fe->ndof = ndof;
-    fe->numnp = numnp;
-    fe->numelt = numelt;
-    fe->nen = nen;
     fe->nactive = numnp * ndof;
 
-    fe->X   = (double*) malloc(d    * numnp  * sizeof(double));
     fe->U   = (double*) malloc(ndof * numnp  * sizeof(double));
     fe->F   = (double*) malloc(ndof * numnp  * sizeof(double));
     fe->id  = (int*)    malloc(ndof * numnp  * sizeof(int));
-    fe->elt = (int*)    malloc(nen  * numelt * sizeof(int));
 
     return fe;
 }
@@ -40,29 +41,29 @@ fem_t* malloc_fem(int numelt, int degree)
 // Free mesh object
 void free_fem(fem_t* fe)
 {
-    free(fe->elt);
     free(fe->id);
     free(fe->F);
     free(fe->U);
-    free(fe->X);
+    free(fe->mesh.elt);
+    free(fe->mesh.X);
     free(fe);
 }
 
 // Set up nodes and element array for equispaced mesh on [a, b]
 void fem_mesh1d(fem_t* fe, double a, double b)
 {
-    int numnp = fe->numnp;
-    int numelt = fe->numelt;
-    int nen = fe->nen;
+    int numnp  = fe->mesh.numnp;
+    int numelt = fe->mesh.numelt;
+    int nen    = fe->mesh.nen;
 
     // Set up equispaced mesh of points
     for (int i = 0; i < numnp; ++i)
-        fe->X[i] = (i*b + (numnp-i-1)*a)/(numnp-1);
+        fe->mesh.X[i] = (i*b + (numnp-i-1)*a)/(numnp-1);
 
     // Set up element connectivity
     for (int j = 0; j < numelt; ++j)
         for (int i = 0; i < nen; ++i)
-            fe->elt[i+j*nen] = i+j*(nen-1);
+            fe->mesh.elt[i+j*nen] = i+j*(nen-1);
 
     // Clear the other arrays
     memset(fe->U,  0, numnp * sizeof(double));
@@ -73,7 +74,7 @@ void fem_mesh1d(fem_t* fe, double a, double b)
 // Initialize the id array and set nactive
 int fem_assign_ids(fem_t* fe)
 {
-    int numnp = fe->numnp;
+    int numnp = fe->mesh.numnp;
     int* id = fe->id;
     int next_id = 0;
     for (int i = 0; i < numnp; ++i)
@@ -87,9 +88,9 @@ int fem_assign_ids(fem_t* fe)
 void fem_update_U(fem_t* fe, double* du_red)
 {
     double* U = fe->U;
-    int* id = fe->id;
-    int ndof = fe->ndof;
-    int numnp = fe->numnp;
+    int* id   = fe->id;
+    int ndof  = fe->ndof;
+    int numnp = fe->mesh.numnp;
     for (int i = 0; i < numnp; ++i)
         for (int j = 0; j < ndof; ++j)
             if (id[j+i*ndof] >= 0)
@@ -99,10 +100,10 @@ void fem_update_U(fem_t* fe, double* du_red)
 // Call the callback on each nodes (node position, force vector)
 void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx))
 {
-    int d     = fe->d;
+    int d     = fe->mesh.d;
+    int numnp = fe->mesh.numnp;
     int ndof  = fe->ndof;
-    int numnp = fe->numnp;
-    double* X = fe->X;
+    double* X = fe->mesh.X;
     double* F = fe->F;
     for (int i = 0; i < numnp; ++i)
         (*f)(X+i*d, F+i*ndof);
@@ -111,9 +112,9 @@ void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx))
 // Assemble global residual and tangent stiffness (general)
 void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 {
-    int numelt = fe->numelt;
+    int numelt       = fe->mesh.numelt;
+    int nen          = fe->mesh.nen;
     element_t* etype = fe->etype;
-    int nen = fe->nen;
 
     // Set up local storage for element contributions
     int* ids = (int*) malloc(nen * sizeof(int));
@@ -131,7 +132,7 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
         element_dR(etype, fe, i, Re, Ke);
 
         // Figure out where to put them
-        int* elt = fe->elt + i*nen;
+        int* elt = fe->mesh.elt + i*nen;
         for (int j = 0; j < nen; ++j)
             ids[j] = fe->id[elt[j]];
 
@@ -176,14 +177,14 @@ void fem_print(fem_t* fe)
 {
     printf("\nNodal information:\n");
     printf("       ID ");
-    for (int j = 0; j < fe->d; ++j)     printf("     X%d", j);
-    for (int j = 0; j < fe->ndof; ++j)  printf("     U%d", j);
-    for (int j = 0; j < fe->ndof; ++j)  printf("     F%d", j);
+    for (int j = 0; j < fe->mesh.d; ++j) printf("     X%d", j);
+    for (int j = 0; j < fe->ndof; ++j)   printf("     U%d", j);
+    for (int j = 0; j < fe->ndof; ++j)   printf("     F%d", j);
     printf("\n");
-    for (int i = 0; i < fe->numnp; ++i) {
+    for (int i = 0; i < fe->mesh.numnp; ++i) {
         printf("%3d : % 3d ", i, fe->id[i]);
-        for (int j = 0; j < fe->d; ++j)
-            printf(" %6.2g", fe->X[j+fe->d*i]);
+        for (int j = 0; j < fe->mesh.d; ++j)
+            printf(" %6.2g", fe->mesh.X[j+fe->mesh.d*i]);
         for (int j = 0; j < fe->ndof; ++j)
             printf(" % 6.2g", fe->U[j+fe->ndof*i]);
         for (int j = 0; j < fe->ndof; ++j)
@@ -192,10 +193,10 @@ void fem_print(fem_t* fe)
     }
 
     printf("\nElement connectivity:\n");
-    for (int i = 0; i < fe->numelt; ++i) {
+    for (int i = 0; i < fe->mesh.numelt; ++i) {
         printf("% 3d :", i);
-        for (int j = 0; j < fe->nen; ++j)
-            printf("  % 3d", fe->elt[j + i*(fe->nen)]);
+        for (int j = 0; j < fe->mesh.nen; ++j)
+            printf("  % 3d", fe->mesh.elt[j + i*(fe->mesh.nen)]);
         printf("\n");
     }
 }

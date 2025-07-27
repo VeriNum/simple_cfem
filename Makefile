@@ -37,10 +37,13 @@ exe/%.x: obj/%.o $(OBJS)
 docs/%.qmd: src/%.h src/%.c
 	ldoc -highlight c -p quarto -o $@ $^
 
+docs/index.html: docs/index.qmd $(DOCS)
+	( cd docs ; quarto render index.qmd --to html )
+
 docs/index.pdf: docs/index.qmd $(DOCS)
 	( cd docs ; quarto render index.qmd --to pdf )
 
-doc: docs/index.pdf
+doc: docs/index.pdf docs/index.html
 
 test: $(TESTS)
 	( for f in exe/test*.x ; do $$f ; done )

@@ -41,24 +41,35 @@ struct assembler_t;
  * (one per element) if we wanted more flexibility.
  * 
  */
-typedef struct fem_t {
-
-    // Element type (NB: can generalize with multiple types)
-    struct element_t* etype;
+typedef struct mesh_t {
 
     // Mesh storage
     double* X;  // Node locations (d-by-numnp)
-    double* U;  // Global array of solution values (ndof-by-numnp)
-    double* F;  // Global array of forcing values (ndof-by-numnp)
-    int* id;    // Global to reduced ID map (ndof-by-numnp)
     int* elt;   // Element connectivity array (nen-by-numelt)
 
     // Dimensions
     int d;       // Spatial dimension of problem (d = 1)
-    int ndof;    // Number of unknowns per nodal point (ndof = 1)
     int numnp;   // Number of nodal points
     int numelt;  // Number of elements
     int nen;     // Number of element nodes
+    
+} mesh_t;
+
+typedef struct fem_t {
+
+    // Mesh data
+    mesh_t mesh;
+
+    // Element type (NB: can generalize with multiple types)
+    struct element_t* etype;
+
+    // Storage for fields
+    double* U;  // Global array of solution values (ndof-by-numnp)
+    double* F;  // Global array of forcing values (ndof-by-numnp)
+    int* id;    // Global to reduced ID map (ndof-by-numnp)
+
+    // Dimensions
+    int ndof;    // Number of unknowns per nodal point (ndof = 1)
     int nactive; // Number of active dofs
 
 } fem_t;

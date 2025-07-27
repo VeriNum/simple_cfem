@@ -144,8 +144,8 @@ static void set_qpoint1d(
     int* elt,      // Connectivity for current element
     int k)         // Index of quadrature point
 {
-    int d      = fe->d;
-    int nen    = fe->nen;
+    int d      = fe->mesh.d;
+    int nen    = fe->mesh.nen;
     int degree = nen-1;
 
     // Get reference domain quantities
@@ -157,7 +157,7 @@ static void set_qpoint1d(
     // Map xi to spatial domain (and derivative dx/dxi)
     double x = 0.0;
     double dx_dxi = 0.0;
-    double* X = fe->X;
+    double* X = fe->mesh.X;
     for (int i = 0; i < nen; ++i) {
         int ni = elt[i];
         x += N[i]*X[ni*d];
@@ -204,11 +204,11 @@ static void poisson_elt_dR(
     fem_t* fe, int eltid,      // Mesh and element ID in mesh
     double* Re, double* Ke)    // Outputs: element residual and tangent
 {
+    int nen  = fe->mesh.nen;
     int ndof = fe->ndof;
-    int nen  = fe->nen;
     int degree = nen-1;
     int nquad = degree; // Would need one more for mass matrix...
-    int* elt = fe->elt + eltid*nen;
+    int* elt = fe->mesh.elt + eltid*nen;
 
     // Clear element storage
     if (Re) memset(Re, 0, nen*sizeof(double));
@@ -220,7 +220,7 @@ static void poisson_elt_dR(
         double N[4];  // Storage for shape functions
         double dN[4]; // Storage for shape derivatives        
         double x, wt;
-        set_qpoint1d(N, dN, &x, &wt, fe, fe->elt + eltid*nen, k);
+        set_qpoint1d(N, dN, &x, &wt, fe, fe->mesh.elt + eltid*nen, k);
 
         // Add residual
         if (Re) {

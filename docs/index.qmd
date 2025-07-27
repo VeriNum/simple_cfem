@@ -1,7 +1,12 @@
 ---
 title: Simple 1D FEM in C
 author: David Bindel
-toc: true
+format:
+  html:
+    toc: true
+  pdf:
+    toc: true
+    monofont: "Fira Code"
 ---
 
 {{< include gaussquad.qmd >}}
