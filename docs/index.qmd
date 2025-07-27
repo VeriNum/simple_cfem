@@ -13,6 +13,7 @@ format:
 {{< include shapes1d.qmd >}}
 {{< include vecmat.qmd >}}
 {{< include bandmat.qmd >}}
+{{< include mesh.qmd >}}
 {{< include assemble.qmd >}}
 {{< include fem.qmd >}}
 {{< include element.qmd >}}

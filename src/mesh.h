@@ -4,6 +4,13 @@
 //ldoc on
 /**
  * # Mesh geometry
+ * 
+ * A mesh consists of an array of nodes locations $x_j \in \mathbb{R}^d$
+ * and an element connectivity array with `elt[i,j]` giving the node
+ * number for the $i$th node of the $j$th element.
+ * 
+ * We note that the ordering of the nodes within an element usually has
+ * some significance.
  */
 typedef struct mesh_t {
 
@@ -12,7 +19,7 @@ typedef struct mesh_t {
     int* elt;   // Element connectivity array (nen-by-numelt)
 
     // Dimensions
-    int d;       // Spatial dimension of problem (d = 1)
+    int d;       // Spatial dimension of problem
     int numnp;   // Number of nodal points
     int nen;     // Number of element nodes
     int numelt;  // Number of elements

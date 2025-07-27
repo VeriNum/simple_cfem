@@ -13,8 +13,6 @@ struct mesh_t;
  * old Fortran codes, and mostly is a big pile of arrays.
  * Specifically, we have the nodal arrays:
  * 
- * - `X`: The node position arrays.  Column $j$ represents
- *   the coordinates of node $j$ in the mesh.
  * - `U`: Global array of solution values, *including* those that
  *   are determined by Dirichlet boundary conditions.  Column
  *   $j$ represents the unknowns at node $j$ in the mesh.
@@ -29,14 +27,7 @@ struct mesh_t;
  *   conditions; we mark the latter with negative entries in the `id`
  *   array.
  * 
- * In addition, we have the element connectivity array `elt`;
- * `elt[i,j]` gives the node number for the $i$th node of the $j$th
- * element.  We note that the ordering of the nodes within an element
- * usually has some significance in order to ensure positive orientation
- * of the mapping from reference to spatial coordinates (see the section
- * on mapped quadrature for details).
- * 
- * We also keep around a pointer to an element type object.
+ * We also keep around a pointer to a mesh and an element type object.
  * Note that for the moment, we are assuming only one element type
  * per problem -- we could have a separate array of element type pointer
  * (one per element) if we wanted more flexibility.
