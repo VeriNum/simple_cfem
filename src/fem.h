@@ -1,8 +1,6 @@
 #ifndef FEM1D_H
 #define FEM1D_H
 
-//#include "mesh.h"
-
 struct element_t;
 struct assembler_t;
 struct mesh_t;

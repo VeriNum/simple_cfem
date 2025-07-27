@@ -186,5 +186,5 @@ void fem_print(fem_t* fe)
             printf(" % 6.2g", fe->F[j+fe->ndof*i]);
         printf("\n");
     }
-    mesh_print_elt(&(fe->mesh));
+    mesh_print_elt(fe->mesh);
 }
