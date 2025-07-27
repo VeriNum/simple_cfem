@@ -20,12 +20,7 @@ fem_t* malloc_fem(int numelt, int degree)
     int numnp = numelt * degree + 1;
     int nen = degree + 1;
 
-    fe->mesh.d = d;
-    fe->mesh.numnp = numnp;
-    fe->mesh.numelt = numelt;
-    fe->mesh.nen = nen;
-    fe->mesh.X   = (double*) malloc(d    * numnp  * sizeof(double));
-    fe->mesh.elt = (int*)    malloc(nen  * numelt * sizeof(int));
+    mesh_open(&(fe->mesh), d, numnp, nen, numelt);
 
     fe->etype = NULL;
     fe->ndof = ndof;
@@ -44,8 +39,7 @@ void free_fem(fem_t* fe)
     free(fe->id);
     free(fe->F);
     free(fe->U);
-    free(fe->mesh.elt);
-    free(fe->mesh.X);
+    mesh_close(&(fe->mesh));
     free(fe);
 }
 
@@ -191,12 +185,5 @@ void fem_print(fem_t* fe)
             printf(" % 6.2g", fe->F[j+fe->ndof*i]);
         printf("\n");
     }
-
-    printf("\nElement connectivity:\n");
-    for (int i = 0; i < fe->mesh.numelt; ++i) {
-        printf("% 3d :", i);
-        for (int j = 0; j < fe->mesh.nen; ++j)
-            printf("  % 3d", fe->mesh.elt[j + i*(fe->mesh.nen)]);
-        printf("\n");
-    }
+    mesh_print_elt(&(fe->mesh));
 }

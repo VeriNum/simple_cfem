@@ -1,8 +1,11 @@
 #ifndef FEM1D_H
 #define FEM1D_H
 
+#include "mesh.h"
+
 struct element_t;
 struct assembler_t;
+struct mesh_t;
 
 //ldoc on
 /**
@@ -41,24 +44,10 @@ struct assembler_t;
  * (one per element) if we wanted more flexibility.
  * 
  */
-typedef struct mesh_t {
-
-    // Mesh storage
-    double* X;  // Node locations (d-by-numnp)
-    int* elt;   // Element connectivity array (nen-by-numelt)
-
-    // Dimensions
-    int d;       // Spatial dimension of problem (d = 1)
-    int numnp;   // Number of nodal points
-    int numelt;  // Number of elements
-    int nen;     // Number of element nodes
-    
-} mesh_t;
-
 typedef struct fem_t {
 
     // Mesh data
-    mesh_t mesh;
+    struct mesh_t mesh;
 
     // Element type (NB: can generalize with multiple types)
     struct element_t* etype;
