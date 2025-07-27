@@ -9,7 +9,7 @@
 
 //ldoc on
 /**
- * ### Implementation
+ * ## Implementation
  */
 // Allocate mesh object
 fem_t* malloc_fem(int numelt, int degree)

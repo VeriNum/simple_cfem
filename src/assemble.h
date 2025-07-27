@@ -3,7 +3,7 @@
 
 //ldoc on
 /**
- * ## Assembly
+ * # Assembly
  * 
  * Each element in a finite element discretization consists of
  * 
@@ -12,9 +12,15 @@
  *   Lagrange functions for interpolation at some set of nodes
  *   in $\Omega_e$.
  * 
- * Each local shape function $N^e_j$ on the domain $\Omega_e$ is the
- * restriction of some global shape function $N_{j'}$ on the whole
- * domain $\Omega$.  Usually we only work explicitly with the local
+ * Each local shape function on the domain $\Omega_e$ is the
+ * restriction of some global shape function on the whole
+ * domain $\Omega$.  That is, we have global shape functions
+ * $$
+ *   N_{j}(x) = \sum_{j = \iota(j',e)} N^e_{j'}(x),
+ * $$
+ * where $\iota(j,e)$ denotes the mapping from the local shape
+ * function index for element $e$ to the corresponding global shape
+ * function index.  We only ever compute explicitly with the local
  * functions $N^e_j$; the global functions are implicit.
  * 
  * *Assembly* is the process of reconstructing a quantity defined in
@@ -26,7 +32,7 @@
  * $$
  * we rewrite the integral as
  * $$
- *   F_i = \int_{\Omega_e} \sum_{i \sim i'} f(x) N^e_{i'}(x) \, dx.
+ *   F_i = \sum_{i = \iota(i',e)} \int_{\Omega_e} f(x) N^e_{i'}(x) \, dx.
  * $$
  * In code, this is separated into two pieces:
  * 
@@ -51,7 +57,7 @@
  * known boundary values (for example).  We also handle this filtering
  * work as part of our assembly process.
  * 
- * ### Matrix assemblers
+ * ## Matrix assembler interface
  * 
  * There are several matrix formats that we might want to target as
  * outputs for assembling a matrix; these include dense storage,
@@ -61,8 +67,8 @@
  * 
  * - `add(assembler, ematrix, ids, ne)` adds the `ne`-by-`ne` element
  *   matrix (`ematrix`) into the global structure referenced by the
- *   assembler.  The `ids` array maps from local indices to global
- *   indicies (i.e. `ids[ilocal] = iglobal`).
+ *   assembler.  The `ids` array implements the map $\iota$ from local
+ *   indices to global indices (i.e. `ids[ilocal] = iglobal`).
  * - `clear(assembler)` zeros out the matrix storage in preparation
  *   for assembly of a new matrix.
  * 
@@ -95,7 +101,7 @@ void init_assemble_dense(assemble_t* assembler, double* A);
 void init_assemble_band(assemble_t* assembler, double* b);
 
 /**
- * ### Vector assembly
+ * ## Vector assembly interface
  * 
  * We only really use one vector representation (a simple array), so
  * there is no need for the same type of assembler abstraction for vectors

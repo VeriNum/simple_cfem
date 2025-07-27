@@ -5,11 +5,10 @@
 #include "vecmat.h"
 #include "bandmat.h"
 
+//ldoc on
 /**
- * ### Implementation
- * 
+ * ## Method dispatch
  */
-// Wrappers to call assembler add/clear methods
 void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne)
 {
     (*(assembler->add))(assembler->p, emat, ids, ne);
@@ -49,16 +48,13 @@ void init_assemble_band(assemble_t* assembler, double* b)
 }
 
 /**
- * The assembly loops logically execute
+ * ## Matrix assembly loops
  * 
- *     A[iglobal, jglobal] += Ae[i, j]
- *
+ * The assembly loops logically execute `A[iglobal, jglobal] += Ae[i, j]`
  * for every local index pair `(i,j)`.  We filter out the contributions
  * where the global indices are negative (indicating that these
  * contributions are not needed because of an essential boundary condition.
- *
  */
-// Add to a dense matrix
 static void assemble_dense_add(void* p, double* emat, int* ids, int ne)
 {
     vecmat_head_t* head = vecmat(p);
@@ -75,7 +71,6 @@ static void assemble_dense_add(void* p, double* emat, int* ids, int ne)
     }
 }
 
-// Add to band matrix
 static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
 {
     vecmat_head_t* head = vecmat(p);
@@ -97,8 +92,7 @@ static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
 }
 
 /**
- * Clearing the storage is blessedly trivial.
- * 
+ * ## Clearing storage
  */
 static void assemble_vecmat_clear(void* p)
 {
@@ -106,8 +100,7 @@ static void assemble_vecmat_clear(void* p)
 }
 
 /**
- * Finally, we also need vector assembly.
- * 
+ * ## Vector assembly
  */
 void assemble_vector(double* v, double* ve, int* ids, int ne)
 {

@@ -9,7 +9,7 @@
 
 //ldoc on
 /**
- * ### Implementation
+ * ## Method dispatch
  * 
  * As usual for when we do OOP in C, we have dispatch functions
  * that essentially trampoline a call to the appropriate function
@@ -72,7 +72,7 @@ static void poisson_elt_free(void* p)
 }
 
 /**
- * #### Mapped quadrature
+ * ## Mapped quadrature
  * 
  * We previously defined quadrature rules and element shape functions
  * on a reference domain $[-1, 1]$; but our element subdomains are not all
@@ -175,7 +175,7 @@ static void set_qpoint1d(
 }
 
 /**
- * #### 1D Poisson element
+ * ## 1D Poisson element
  * 
  * The 1D Poisson element `dR` routine computes the local residual terms
  * $$

@@ -3,7 +3,7 @@
 
 //ldoc on
 /**
- * ## Shape functions
+ * # Shape functions
  * 
 
  * Our 1D shape functions are Lagrange polynomials for equally-spaced

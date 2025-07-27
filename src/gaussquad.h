@@ -3,7 +3,7 @@
 
 //ldoc on
 /**
- * ## Gaussian-Legendre quadrature rules
+ * # Gaussian-Legendre quadrature rules
  * 
  * Gauss-Legendre quadrature rules (sometimes just called Gauss
  * quadrature rules when the context is clear) approximate integrals

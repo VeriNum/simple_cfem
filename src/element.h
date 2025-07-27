@@ -5,7 +5,7 @@ struct fem_t;
 
 //ldoc on
 /**
- * ## Elements
+ * # Elements
  * 
  * Abstractly, for steady-state problems, we are finding 
  * $u(x) = \sum_j N_j(x) u_j$ via an equation

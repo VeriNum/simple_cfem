@@ -9,7 +9,7 @@
 
 //ldoc on
 /**
- * ### Implementation
+ * ## Band matrix construction
  * 
  */
 // Allocate a band matrix
@@ -31,7 +31,7 @@ double* dense_to_band(double* A, int n, int bw)
 }
 
 /**
- * #### Printing a band matrix
+ * ## Printing a band matrix
  * 
  * When printing a band matrix, we usually print just the structural
  * nonzeros.  Unless the matrix is very small, trying to introduce
@@ -58,7 +58,7 @@ void bandmat_print(double* PA)
 }
 
 /**
- * #### Band Cholesky and triangular solves
+ * ## Band Cholesky and triangular solves
  * 
  * When computing a Cholesky factorization of a band matrix, the Schur
  * complement update step only affects elements that were already
@@ -75,7 +75,6 @@ void bandmat_print(double* PA)
  * (violating the assumption of positive definiteness).
  * 
  */
-// Factor a band matrix
 void bandmat_factor(double* PA)
 {
     vecmat_head_t* head = vecmat(PA);
@@ -98,7 +97,13 @@ void bandmat_factor(double* PA)
     }    
 }
 
-// Solve a linear system with a band Cholesky factorization
+/**
+ * The `bandmat_solve(PR, x)` routine uses a band Cholesky factor $R$
+ * of the matrix $A$ to solve $Ax = b$.  The `PR` input argument gives
+ * the Cholesky factor (as computed by `bandmat_cholesky`);
+ * on input the `x` argument should be set to the system right-hand side,
+ * and on output it will be the solution vector.
+ */
 void bandmat_solve(double* PR, double* x)
 {
     vecmat_head_t* head = vecmat(PR);

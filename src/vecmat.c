@@ -8,15 +8,13 @@
 
 //ldoc on
 /**
- * ### Implementation
+ * ## Memory management
  * 
  * We usually refer to a `vecmat_t` with a pointer to the (extended)
  * `data` array whose start is declared in the `vecmat_head_t` structure.
  * The `vecmat` function takes a double precision pointer to such a
  * data field and backs up to get a pointer to the struct.
- * 
  */
-// Extract the `vmec_head_t` structure given a data pointer.
 vecmat_head_t* vecmat(double* data)
 {
     vecmat_head_t dummy;
@@ -24,7 +22,14 @@ vecmat_head_t* vecmat(double* data)
     return (vecmat_head_t*) p;
 }
 
-// Allocate space for an m-y-n matrix (and header info)
+/**
+ * The `malloc_vecmat` function allocates space for the head structure
+ * (which contains the first entry in the data array) along with space
+ * for the remainder of the `m*n` double precision numbers in the data
+ * array.  Because we want to be able to pass `vecmat_t` data into C
+ * functions that take plain pointers, we don't return the pointer to
+ * the head structure, but the pointer to the data field.
+ */
 double* malloc_vecmat(int m, int n)
 {
     vecmat_head_t* h = malloc(sizeof(vecmat_head_t) + (m*n-1)*sizeof(double));
@@ -33,22 +38,27 @@ double* malloc_vecmat(int m, int n)
     return h->data;
 }
 
-// Free a vecmat_t referenced by the data pointer
 void free_vecmat(double* data)
 {
     free(vecmat(data));
 }
 
-// Zero out the data array in a vecmat_t
 void vecmat_clear(double* data)
 {
     vecmat_head_t* vm = vecmat(data);
     int m = vm->m, n = vm->n;
-    double* A = vm->data;
-    memset(A, 0, m*n * sizeof(double));
+    memset(data, 0, m*n * sizeof(double));
 }
 
-// Print a matrix stored in a vecmat_t
+/**
+ * ## I/O
+ * 
+ * We provide a print routines as an aid to debugging.  In order
+ * to make sure that modest size matrices can be printed on the
+ * screen in a digestible matter, we only print the first couple
+ * digits in each entry.  Note that we assume column major layout
+ * throughout.
+ */
 void vecmat_print(double* data)
 {
     vecmat_head_t* vm = vecmat(data);
@@ -63,7 +73,7 @@ void vecmat_print(double* data)
 }
 
 /**
- * #### Cholesky factorization
+ * ## Cholesky factorization
  * 
  * For our finite element code, we will largely work with SPD matrices
  * for which a Cholesky solve is appropriate.  On input, we assume a column
@@ -73,7 +83,6 @@ void vecmat_print(double* data)
  * Cholesky factor.  We will error out if we encounter a negative diagonal
  * (in violation of the assumed positive definiteness).
  */
-// Factor A = RR', overwriting the input with R
 void vecmat_cfactor(double* A)
 {
     vecmat_head_t* head = vecmat(A);
@@ -98,7 +107,12 @@ void vecmat_cfactor(double* A)
     }
 }
 
-// Compute x = R\(R'\b), overwriing the right hand side with the solution
+/**
+ * The `vecmat_csolve(R, x)` function assumes a Cholesky factor in the
+ * upper triangle of input argument `R`; the argument `x` is the
+ * right-hand side vector $b$ on input, and the solution vector $x$ on
+ * output.
+ */
 void vecmat_csolve(double* R, double* x)
 {
     vecmat_head_t* head = vecmat(R);
@@ -122,7 +136,7 @@ void vecmat_csolve(double* R, double* x)
 }
 
 /**
- * #### Norm computations
+ * ## Norm computations
  * 
  * Just for checking on residuals and errors, it's convenient to have
  * some functions for computing the squared Euclidean norm and the

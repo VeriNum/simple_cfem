@@ -6,7 +6,7 @@ struct assembler_t;
 
 //ldoc on
 /**
- * ## Finite element mesh
+ * # Finite element mesh
  * 
  * My finite element mesh data structure is informed by lots of
  * old Fortran codes, and mostly is a big pile of arrays.
@@ -17,7 +17,7 @@ struct assembler_t;
  * - `U`: Global array of solution values, *including* those that
  *   are determined by Dirichlet boundary conditions.  Column
  *   $j$ represents the unknowns at node $j$ in the mesh.
- * - 'F': Global array of load values (right hand side evaluations
+ * - `F`: Global array of load values (right hand side evaluations
  *   of the forcing function in Poisson, for example; but 
  *   Neumann boundary conditions can also contribute to `F`).
  * - `id`: Indices of solution values in a reduced solution vector.
@@ -64,7 +64,7 @@ typedef struct fem_t {
 } fem_t;
 
 /**
- * ### Mesh operations
+ * ## Mesh operations
  * 
  * The mesh allocation routine is a little specialized to 1D:
  * in anything but one dimension, we would need to explicitly

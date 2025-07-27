@@ -3,7 +3,7 @@
 
 //ldoc on
 /**
- * ## Vector and matrix conveniences
+ * # Vector and matrix conveniences
  * 
  * C does not make it particularly easy to work with matrices and
  * vectors.  Part of the difficulty is the lack of a convenient place

@@ -31,14 +31,16 @@ obj/%.o: src/%.c
 obj/%.o: test/%.c
 	gcc -Wall -Isrc -c $< -o $@
 
-
 exe/%.x: obj/%.o $(OBJS)
 	gcc -Wall -o $@ $^
 
 docs/%.qmd: src/%.h src/%.c
 	ldoc -highlight c -p quarto -o $@ $^
 
-doc: $(DOCS)
+docs/index.pdf: docs/index.qmd $(DOCS)
+	( cd docs ; quarto render index.qmd --to pdf )
+
+doc: docs/index.pdf
 
 test: $(TESTS)
 	( for f in exe/test*.x ; do $$f ; done )
