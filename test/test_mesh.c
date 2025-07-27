@@ -72,7 +72,20 @@ static int erefS2[] = {
     15,  16,  17,  21,  28,  27,  26,  20};
 
 // Hand checked reference mesh for triangles (nodes = P1 quad nodes)
-static int erefT1[] = {};
+
+static int erefT1[] = {
+    0,   1,   4,
+    4,   1,   5,
+    1,   2,   5,
+    5,   2,   6,
+    2,   3,   6,
+    6,   3,   7,
+    4,   5,   8,
+    8,   5,   9,
+    5,   6,   9,
+    9,   6,  10,
+    6,   7,  10,
+   10,   7,  11};
 
 void check_mesh(mesh_t* mesh, 
                 int numnp, double* Xref,
@@ -104,8 +117,7 @@ int main()
     free_mesh(mesh);
     
     mesh = mesh_block2d_T1(3,2);
-//    check_mesh(mesh, 12, XrefP1, 12, 3, erefT1);
-    mesh_print(mesh);
+    check_mesh(mesh, 12, XrefP1, 12, 3, erefT1);
     free_mesh(mesh);
     
     return 0;
