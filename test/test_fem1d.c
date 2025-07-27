@@ -15,9 +15,9 @@
 // Set up the mesh on [0,1] with Dirichlet BC
 fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 {
-    fem_t* fe = malloc_fem(numelt, degree);
+    mesh_t* mesh = mesh_create1d(numelt, degree, 0.0, 1.0);
+    fem_t* fe = malloc_fem(mesh, 1);
     int numnp = fe->mesh->numnp;
-    fem_mesh1d(fe, 0.0, 1.0);
     fe->id[0]       = -1;
     fe->id[numnp-1] = -1;
     fe->U[0]        = u0;

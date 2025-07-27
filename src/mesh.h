@@ -21,8 +21,11 @@ typedef struct mesh_t {
 
 mesh_t* malloc_mesh(int d, int numnp, int nen, int numelt);
 void free_mesh(mesh_t* mesh);
+mesh_t* mesh_create1d(int numelt, int degree, double a, double b);
 
+void mesh_print_nodes(mesh_t* mesh);
 void mesh_print_elt(mesh_t* mesh);
+void mesh_print(mesh_t* mesh);
 
 //ldoc off
 #endif /* MESH_H */

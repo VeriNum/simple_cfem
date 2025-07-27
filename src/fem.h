@@ -63,20 +63,9 @@ typedef struct fem_t {
 
 /**
  * ## Mesh operations
- * 
- * The mesh allocation routine is a little specialized to 1D:
- * in anything but one dimension, we would need to explicitly
- * specify the number of points, and could not just deduce that
- * from the element type and number of elements.
  */
-fem_t* malloc_fem(int numelt, int degree);
+fem_t* malloc_fem(struct mesh_t* mesh, int ndof);
 void free_fem(fem_t* fe);
-
-/**
- * The `fem_mesh1d` function is a convenience function that sets up a
- * uniform mesh on an interval $[a,b]$.
- */
-void fem_mesh1d(fem_t* fe, double a, double b);
 
 /**
  * The `fem_assign_ids` function sets up the `id` array.  On input,

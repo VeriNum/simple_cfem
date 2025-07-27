@@ -13,23 +13,19 @@
  * ## Implementation
  */
 // Allocate mesh object
-fem_t* malloc_fem(int numelt, int degree)
+fem_t* malloc_fem(mesh_t* mesh, int ndof)
 {
+    int numnp = mesh->numnp;
+
     fem_t* fe = malloc(sizeof(fem_t));
-    int d = 1;
-    int ndof = 1;
-    int numnp = numelt * degree + 1;
-    int nen = degree + 1;
-
-    fe->mesh = malloc_mesh(d, numnp, nen, numelt);
-
-    fe->etype = NULL;
-    fe->ndof = ndof;
+    fe->mesh    = mesh;
+    fe->etype   = NULL;
+    fe->ndof    = ndof;
     fe->nactive = numnp * ndof;
 
-    fe->U   = (double*) malloc(ndof * numnp  * sizeof(double));
-    fe->F   = (double*) malloc(ndof * numnp  * sizeof(double));
-    fe->id  = (int*)    malloc(ndof * numnp  * sizeof(int));
+    fe->U  = (double*) calloc(ndof * numnp, sizeof(double));
+    fe->F  = (double*) calloc(ndof * numnp, sizeof(double));
+    fe->id = (int*)    calloc(ndof * numnp, sizeof(int));
 
     return fe;
 }
@@ -42,28 +38,6 @@ void free_fem(fem_t* fe)
     free(fe->U);
     free_mesh(fe->mesh);
     free(fe);
-}
-
-// Set up nodes and element array for equispaced mesh on [a, b]
-void fem_mesh1d(fem_t* fe, double a, double b)
-{
-    int numnp  = fe->mesh->numnp;
-    int numelt = fe->mesh->numelt;
-    int nen    = fe->mesh->nen;
-
-    // Set up equispaced mesh of points
-    for (int i = 0; i < numnp; ++i)
-        fe->mesh->X[i] = (i*b + (numnp-i-1)*a)/(numnp-1);
-
-    // Set up element connectivity
-    for (int j = 0; j < numelt; ++j)
-        for (int i = 0; i < nen; ++i)
-            fe->mesh->elt[i+j*nen] = i+j*(nen-1);
-
-    // Clear the other arrays
-    memset(fe->U,  0, numnp * sizeof(double));
-    memset(fe->F,  0, numnp * sizeof(double));
-    memset(fe->id, 0, numnp * sizeof(int));
 }
 
 // Initialize the id array and set nactive
@@ -112,9 +86,9 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
     element_t* etype = fe->etype;
 
     // Set up local storage for element contributions
-    int* ids = (int*) malloc(nen * sizeof(int));
-    double* Re = R ? malloc(nen * sizeof(double)) : NULL;
-    double* Ke = K ? malloc(nen * nen * sizeof(double)) : NULL;
+    int* ids   =     calloc(nen,     sizeof(int));
+    double* Re = R ? calloc(nen,     sizeof(double)) : NULL;
+    double* Ke = K ? calloc(nen*nen, sizeof(double)) : NULL;
 
     // Clear storage for assembly
     if (R) memset(R, 0, fe->nactive * sizeof(double));
