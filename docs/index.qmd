@@ -10,7 +10,7 @@ format:
 ---
 
 {{< include gaussquad.qmd >}}
-{{< include shapes1d.qmd >}}
+{{< include shapes.qmd >}}
 {{< include vecmat.qmd >}}
 {{< include bandmat.qmd >}}
 {{< include mesh.qmd >}}

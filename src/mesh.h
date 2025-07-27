@@ -1,6 +1,8 @@
 #ifndef MESH_H
 #define MESH_H
 
+#include "shapes.h"
+
 //ldoc on
 /**
  * # Mesh geometry
@@ -23,7 +25,10 @@ typedef struct mesh_t {
     int numnp;   // Number of nodal points
     int nen;     // Number of element nodes
     int numelt;  // Number of elements
-    
+
+    // Shape function
+    int (*shape)(double* N, double* dN, double* x);
+
 } mesh_t;
 
 mesh_t* malloc_mesh(int d, int numnp, int nen, int numelt);

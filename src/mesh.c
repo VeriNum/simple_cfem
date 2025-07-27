@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "mesh.h"
 
@@ -13,6 +14,7 @@ mesh_t* malloc_mesh(int d, int numnp, int nen, int numelt)
     mesh->numelt = numelt;
     mesh->X      = calloc(d   * numnp,  sizeof(double));
     mesh->elt    = calloc(nen * numelt, sizeof(int));
+    mesh->shape  = NULL;
     return mesh;
 }
 
@@ -28,6 +30,11 @@ mesh_t* mesh_create1d(int numelt, int degree, double a, double b)
     int numnp = numelt * degree + 1;
     int nen = degree + 1;
     mesh_t* mesh = malloc_mesh(1, numnp, nen, numelt);
+
+    if      (degree == 1) mesh->shape = shapes1dP1;
+    else if (degree == 2) mesh->shape = shapes1dP2;
+    else if (degree == 3) mesh->shape = shapes1dP3;
+    else assert(0);
 
     // Set up equispaced mesh of points
     double* X = mesh->X;

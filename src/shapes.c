@@ -1,21 +1,7 @@
 #include <stddef.h>
 #include "shapes.h"
 
-void shapes1d(double* N, double x, int degree)
-{
-    if      (degree == 1) shapes1dP1(N, NULL, &x);
-    else if (degree == 2) shapes1dP2(N, NULL, &x);
-    else if (degree == 3) shapes1dP3(N, NULL, &x);
-}
-
-void dshapes1d(double* dN, double x, int degree)
-{
-    if      (degree == 1) shapes1dP1(NULL, dN, &x);
-    else if (degree == 2) shapes1dP2(NULL, dN, &x);
-    else if (degree == 3) shapes1dP3(NULL, dN, &x);
-}
-
-void shapes1dP1(double* N, double* dN, double* xx)
+int shapes1dP1(double* N, double* dN, double* xx)
 {
     double x = xx[0];
     if (N) {
@@ -26,9 +12,10 @@ void shapes1dP1(double* N, double* dN, double* xx)
         dN[0] = -0.5;
         dN[1] =  0.5;
     }
+    return 2;
 }
 
-void shapes1dP2(double* N, double* dN, double* xx)
+int shapes1dP2(double* N, double* dN, double* xx)
 {
     double x = xx[0];
     if (N) {
@@ -41,9 +28,10 @@ void shapes1dP2(double* N, double* dN, double* xx)
         dN[1] = -2*x;
         dN[2] =  0.5*(1+2*x);
     }
+    return 3;
 }
 
-void shapes1dP3(double* N, double* dN, double* xx)
+int shapes1dP3(double* N, double* dN, double* xx)
 {
     double x = xx[0];
     if (N) {
@@ -58,9 +46,10 @@ void shapes1dP3(double* N, double* dN, double* xx)
         dN[2] = 9.0/16 * ( 3+x*(-2+x*-9));
         dN[3] = 1.0/16 * (-1+x*( 18+x* 27));
     }
+    return 4;
 }
 
-void shapes2dP1(double* N, double* dN, double* x)
+int shapes2dP1(double* N, double* dN, double* x)
 {
     double Nx[2], dNx[2], Ny[2], dNy[2];
     shapes1dP1(Nx, dNx, x+0);
@@ -77,9 +66,10 @@ void shapes2dP1(double* N, double* dN, double* x)
         dN[2] = dNx[1]*Ny[1];  dN[6] = Nx[1]*dNy[1];
         dN[3] = dNx[0]*Ny[1];  dN[7] = Nx[0]*dNy[1];
     }
+    return 4;
 }
 
-void shapes2dP2(double* N, double* dN, double* x)
+int shapes2dP2(double* N, double* dN, double* x)
 {
     double Nx[3], dNx[3], Ny[3], dNy[3];
     shapes1dP2(Nx, dNx, x+0);
@@ -106,9 +96,10 @@ void shapes2dP2(double* N, double* dN, double* x)
         dN[7] = dNx[0]*Ny[1];  dN[16] = Nx[0]*dNy[1];
         dN[8] = dNx[1]*Ny[1];  dN[17] = Nx[1]*dNy[1];
     }
+    return 9;
 }
 
-void shapes2dS2(double* N, double* dN, double* x)
+int shapes2dS2(double* N, double* dN, double* x)
 {
     double Nx[3], dNx[3], Ny[3], dNy[3];
     shapes1dP2(Nx, dNx, x+0);
@@ -133,18 +124,20 @@ void shapes2dS2(double* N, double* dN, double* x)
         dN[6] = dNx[0]*Ny[2];  dN[14] = Nx[0]*dNy[2];
         dN[7] = dNx[0]*Ny[1];  dN[15] = Nx[0]*dNy[1];
     }
+    return 8;
 }
 
-void shapes2dT1(double* N, double* dN, double* x)
+int shapes2dT1(double* N, double* dN, double* x)
 {
     if (N) {
-        N[0] = (1-x[0])*(1-x[1]);
+        N[0] = 1-x[0]-x[1];
         N[1] = x[0];
         N[2] = x[1];
     }
     if (dN) {
-        dN[0] = x[1]-1;  dN[3] = x[0]-1;
-        dN[1] = 1.0;     dN[4] = 0.0;
-        dN[2] = 0.0;     dN[5] = 1.0;
+        dN[0] = -1.0;  dN[3] = -1.0;
+        dN[1] =  1.0;  dN[4] =  0.0;
+        dN[2] =  0.0;  dN[5] =  1.0;
     }
+    return 3;
 }

@@ -6,8 +6,7 @@
 #include "vecmat.h"
 #include "shapes.h"
 
-void test_shape(void (*shape)(double*, double*, double*),
-                double* nodes, int d, int numnodes)
+void test_shape(shapes_t shape, double* nodes, int d, int numnodes)
 {
     double* N = malloc_vecmat(numnodes,1);
     for (int i = 0; i < numnodes; ++i) {
@@ -19,8 +18,7 @@ void test_shape(void (*shape)(double*, double*, double*),
 }
 
 
-void test_dshape(void (*shape)(double*, double*, double*),
-                 double* x0, int d, int numnodes)
+void test_dshape(shapes_t shape, double* x0, int d, int numnodes)
 {
     double* Np = malloc_vecmat(numnodes,1);
     double* Nm = malloc_vecmat(numnodes,1);

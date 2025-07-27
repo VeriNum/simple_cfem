@@ -152,8 +152,7 @@ static void set_qpoint1d(
     // Get reference domain quantities
     double xi = gauss_point(k, degree);
     double wt = gauss_weight(k, degree);
-    shapes1d(N, xi, degree);
-    dshapes1d(dN, xi, degree);
+    (*fe->mesh->shape)(N, dN, &xi);
 
     // Map xi to spatial domain (and derivative dx/dxi)
     double x = 0.0;
