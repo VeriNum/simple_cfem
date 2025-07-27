@@ -1,35 +1,150 @@
+#include <stddef.h>
 #include "shapes1d.h"
 
 void shapes1d(double* N, double x, int degree)
 {
-    if (degree == 1) {
+    if      (degree == 1) shapes1dP1(N, NULL, &x);
+    else if (degree == 2) shapes1dP2(N, NULL, &x);
+    else if (degree == 3) shapes1dP3(N, NULL, &x);
+}
+
+void dshapes1d(double* dN, double x, int degree)
+{
+    if      (degree == 1) shapes1dP1(NULL, dN, &x);
+    else if (degree == 2) shapes1dP2(NULL, dN, &x);
+    else if (degree == 3) shapes1dP3(NULL, dN, &x);
+}
+
+void shapes1dP1(double* N, double* dN, double* xx)
+{
+    double x = xx[0];
+    if (N) {
         N[0] = 0.5*(1-x);
         N[1] = 0.5*(1+x);
-    } else if (degree == 2) {
+    }
+    if (dN) {
+        dN[0] = -0.5;
+        dN[1] =  0.5;
+    }
+}
+
+void shapes1dP2(double* N, double* dN, double* xx)
+{
+    double x = xx[0];
+    if (N) {
         N[0] = -0.5*(1-x)*x;
         N[1] =      (1-x)*  (1+x);
         N[2] =  0.5*      x*(1+x);
-    } else if (degree == 3) {
+    }
+    if (dN) {
+        dN[0] = -0.5*(1-2*x);
+        dN[1] = -2*x;
+        dN[2] =  0.5*(1+2*x);
+    }
+}
+
+void shapes1dP3(double* N, double* dN, double* xx)
+{
+    double x = xx[0];
+    if (N) {
         N[0] = (-1.0/16) * (1-x)*(1-3*x)*(1+3*x);
         N[1] = ( 9.0/16) * (1-x)*(1-3*x)*(1+x);
         N[2] = ( 9.0/16) * (1-x)*(1+3*x)*(1+x);
         N[3] = (-1.0/16) * (1-3*x)*(1+3*x)*(1+x);
     }
-}
-
-void dshapes1d(double* dN, double x, int degree)
-{
-    if (degree == 1) {
-        dN[0] = -0.5;
-        dN[1] =  0.5;
-    } else if (degree == 2) {
-        dN[0] = -0.5*(1-2*x);
-        dN[1] = -2*x;
-        dN[2] =  0.5*(1+2*x);
-    } else if (degree == 3) {
+    if (dN) {
         dN[0] = 1.0/16 * ( 1+x*( 18+x*-27));
         dN[1] = 9.0/16 * (-3+x*(-2+x* 9));
-        dN[2] = 9.0/16 * ( 3+x*(-2+x*-9));        
+        dN[2] = 9.0/16 * ( 3+x*(-2+x*-9));
         dN[3] = 1.0/16 * (-1+x*( 18+x* 27));
+    }
+}
+
+void shapes2dP1(double* N, double* dN, double* x)
+{
+    double Nx[2], dNx[2], Ny[2], dNy[2];
+    shapes1dP1(N ? Nx : NULL, dN ? dNx : NULL, x+0);
+    shapes1dP1(N ? Nx : NULL, dN ? dNx : NULL, x+1);
+    if (N) {
+        N[0] = Nx[0]*Ny[0];
+        N[1] = Nx[1]*Ny[0];
+        N[2] = Nx[1]*Ny[1];
+        N[3] = Nx[0]*Ny[1];
+    }
+    if (dN) {
+        dN[0] = dNx[0]*Ny[0];  dN[4] = Nx[0]*dNy[0];
+        dN[1] = dNx[1]*Ny[0];  dN[5] = Nx[1]*dNy[0];
+        dN[2] = dNx[1]*Ny[1];  dN[6] = Nx[1]*dNy[1];
+        dN[3] = dNx[0]*Ny[1];  dN[7] = Nx[0]*dNy[1];
+    }
+}
+
+void shapes2dP2(double* N, double* dN, double* x)
+{
+    double Nx[3], dNx[3], Ny[3], dNy[3];
+    shapes1dP2(N ? Nx : NULL, dN ? dNx : NULL, x+0);
+    shapes1dP2(N ? Nx : NULL, dN ? dNx : NULL, x+1);
+    if (N) {
+        N[0] = Nx[0]*Ny[0];
+        N[1] = Nx[1]*Ny[0];
+        N[2] = Nx[2]*Ny[0];
+        N[3] = Nx[2]*Ny[1];
+        N[4] = Nx[2]*Ny[2];
+        N[5] = Nx[1]*Ny[2];
+        N[6] = Nx[0]*Ny[2];
+        N[7] = Nx[0]*Ny[1];
+        N[8] = Nx[1]*Ny[2];
+    }
+    if (dN) {
+        dN[0] = Nx[0]*Ny[0];  dN[ 9] = Nx[0]*dNy[0];
+        dN[1] = Nx[1]*Ny[0];  dN[10] = Nx[1]*dNy[0];
+        dN[2] = Nx[2]*Ny[0];  dN[11] = Nx[2]*dNy[0];
+        dN[3] = Nx[2]*Ny[1];  dN[12] = Nx[2]*dNy[1];
+        dN[4] = Nx[2]*Ny[2];  dN[13] = Nx[2]*dNy[2];
+        dN[5] = Nx[1]*Ny[2];  dN[14] = Nx[1]*dNy[2];
+        dN[6] = Nx[0]*Ny[2];  dN[15] = Nx[0]*dNy[2];
+        dN[7] = Nx[0]*Ny[1];  dN[16] = Nx[0]*dNy[1];
+        dN[8] = Nx[1]*Ny[2];  dN[17] = Nx[1]*dNy[2];
+    }
+}
+
+void shapes2dS2(double* N, double* dN, double* x)
+{
+    double Nx[3], dNx[3], Ny[3], dNy[3];
+    shapes1dP2(N ? Nx : NULL, dN ? dNx : NULL, x+0);
+    shapes1dP2(N ? Nx : NULL, dN ? dNx : NULL, x+1);
+    if (N) {
+        N[0] = Nx[0]*Ny[0];
+        N[1] = Nx[1]*Ny[0];
+        N[2] = Nx[2]*Ny[0];
+        N[3] = Nx[2]*Ny[1];
+        N[4] = Nx[2]*Ny[2];
+        N[5] = Nx[1]*Ny[2];
+        N[6] = Nx[0]*Ny[2];
+        N[7] = Nx[0]*Ny[1];
+    }
+    if (dN) {
+        dN[0] = Nx[0]*Ny[0];  dN[ 8] = Nx[0]*dNy[0];
+        dN[1] = Nx[1]*Ny[0];  dN[ 9] = Nx[1]*dNy[0];
+        dN[2] = Nx[2]*Ny[0];  dN[10] = Nx[2]*dNy[0];
+        dN[3] = Nx[2]*Ny[1];  dN[11] = Nx[2]*dNy[1];
+        dN[4] = Nx[2]*Ny[2];  dN[12] = Nx[2]*dNy[2];
+        dN[5] = Nx[1]*Ny[2];  dN[13] = Nx[1]*dNy[2];
+        dN[6] = Nx[0]*Ny[2];  dN[14] = Nx[0]*dNy[2];
+        dN[7] = Nx[0]*Ny[1];  dN[15] = Nx[0]*dNy[1];
+    }
+}
+
+void shapes2dT1(double* N, double* dN, double* x)
+{
+    if (N) {
+        N[0] = (1-x[0])*(1-x[1]);
+        N[1] = x[1];
+        N[2] = x[0];
+    }
+    if (dN) {
+        dN[0] = x[1]-1;  dN[3] = x[0]-1;
+        dN[1] = 1.0;     dN[4] = 0.0;
+        dN[2] = 0.0;     dN[5] = 1.0;
     }
 }

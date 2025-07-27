@@ -5,7 +5,6 @@
 /**
  * # Shape functions
  * 
-
  * Our 1D shape functions are Lagrange polynomials for equally-spaced
  * nodes in the interval $[-1, 1]$; that is, if $x_0 = -1, \ldots
  * x_{p} = 1$ are $p+1$ equally-spaced nodes on the interval, then
@@ -23,6 +22,15 @@
 
 void shapes1d(double* N, double x, int degree);
 void dshapes1d(double* dN, double x, int degree);
+
+void shapes1dP1(double* N, double* dN, double* x);
+void shapes1dP2(double* N, double* dN, double* x);
+void shapes1dP3(double* N, double* dN, double* x);
+
+void shapes2dP1(double* N, double* dN, double* x);
+void shapes2dP2(double* N, double* dN, double* x);
+void shapes2dS2(double* N, double* dN, double* x);
+void shapes2dT1(double* N, double* dN, double* x);
 
 //ldoc off
 #endif /* SHAPES1D_H */
