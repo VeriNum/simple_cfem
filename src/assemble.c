@@ -5,10 +5,59 @@
 #include "vecmat.h"
 #include "bandmat.h"
 
-/*
- * Private implementations
+/**
+ * ### Implementation
+ * 
  */
+// Wrappers to call assembler add/clear methods
+void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne)
+{
+    (*(assembler->add))(assembler->p, emat, ids, ne);
+}
 
+void assemble_clear(assemble_t* assembler)
+{
+    (*(assembler->clear))(assembler->p);
+}
+
+/**
+ * Setting up an assembler object just involves initializing the
+ * data pointer `p` and setting up the method table.  Note that
+ * both the dense and band storage sit on top of our `vecmat_t` array
+ * manager, so we can use the same `clear` implementation in both cases.
+ * 
+ */
+// Declare private implementations for the methods
+static void assemble_dense_add(void* p, double* emat, int* ids, int ne);
+static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne);
+static void assemble_vecmat_clear(void* p);
+
+// Initialize a dense assembler
+void init_assemble_dense(assemble_t* assembler, double* A)
+{
+    assembler->p = A;
+    assembler->add = assemble_dense_add;
+    assembler->clear = assemble_vecmat_clear;
+}
+
+// Initialize a band assembler
+void init_assemble_band(assemble_t* assembler, double* b)
+{
+    assembler->p = b;
+    assembler->add = assemble_bandmat_add;
+    assembler->clear = assemble_vecmat_clear;
+}
+
+/**
+ * The assembly loops logically execute
+ * 
+ *     A[iglobal, jglobal] += Ae[i, j]
+ *
+ * for every local index pair `(i,j)`.  We filter out the contributions
+ * where the global indices are negative (indicating that these
+ * contributions are not needed because of an essential boundary condition.
+ *
+ */
 // Add to a dense matrix
 static void assemble_dense_add(void* p, double* emat, int* ids, int ne)
 {
@@ -47,44 +96,19 @@ static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
     }
 }
 
+/**
+ * Clearing the storage is blessedly trivial.
+ * 
+ */
 static void assemble_vecmat_clear(void* p)
 {
     vecmat_clear((double*) p);
 }
 
-/*
- * Public interface routines
+/**
+ * Finally, we also need vector assembly.
+ * 
  */
-
-// Initialize a dense assembler
-void init_assemble_dense(assemble_t* assembler, double* A)
-{
-    assembler->p = A;
-    assembler->add = assemble_dense_add;
-    assembler->clear = assemble_vecmat_clear;
-}
-
-// Initialize a band assembler
-void init_assemble_band(assemble_t* assembler, double* b)
-{
-    assembler->p = b;
-    assembler->add = assemble_bandmat_add;
-    assembler->clear = assemble_vecmat_clear;
-}
-
-// Add a contribution to an assembler
-void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne)
-{
-    (*(assembler->add))(assembler->p, emat, ids, ne);
-}
-
-// Clear assembler
-void assemble_clear(assemble_t* assembler)
-{
-    (*(assembler->clear))(assembler->p);
-}
-
-// Add to vector
 void assemble_vector(double* v, double* ve, int* ids, int ne)
 {
     for (int ie = 0; ie < ne; ++ie) {

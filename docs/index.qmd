@@ -1,0 +1,13 @@
+---
+title: Simple 1D FEM in C
+author: David Bindel
+toc: true
+---
+
+{{< include gaussquad.qmd >}}
+{{< include shapes1d.qmd >}}
+{{< include vecmat.qmd >}}
+{{< include bandmat.qmd >}}
+{{< include assemble.qmd >}}
+{{< include fem.qmd >}}
+{{< include element.qmd >}}

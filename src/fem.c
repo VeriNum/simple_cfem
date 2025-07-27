@@ -7,7 +7,11 @@
 #include "bandmat.h"
 #include "fem.h"
 
-
+//ldoc on
+/**
+ * ### Implementation
+ */
+// Allocate mesh object
 fem_t* malloc_fem(int numelt, int degree)
 {
     fem_t* fe = malloc(sizeof(fem_t));
@@ -33,6 +37,7 @@ fem_t* malloc_fem(int numelt, int degree)
     return fe;
 }
 
+// Free mesh object
 void free_fem(fem_t* fe)
 {
     free(fe->elt);
@@ -43,6 +48,7 @@ void free_fem(fem_t* fe)
     free(fe);
 }
 
+// Set up nodes and element array for equispaced mesh on [a, b]
 void fem_mesh1d(fem_t* fe, double a, double b)
 {
     int numnp = fe->numnp;
@@ -64,6 +70,7 @@ void fem_mesh1d(fem_t* fe, double a, double b)
     memset(fe->id, 0, numnp * sizeof(int));
 }
 
+// Initialize the id array and set nactive
 int fem_assign_ids(fem_t* fe)
 {
     int numnp = fe->numnp;
@@ -76,7 +83,8 @@ int fem_assign_ids(fem_t* fe)
     return next_id;
 }
 
-void fem_update_U(fem_t* fe, double* ured)
+// Decrement U by du_red
+void fem_update_U(fem_t* fe, double* du_red)
 {
     double* U = fe->U;
     int* id = fe->id;
@@ -85,9 +93,10 @@ void fem_update_U(fem_t* fe, double* ured)
     for (int i = 0; i < numnp; ++i)
         for (int j = 0; j < ndof; ++j)
             if (id[j+i*ndof] >= 0)
-                U[j+i*ndof] -= ured[id[j+i*ndof]];
+                U[j+i*ndof] -= du_red[id[j+i*ndof]];
 }
 
+// Call the callback on each nodes (node position, force vector)
 void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx))
 {
     int d     = fe->d;
@@ -99,6 +108,7 @@ void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx))
         (*f)(X+i*d, F+i*ndof);
 }
 
+// Assemble global residual and tangent stiffness (general)
 void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 {
     int numelt = fe->numelt;
@@ -137,6 +147,7 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
     free(ids);
 }
 
+// Convenience function for assembling band matrix
 void fem_assemble_band(fem_t* fe, double* R, double* K)
 {
     if (K) {
@@ -148,6 +159,19 @@ void fem_assemble_band(fem_t* fe, double* R, double* K)
     }
 }
 
+// Convenience function for assembling dense matrix
+void fem_assemble_dense(fem_t* fe, double* R, double* K)
+{
+    if (K) {
+        assemble_t Kassembler;
+        init_assemble_dense(&Kassembler, K);
+        fem_assemble(fe, R, &Kassembler);
+    } else {
+        fem_assemble(fe, R, NULL);
+    }
+}
+
+// Print mesh state
 void fem_print(fem_t* fe)
 {
     printf("\nNodal information:\n");

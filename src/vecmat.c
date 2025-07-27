@@ -2,9 +2,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <assert.h>
 
 #include "vecmat.h"
 
+//ldoc on
+/**
+ * ### Implementation
+ * 
+ * We usually refer to a `vecmat_t` with a pointer to the (extended)
+ * `data` array whose start is declared in the `vecmat_head_t` structure.
+ * The `vecmat` function takes a double precision pointer to such a
+ * data field and backs up to get a pointer to the struct.
+ * 
+ */
+// Extract the `vmec_head_t` structure given a data pointer.
+vecmat_head_t* vecmat(double* data)
+{
+    vecmat_head_t dummy;
+    void* p = (void*) data + ((void*) &dummy - (void*) dummy.data);
+    return (vecmat_head_t*) p;
+}
+
+// Allocate space for an m-y-n matrix (and header info)
 double* malloc_vecmat(int m, int n)
 {
     vecmat_head_t* h = malloc(sizeof(vecmat_head_t) + (m*n-1)*sizeof(double));
@@ -13,18 +33,13 @@ double* malloc_vecmat(int m, int n)
     return h->data;
 }
 
+// Free a vecmat_t referenced by the data pointer
 void free_vecmat(double* data)
 {
     free(vecmat(data));
 }
 
-vecmat_head_t* vecmat(double* data)
-{
-    vecmat_head_t dummy;
-    void* p = (void*) data + ((void*) &dummy - (void*) dummy.data);
-    return (vecmat_head_t*) p;
-}
-
+// Zero out the data array in a vecmat_t
 void vecmat_clear(double* data)
 {
     vecmat_head_t* vm = vecmat(data);
@@ -33,6 +48,7 @@ void vecmat_clear(double* data)
     memset(A, 0, m*n * sizeof(double));
 }
 
+// Print a matrix stored in a vecmat_t
 void vecmat_print(double* data)
 {
     vecmat_head_t* vm = vecmat(data);
@@ -46,6 +62,18 @@ void vecmat_print(double* data)
     }
 }
 
+/**
+ * #### Cholesky factorization
+ * 
+ * For our finite element code, we will largely work with SPD matrices
+ * for which a Cholesky solve is appropriate.  On input, we assume a column
+ * major representation in which the upper triangle represents the upper
+ * triangle of an SPD matrix; the lower triangle is ignored.  On output,
+ * the upper triangle of the matrix argument is overwritten by the
+ * Cholesky factor.  We will error out if we encounter a negative diagonal
+ * (in violation of the assumed positive definiteness).
+ */
+// Factor A = RR', overwriting the input with R
 void vecmat_cfactor(double* A)
 {
     vecmat_head_t* head = vecmat(A);
@@ -54,7 +82,9 @@ void vecmat_cfactor(double* A)
     for (int k = 0; k < n; ++k) {
 
         // Compute kth diagonal element
-        double rkk = sqrt(A[k+n*k]);
+        double akk = A[k+n*k];
+        assert(akk >= 0.0);
+        double rkk = sqrt(akk);
         A[k+n*k] = rkk;
 
         // Scale across the row
@@ -68,6 +98,7 @@ void vecmat_cfactor(double* A)
     }
 }
 
+// Compute x = R\(R'\b), overwriing the right hand side with the solution
 void vecmat_csolve(double* R, double* x)
 {
     vecmat_head_t* head = vecmat(R);
@@ -90,6 +121,14 @@ void vecmat_csolve(double* R, double* x)
     }
 }
 
+/**
+ * #### Norm computations
+ * 
+ * Just for checking on residuals and errors, it's convenient to have
+ * some functions for computing the squared Euclidean norm and the
+ * norm of a vector.  We assume that things are sufficiently well scaled
+ * that we don't need to worry about over/underflow.
+ */
 double vecmat_norm2(double* data)
 {
     vecmat_head_t* vm = vecmat(data);
