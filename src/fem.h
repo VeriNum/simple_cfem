@@ -1,7 +1,7 @@
 #ifndef FEM1D_H
 #define FEM1D_H
 
-#include "mesh.h"
+//#include "mesh.h"
 
 struct element_t;
 struct assembler_t;
@@ -47,7 +47,7 @@ struct mesh_t;
 typedef struct fem_t {
 
     // Mesh data
-    struct mesh_t mesh;
+    struct mesh_t* mesh;
 
     // Element type (NB: can generalize with multiple types)
     struct element_t* etype;

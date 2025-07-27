@@ -6,8 +6,9 @@
 
 #include "vecmat.h"
 #include "bandmat.h"
-#include "element.h"
+#include "mesh.h"
 #include "assemble.h"
+#include "element.h"
 #include "fem.h"
 
 
@@ -15,7 +16,7 @@
 fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 {
     fem_t* fe = malloc_fem(numelt, degree);
-    int numnp = fe->mesh.numnp;
+    int numnp = fe->mesh->numnp;
     fem_mesh1d(fe, 0.0, 1.0);
     fe->id[0]       = -1;
     fe->id[numnp-1] = -1;
@@ -41,8 +42,8 @@ void test_fem1(int d)
     fem_update_U(fe, R);
 
     // Check linear interpolation
-    for (int i = 0; i < fe->mesh.numnp; ++i)
-        assert(fabs(fe->mesh.X[i]-fe->U[i]) < 1e-8);
+    for (int i = 0; i < fe->mesh->numnp; ++i)
+        assert(fabs(fe->mesh->X[i]-fe->U[i]) < 1e-8);
 
     // Clean up
     free_vecmat(K);
@@ -73,8 +74,8 @@ void test_fem2(int d)
     fem_update_U(fe, R);
 
     // Solution should be exact (d > 1)
-    for (int i = 0; i < fe->mesh.numnp; ++i) {
-        double x = fe->mesh.X[i];
+    for (int i = 0; i < fe->mesh->numnp; ++i) {
+        double x = fe->mesh->X[i];
         double uref = x*(1-x)/2;
         assert(fabs(fe->U[i]-uref) < 1e-8);
     }

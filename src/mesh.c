@@ -20,6 +20,25 @@ void mesh_close(mesh_t* mesh)
     free(mesh->X);
 }
 
+mesh_t* malloc_mesh(int d, int numnp, int nen, int numelt)
+{
+    mesh_t* mesh = malloc(sizeof(mesh_t));
+    mesh->d      = d;
+    mesh->numnp  = numnp;
+    mesh->nen    = nen;
+    mesh->numelt = numelt;
+    mesh->X      = malloc(d   * numnp  * sizeof(double));
+    mesh->elt    = malloc(nen * numelt * sizeof(int));
+    return mesh;
+}
+
+void free_mesh(mesh_t* mesh)
+{
+    free(mesh->elt);
+    free(mesh->X);
+    free(mesh);
+}
+
 void mesh_print_elt(mesh_t* mesh)
 {
     printf("\nElement connectivity:\n");

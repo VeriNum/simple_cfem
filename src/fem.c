@@ -5,6 +5,7 @@
 #include "assemble.h"
 #include "element.h"
 #include "bandmat.h"
+#include "mesh.h"
 #include "fem.h"
 
 //ldoc on
@@ -20,7 +21,7 @@ fem_t* malloc_fem(int numelt, int degree)
     int numnp = numelt * degree + 1;
     int nen = degree + 1;
 
-    mesh_open(&(fe->mesh), d, numnp, nen, numelt);
+    fe->mesh = malloc_mesh(d, numnp, nen, numelt);
 
     fe->etype = NULL;
     fe->ndof = ndof;
@@ -39,25 +40,25 @@ void free_fem(fem_t* fe)
     free(fe->id);
     free(fe->F);
     free(fe->U);
-    mesh_close(&(fe->mesh));
+    free_mesh(fe->mesh);
     free(fe);
 }
 
 // Set up nodes and element array for equispaced mesh on [a, b]
 void fem_mesh1d(fem_t* fe, double a, double b)
 {
-    int numnp  = fe->mesh.numnp;
-    int numelt = fe->mesh.numelt;
-    int nen    = fe->mesh.nen;
+    int numnp  = fe->mesh->numnp;
+    int numelt = fe->mesh->numelt;
+    int nen    = fe->mesh->nen;
 
     // Set up equispaced mesh of points
     for (int i = 0; i < numnp; ++i)
-        fe->mesh.X[i] = (i*b + (numnp-i-1)*a)/(numnp-1);
+        fe->mesh->X[i] = (i*b + (numnp-i-1)*a)/(numnp-1);
 
     // Set up element connectivity
     for (int j = 0; j < numelt; ++j)
         for (int i = 0; i < nen; ++i)
-            fe->mesh.elt[i+j*nen] = i+j*(nen-1);
+            fe->mesh->elt[i+j*nen] = i+j*(nen-1);
 
     // Clear the other arrays
     memset(fe->U,  0, numnp * sizeof(double));
@@ -68,7 +69,7 @@ void fem_mesh1d(fem_t* fe, double a, double b)
 // Initialize the id array and set nactive
 int fem_assign_ids(fem_t* fe)
 {
-    int numnp = fe->mesh.numnp;
+    int numnp = fe->mesh->numnp;
     int* id = fe->id;
     int next_id = 0;
     for (int i = 0; i < numnp; ++i)
@@ -84,7 +85,7 @@ void fem_update_U(fem_t* fe, double* du_red)
     double* U = fe->U;
     int* id   = fe->id;
     int ndof  = fe->ndof;
-    int numnp = fe->mesh.numnp;
+    int numnp = fe->mesh->numnp;
     for (int i = 0; i < numnp; ++i)
         for (int j = 0; j < ndof; ++j)
             if (id[j+i*ndof] >= 0)
@@ -94,10 +95,10 @@ void fem_update_U(fem_t* fe, double* du_red)
 // Call the callback on each nodes (node position, force vector)
 void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx))
 {
-    int d     = fe->mesh.d;
-    int numnp = fe->mesh.numnp;
+    int d     = fe->mesh->d;
+    int numnp = fe->mesh->numnp;
     int ndof  = fe->ndof;
-    double* X = fe->mesh.X;
+    double* X = fe->mesh->X;
     double* F = fe->F;
     for (int i = 0; i < numnp; ++i)
         (*f)(X+i*d, F+i*ndof);
@@ -106,8 +107,8 @@ void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx))
 // Assemble global residual and tangent stiffness (general)
 void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 {
-    int numelt       = fe->mesh.numelt;
-    int nen          = fe->mesh.nen;
+    int numelt       = fe->mesh->numelt;
+    int nen          = fe->mesh->nen;
     element_t* etype = fe->etype;
 
     // Set up local storage for element contributions
@@ -126,7 +127,7 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
         element_dR(etype, fe, i, Re, Ke);
 
         // Figure out where to put them
-        int* elt = fe->mesh.elt + i*nen;
+        int* elt = fe->mesh->elt + i*nen;
         for (int j = 0; j < nen; ++j)
             ids[j] = fe->id[elt[j]];
 
@@ -171,14 +172,14 @@ void fem_print(fem_t* fe)
 {
     printf("\nNodal information:\n");
     printf("       ID ");
-    for (int j = 0; j < fe->mesh.d; ++j) printf("     X%d", j);
+    for (int j = 0; j < fe->mesh->d; ++j) printf("     X%d", j);
     for (int j = 0; j < fe->ndof; ++j)   printf("     U%d", j);
     for (int j = 0; j < fe->ndof; ++j)   printf("     F%d", j);
     printf("\n");
-    for (int i = 0; i < fe->mesh.numnp; ++i) {
+    for (int i = 0; i < fe->mesh->numnp; ++i) {
         printf("%3d : % 3d ", i, fe->id[i]);
-        for (int j = 0; j < fe->mesh.d; ++j)
-            printf(" %6.2g", fe->mesh.X[j+fe->mesh.d*i]);
+        for (int j = 0; j < fe->mesh->d; ++j)
+            printf(" %6.2g", fe->mesh->X[j+fe->mesh->d*i]);
         for (int j = 0; j < fe->ndof; ++j)
             printf(" % 6.2g", fe->U[j+fe->ndof*i]);
         for (int j = 0; j < fe->ndof; ++j)
