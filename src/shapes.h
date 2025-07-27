@@ -17,6 +17,8 @@
  * shape function values and derivative values.  If a `NULL` is given
  * for either of these output arguments, we just skip that part of the
  * computation.
+ * 
+ * The function returns the number of shape functions it computes.
  */
 typedef int (*shapes_t)(double*, double*, double*);
 

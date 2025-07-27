@@ -18,6 +18,7 @@ OBJS=	obj/gaussquad.o \
 
 TESTS=	exe/test_gauss.x \
 	exe/test_shapes.x \
+	exe/test_mesh.x \
 	exe/test_vecmat.x \
 	exe/test_bandmat.x \
 	exe/test_assemble.x \

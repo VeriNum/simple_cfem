@@ -9,11 +9,11 @@ format:
     monofont: "Fira Code"
 ---
 
-{{< include gaussquad.qmd >}}
-{{< include shapes.qmd >}}
 {{< include vecmat.qmd >}}
 {{< include bandmat.qmd >}}
+{{< include shapes.qmd >}}
 {{< include mesh.qmd >}}
+{{< include gaussquad.qmd >}}
 {{< include assemble.qmd >}}
 {{< include fem.qmd >}}
 {{< include element.qmd >}}
