@@ -1,3 +1,5 @@
+LDOC= 	lua util/ldoc.lua
+
 DOCS=	docs/gaussquad.qmd \
 	docs/shapes.qmd \
 	docs/vecmat.qmd \
@@ -38,7 +40,7 @@ exe/%.x: obj/%.o $(OBJS)
 	gcc -Wall -o $@ $^
 
 docs/%.qmd: src/%.h src/%.c
-	ldoc -highlight c -p quarto -o $@ $^
+	$(LDOC) -highlight c -p quarto -o $@ $^
 
 docs/index.html: docs/index.qmd $(DOCS)
 	( cd docs ; quarto render index.qmd --to html )
