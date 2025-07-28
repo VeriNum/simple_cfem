@@ -50,6 +50,9 @@ docs/index.pdf: docs/index.qmd $(DOCS)
 
 doc: docs/index.pdf docs/index.html
 
+publish: docs/index.pdf docs/index.html
+	( cd docs ; quarto publish gh-pages index.qmd )
+
 test: $(TESTS)
 	( for f in exe/test*.x ; do $$f ; done )
 
