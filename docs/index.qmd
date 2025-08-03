@@ -9,6 +9,13 @@ format:
     monofont: "Fira Code"
 ---
 
+# Introduction
+
+This document is automatically extracted from the sources found
+at <https://github.com/bindel-group/simple_cfem>.  The code is written
+as a pedagogical example, and is coded in C to make it a reasonable
+target for verification with the Verified Software Toolchain.
+
 {{< include vecmat.qmd >}}
 {{< include bandmat.qmd >}}
 {{< include shapes.qmd >}}
