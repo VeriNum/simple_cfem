@@ -31,7 +31,7 @@ void free_mesh(mesh_t* mesh)
 }
 
 /**
- * # Meshes in 1D
+ * ## Meshes in 1D
  * 
  * The simplest mesher creates a 1D mesh on an interval
  * $[a,b]$. Elements are ordered from left to right.  We allow
