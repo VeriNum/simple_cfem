@@ -3,8 +3,13 @@
 #include <string.h>
 #include <assert.h>
 
+#include "vecmat.h"
 #include "mesh.h"
 
+//ldoc on
+/**
+ * ## Memory management
+ */
 mesh_t* malloc_mesh(int d, int numnp, int nen, int numelt)
 {
     mesh_t* mesh = malloc(sizeof(mesh_t));
@@ -25,6 +30,13 @@ void free_mesh(mesh_t* mesh)
     free(mesh);
 }
 
+/**
+ * # Meshes in 1D
+ * 
+ * The simplest mesher creates a 1D mesh on an interval
+ * $[a,b]$. Elements are ordered from left to right.  We allow
+ * elements of order 1-3.
+ */
 mesh_t* mesh_create1d(int numelt, int degree, double a, double b)
 {
     int numnp = numelt * degree + 1;
@@ -50,6 +62,16 @@ mesh_t* mesh_create1d(int numelt, int degree, double a, double b)
     return mesh;
 }
 
+/**
+ * ## Quad meshes in 2D
+ * 
+ * All the 2D quad meshers produce meshes of `nex` by `ney` elements,
+ * ordered in row-major order starting in the southwest and proceeding
+ * to the northeast.  The nodes are listed going counterclockwise around
+ * the element (except possibly the last node in the P2 case).
+ * 
+ * We start with the P1 case, which is the simplest (only corner nodes).
+ */
 mesh_t* mesh_block2d_P1(int nex, int ney)
 {
     int nx = nex+1, ny = ney+1;
@@ -78,6 +100,11 @@ mesh_t* mesh_block2d_P1(int nex, int ney)
     return mesh;
 }
 
+/**
+ * For P2 elements, each element involves three consecutive rows and
+ * columns of the logical array of nodes.  This at least remains
+ * mostly straightforward.
+ */
 mesh_t* mesh_block2d_P2(int nex, int ney)
 {
     int nx = 2*nex+1, ny = 2*ney+1;
@@ -111,6 +138,11 @@ mesh_t* mesh_block2d_P2(int nex, int ney)
     return mesh;
 }
 
+/**
+ * The serendipity element block mesher is a little more complicated
+ * than P1 or P2, because we don't have a regular grid of mesh points
+ * (because we don't need mesh points in the middle of our elements.
+ */
 mesh_t* mesh_block2d_S2(int nex, int ney)
 {
     int nx0 = 2*nex+1, nx1 = nex+1; // Even/odd row sizes
@@ -163,6 +195,13 @@ mesh_t* mesh_block2d_S2(int nex, int ney)
     return mesh;
 }
 
+/**
+ * ## 2D triangular meshes
+ * 
+ * The 2D linear triangle mesher is like the P1 mesher, but each quad
+ * is comprised of two triangles with a common edge going from the
+ * southeast to the northwest edge of the quad.
+ */
 mesh_t* mesh_block2d_T1(int nex, int ney)
 {
     int nx = nex+1, ny = ney+1;
@@ -195,6 +234,56 @@ mesh_t* mesh_block2d_T1(int nex, int ney)
     return mesh;
 }
 
+/**
+ * ## Reference to spatial mapping
+ */
+void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
+                     double* x, int* ipiv, double* J,
+                     double* N, double* dN)
+{
+    int d = mesh->d;
+    int* elt = mesh->elt;
+    double* X = mesh->X;
+
+    // Get shape function
+    int nshape = (*mesh->shape)(N, dN, xref);
+
+    // Build x if requested
+    if (x && N) {
+        memset(x, 0, d * sizeof(double));
+        for (int k = 0; k < nshape; ++k)
+            for (int i = 0; i < d; ++i)
+                x[i] += X[i+d*elt[k]] * N[k];
+    }
+
+    // Build and factor J and transform dN if requested
+    if (ipiv && J && dN) {
+
+        // Form J
+        memset(J, 0, d * d * sizeof(double));
+        for (int k = 0; k < nshape; ++k)
+            for (int j = 0; j < d; ++j)
+                for (int i = 0; i < d; ++i)
+                    J[i+j*d] += X[i+d*elt[k]] * dN[k+j*nshape];
+
+        // Factor
+        vecmatn_lufactor(ipiv, J, d);
+
+        // Transform to spatial coordinates
+        for (int k = 0; k < nshape; ++k) {
+            double dNk[3];
+            for (int j = 0; j < d; ++j)
+                dNk[j] = dN[k+j*nshape];
+            vecmatn_lusolveT(ipiv, J, dNk, d);
+            for (int j = 0; j < d; ++j)
+                dN[k+j*nshape] = dNk[j];
+        }
+    }
+}
+
+/**
+ * ## I/O routines
+ */
 void mesh_print_nodes(mesh_t* mesh)
 {
     printf("\nNodal positions:\n");

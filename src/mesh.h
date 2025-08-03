@@ -87,6 +87,18 @@ mesh_t* mesh_block2d_S2(int nex, int ney);
 mesh_t* mesh_block2d_T1(int nex, int ney);
 
 /**
+ * Given a mesh and a point in a reference geometry (given by an
+ * element identifier `eltid` and coordinates `xref` in the element's
+ * reference domain), we would like to be able to compute spatial
+ * quantities (the shape functions, their spatial derivatives, and the
+ * Jacobian of the reference to spatial map).  The Jacobian matrix
+ * is in LU-factored form.
+ */
+void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
+                     double* x, int* ipiv, double* J,
+                     double* N, double* dN);
+
+/**
  * For debugging, it is helpful to be able to print out all or part of
  * the mesh geometry.
  */

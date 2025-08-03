@@ -102,7 +102,7 @@ void check_mesh(mesh_t* mesh,
         assert(eref[i] == mesh->elt[i]);
 }
 
-int main()
+void test_block_meshers()
 {
     mesh_t* mesh = mesh_block2d_P1(3,2);
     check_mesh(mesh, 12, XrefP1, 6, 4, erefP1);
@@ -119,6 +119,44 @@ int main()
     mesh = mesh_block2d_T1(3,2);
     check_mesh(mesh, 12, XrefP1, 12, 3, erefT1);
     free_mesh(mesh);
+}
+
+// Stretch and shear operation
+void test_block_map(double* xy)
+{
+    double x = xy[0], y = xy[1];
+    xy[0] = 3.0 + 2*x;
+    xy[1] = 1.0 + x+y;
+}
+
+void test_emap()
+{
+    int ipiv[2];
+    double N[4], dN[4*2], xymap[2], J[2*2];
+    double xyref[] = {0.5, 1.0};
+
+    mesh_t* mesh = mesh_block2d_P1(1, 1);
+
+    // Trivial mapping ([-1,1]^2 ref domain to [0,1] mesh domain)
+    mesh_to_spatial(mesh, 0, xyref, xymap, ipiv, J, N, dN);
+    assert(xymap[0] == 0.75 && xymap[1] == 1.0);
+    assert(J[0] == 0.5 && J[2] == 0.0 &&
+           J[1] == 0.0 && J[3] == 0.5);
+
+    // More interesting mapping (from test_block_map)
+    for (int i = 0; i < 4; ++i)
+        test_block_map(mesh->X+2*i);
+    mesh_to_spatial(mesh, 0, xyref, xymap, ipiv, J, N, dN);
+    assert(xymap[0] == 4.5 && xymap[1] == 2.75);
+    assert(J[0] == 1.0 && J[2] == 0.0 &&
+           J[1] == 0.5 && J[3] == 0.5);
     
+    free_mesh(mesh);
+}
+
+int main()
+{
+    test_block_meshers();
+    test_emap();
     return 0;
 }
