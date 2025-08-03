@@ -89,6 +89,8 @@ void vecmat_print(double* data)
  * the upper triangle of the matrix argument is overwritten by the
  * Cholesky factor.  We will error out if we encounter a negative diagonal
  * (in violation of the assumed positive definiteness).
+ * 
+ * We will not bother to show the wrapper around the `vecmatn` version.
  */
 void vecmatn_cfactor(double* A, int n)
 {
@@ -111,6 +113,7 @@ void vecmatn_cfactor(double* A, int n)
     }
 }
 
+//ldoc off
 void vecmat_cfactor(double* A)
 {
     vecmat_head_t* vm = vecmat(A);
@@ -118,6 +121,7 @@ void vecmat_cfactor(double* A)
     vecmatn_cfactor(A, vm->m);
 }
 
+//ldoc on
 /**
  * The `vecmat_csolve(R, x)` function assumes a Cholesky factor in the
  * upper triangle of input argument `R`; the argument `x` is the
@@ -143,12 +147,14 @@ void vecmatn_csolve(double* R, double* x, int n)
     }
 }
 
+//ldoc off
 void vecmat_csolve(double* R, double* x)
 {
     vecmat_head_t* vm = vecmat(R);
     vecmatn_csolve(R, x, vm->n);
 }
 
+//ldoc on
 /**
  * ## LU factorization and solve
  * 
@@ -197,6 +203,11 @@ void vecmatn_lufactor(int* ipiv, double* A, int n)
     }
 }
 
+/**
+ * The `vecmat_lusolve` function assumes that the factorization has
+ * already been computed.  On input, `x` represents $b$; on output,
+ * `x` represents $x = A^{-1} b$.
+ */
 void vecmatn_lusolve(int* ipiv, double* A, double* x, int n)
 {
     // Apply P
@@ -255,6 +266,11 @@ void vecmatn_lusolveT(int* ipiv, double* A, double* x, int n)
         }
 }
 
+/**
+ * The Jacobian determinant can be computed from the product of the
+ * diagonals of $U$ times the sign of the permutation matrix (given by
+ * the parity of the number of swaps in the factored permutation).
+ */
 double vecmatn_lujac(int* ipiv, double* A, int n)
 {
     double J = 1.0;
@@ -266,6 +282,12 @@ double vecmatn_lujac(int* ipiv, double* A, int n)
     }
     return (nswap % 2 == 0) ? J : -J;
 }
+
+//ldoc off
+/**
+ * We don't bother including the `vecmat_t` callthroughs in the
+ * autodoc output.
+ */
 
 void vecmat_lufactor(int* ipiv, double* A)
 {
@@ -292,6 +314,7 @@ double vecmat_lujac(int* ipiv, double* A)
     return vecmatn_lujac(ipiv, A, vm->m);
 }
 
+//ldoc on
 /**
  * ## Norm computations
  * 
@@ -315,6 +338,7 @@ double vecmatn_norm(double* data, int n)
     return sqrt(vecmatn_norm2(data, n));
 }
 
+//ldoc off
 double vecmat_norm2(double* data)
 {
     vecmat_head_t* vm = vecmat(data);
