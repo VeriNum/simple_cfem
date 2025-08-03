@@ -242,7 +242,7 @@ void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
                      double* N, double* dN)
 {
     int d = mesh->d;
-    int* elt = mesh->elt;
+    int* elt = mesh->elt + mesh->nen * eltid;
     double* X = mesh->X;
 
     // Get shape function

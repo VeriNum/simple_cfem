@@ -1,5 +1,7 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "shapes.h"
 #include "quadrules.h"
@@ -46,28 +48,40 @@ void free_element(element_t* e)
  * data pointer.
  */
 // Poisson element type data structure
-typedef struct poisson1d_elt_t {
+typedef struct poisson_elt_t {
     // Material parameters, etc go here in more complex cases
     element_t e; // For dispatch table
-} poisson1d_elt_t;
+} poisson_elt_t;
 
-// Declare methods for Poisson element type
+// Declare methods for 1D and 2D Poisson element types
 static void poisson1d_elt_dR(void* p, fem_t* fe, int eltid,
-                           double* Re, double* Ke);
-static void poisson1d_elt_free(void* p);
+                             double* Re, double* Ke);
+static void poisson2d_elt_dR(void* p, fem_t* fe, int eltid,
+                             double* Re, double* Ke);
+static void simple_elt_free(void* p);
 
-// Allocate a Poisson element type
+// Allocate a 1D Poisson element type
 element_t* malloc_poisson1d_element()
 {
-    poisson1d_elt_t* le = (poisson1d_elt_t*) malloc(sizeof(poisson1d_elt_t));
+    poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
     le->e.p = le;
     le->e.dR = poisson1d_elt_dR;
-    le->e.free = poisson1d_elt_free;
+    le->e.free = simple_elt_free;
+    return &(le->e);
+}
+
+// Allocate a 2D Poisson element type
+element_t* malloc_poisson2d_element()
+{
+    poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
+    le->e.p = le;
+    le->e.dR = poisson2d_elt_dR;
+    le->e.free = simple_elt_free;
     return &(le->e);
 }
 
 // Free a Poisson element type
-static void poisson1d_elt_free(void* p)
+static void simple_elt_free(void* p)
 {
     free(p);
 }
@@ -123,7 +137,7 @@ static void poisson1d_elt_dR(
         double dN[4]; // Storage for shape derivatives
         double x  = gauss_point(k, nquad);
         double wt = gauss_weight(k, nquad);
-        mesh_shapes(fe->mesh, eltid, &x, N, dN);
+        wt *= mesh_shapes(fe->mesh, eltid, &x, N, dN);
 
         // Add residual
         if (Re) {
@@ -144,6 +158,90 @@ static void poisson1d_elt_dR(
             for (int j = 0; j < nen; ++j)
                 for (int i = 0; i < nen; ++i)
                     Ke[i+j*nen] += dN[i]*dN[j] * wt;
+        }
+    }
+}
+
+/**
+ * ## Poisson elements in 2D
+ * 
+ * The 2D Poisson elements are very similar to the 1D case.  As we
+ * wrote the formulas in a dimension-independent way in the
+ * documentation of the 1D case, we will not repeat ourselves here.
+ * The one thing that is a little different is that we will do a little
+ * more work to get an appropriate quadrature rule.
+ */
+static int get_quad2d(shapes_t shapefn,
+                      void (**quad_pt)(double*, int, int),
+                      double (**quad_wt)(int, int))
+{
+    if (shapefn == shapes2dP1) {
+        *quad_pt = gauss2d_point;
+        *quad_wt = gauss2d_weight;
+        return 4;
+    } else if (shapefn == shapes2dP2) {
+        *quad_pt = gauss2d_point;
+        *quad_wt = gauss2d_weight;
+        return 9;
+    } else if (shapefn == shapes2dS2) {
+        *quad_pt = gauss2d_point;
+        *quad_wt = gauss2d_weight;
+        return 9;
+    } else if (shapefn == shapes2dT1) {
+        *quad_pt = hughes_point;
+        *quad_wt = hughes_weight;
+        return 3;
+    } else
+        assert(0);
+}
+
+static void poisson2d_elt_dR(
+    void* p,                   // Context pointer (not used)
+    fem_t* fe, int eltid,      // Mesh and element ID in mesh
+    double* Re, double* Ke)    // Outputs: element residual and tangent
+{
+    int nen  = fe->mesh->nen;
+    int ndof = fe->ndof;
+    void (*quad_pt)(double*, int, int);
+    double (*quad_wt)(int, int);
+    int nquad = get_quad2d(fe->mesh->shape, &quad_pt, &quad_wt);
+    int* elt = fe->mesh->elt + eltid*nen;
+
+    // Clear element storage
+    if (Re) memset(Re, 0, nen*sizeof(double));
+    if (Ke) memset(Ke, 0, nen*nen*sizeof(double));
+
+    for (int k = 0; k < nquad; ++k) {
+
+        // Get information about quadrature point (spatial)
+        double N[4];    // Storage for shape functions
+        double dN[4*2]; // Storage for shape derivatives
+        double x[2];
+        (*quad_pt)(x, k, nquad);
+        double wt = (*quad_wt)(k, nquad);
+        double J  = mesh_shapes(fe->mesh, eltid, x, N, dN);
+        wt *= J;
+
+        // Add residual
+        if (Re) {
+            double du[2] = {0.0, 0.0};
+            double fx = 0.0;
+            double* U = fe->U;
+            double* F = fe->F;
+            for (int j = 0; j < nen; ++j) {
+                du[0] += U[ndof*elt[j]]*dN[j+0*nen];
+                du[1] += U[ndof*elt[j]]*dN[j+1*nen];
+                fx += N[j]*F[ndof*elt[j]];
+            }
+            for (int i = 0; i < nen; ++i)
+                Re[i] += (dN[i+0*nen]*du[0]+dN[i+1*nen]*du[1] - N[i]*fx) * wt;
+        }
+
+        // Add tangent stiffness
+        if (Ke) {
+            for (int j = 0; j < nen; ++j)
+                for (int i = 0; i < nen; ++i)
+                    Ke[i+j*nen] += (dN[i]*dN[j]+dN[i+nen]*dN[j+nen]) * wt;
         }
     }
 }

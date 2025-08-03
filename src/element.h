@@ -68,6 +68,7 @@ void free_element(element_t* e);
  * track of for this element tyle.
  */
 element_t* malloc_poisson1d_element();
+element_t* malloc_poisson2d_element();
 
 //ldoc off
 #endif /* ELEMENT_H */
