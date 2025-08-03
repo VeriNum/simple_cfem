@@ -45,6 +45,9 @@ int main()
            A[1] == 0.5  && A[4] == 6.0   && A[7] == 7.0 &&
            A[2] == 0.75 && A[5] == 0.375 && A[8] == 9.0);
 
+    // Check Jacobian determinant
+    assert(vecmat_lujac(ipiv, A) == -162.0);
+
     // Check LU solve on a reference matrix
     x[0] = 186.375; x[1] = 149.0; x[2] = 88.0;
     vecmat_lusolve(ipiv, A, x);
@@ -53,7 +56,6 @@ int main()
     // Check LU transpose solve on reference matrix
     x[0] = 25.5; x[1] = 62.5; x[2] = 93.75;
     vecmat_lusolveT(ipiv, A, x);
-    printf("%g %g %g\n", x[0], x[1], x[2]);
     assert(x[0] == 2.0 && x[1] == 4.0 && x[2] == 5.0);
 
     // Check norm

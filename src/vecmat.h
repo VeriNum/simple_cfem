@@ -54,6 +54,10 @@ void vecmat_lufactor(int* ipiv, double* A);
 void vecmat_lusolve(int* ipiv, double* A, double* x);
 void vecmat_lusolveT(int* ipiv, double* A, double* x);
 
+// Jacobian determinant from LU factorization
+double vecmatn_lujac(int* ipiv, double* A, int n);
+double vecmat_lujac(int* ipiv, double* A);
+
 // Squared norm and norm computations
 double vecmatn_norm2(double* data, int n);
 double vecmatn_norm(double* data, int n);

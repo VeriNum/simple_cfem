@@ -225,7 +225,7 @@ void vecmatn_lusolve(int* ipiv, double* A, double* x, int n)
 }
 
 /**
- * The `vecmat_lusolveT` variant solves a linear system $A^T x = b$
+ * The `vecmat_lusolveT` variant solves a linear system $A^T x = b$ where
  * $A^T = U^T L^T P$
  */
 void vecmatn_lusolveT(int* ipiv, double* A, double* x, int n)
@@ -255,6 +255,18 @@ void vecmatn_lusolveT(int* ipiv, double* A, double* x, int n)
         }
 }
 
+double vecmatn_lujac(int* ipiv, double* A, int n)
+{
+    double J = 1.0;
+    int nswap = 0;
+    for (int i = 0; i < n; ++i) {
+        if (ipiv[i] != i)
+            ++nswap;
+        J *= A[i+i*n];
+    }
+    return (nswap % 2 == 0) ? J : -J;
+}
+
 void vecmat_lufactor(int* ipiv, double* A)
 {
     vecmat_head_t* vm = vecmat(A);
@@ -272,6 +284,12 @@ void vecmat_lusolveT(int* ipiv, double* A, double* x)
 {
     vecmat_head_t* vm = vecmat(A);
     vecmatn_lusolveT(ipiv, A, x, vm->m);
+}
+
+double vecmat_lujac(int* ipiv, double* A)
+{
+    vecmat_head_t* vm = vecmat(A);
+    return vecmatn_lujac(ipiv, A, vm->m);
 }
 
 /**
