@@ -13,6 +13,11 @@
  * followed by a data array.  We generally pass the object around with
  * a pointer to the start of the data (in standard C style), only
  * backing up in memory to access size information when we need it.
+ *
+ * For convenience, we have two versions of everything except
+ * allocation: a `vecmat` version that works with the implicit size
+ * parameters, and a `vecmatn` version that works with explicit size
+ * parameters.
  */
 
 typedef struct vecmat_head_t {
@@ -28,16 +33,22 @@ double* malloc_vecmat(int m, int n);
 void free_vecmat(double* data);
 
 // Clear storage
+void vecmatn_clear(double* data, int m, int n);
 void vecmat_clear(double* data);
 
 // Print array (assumes column major order)
+void vecmatn_print(double* data, int m, int n);
 void vecmat_print(double* data);
 
 // Cholesky factorization and solve (uses only upper triangular)
+void vecmatn_cfactor(double* A, int n);
+void vecmatn_csolve(double* R, double* x, int n);
 void vecmat_cfactor(double* A);
 void vecmat_csolve(double* R, double* x);
 
 // Squared norm and norm computations
+double vecmatn_norm2(double* data, int n);
+double vecmatn_norm(double* data, int n);
 double vecmat_norm2(double* data);
 double vecmat_norm(double* data);
 

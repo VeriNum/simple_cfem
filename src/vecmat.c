@@ -43,11 +43,15 @@ void free_vecmat(double* data)
     free(vecmat(data));
 }
 
+void vecmatn_clear(double* data, int m, int n)
+{
+    memset(data, 0, m*n * sizeof(double));
+}
+
 void vecmat_clear(double* data)
 {
     vecmat_head_t* vm = vecmat(data);
-    int m = vm->m, n = vm->n;
-    memset(data, 0, m*n * sizeof(double));
+    vecmatn_clear(data, vm->m, vm->n);
 }
 
 /**
@@ -59,17 +63,20 @@ void vecmat_clear(double* data)
  * digits in each entry.  Note that we assume column major layout
  * throughout.
  */
-void vecmat_print(double* data)
+void vecmatn_print(double* data, int m, int n)
 {
-    vecmat_head_t* vm = vecmat(data);
-    int m = vm->m, n = vm->n;
-    double* A = vm->data;
     printf("%d-by-%d\n", m, n);
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j)
-            printf(" % 6.2g", A[i+j*m]);
+            printf(" % 6.2g", data[i+j*m]);
         printf("\n");
     }
+}
+
+void vecmat_print(double* data)
+{
+    vecmat_head_t* vm = vecmat(data);    
+    vecmatn_print(data, vm->m, vm->n);
 }
 
 /**
@@ -83,11 +90,8 @@ void vecmat_print(double* data)
  * Cholesky factor.  We will error out if we encounter a negative diagonal
  * (in violation of the assumed positive definiteness).
  */
-void vecmat_cfactor(double* A)
+void vecmatn_cfactor(double* A, int n)
 {
-    vecmat_head_t* head = vecmat(A);
-    int n = head->m;
-
     for (int k = 0; k < n; ++k) {
 
         // Compute kth diagonal element
@@ -107,17 +111,21 @@ void vecmat_cfactor(double* A)
     }
 }
 
+void vecmat_cfactor(double* A)
+{
+    vecmat_head_t* vm = vecmat(A);
+    assert(vm->m == vm->n);
+    vecmatn_cfactor(A, vm->m);
+}
+
 /**
  * The `vecmat_csolve(R, x)` function assumes a Cholesky factor in the
  * upper triangle of input argument `R`; the argument `x` is the
  * right-hand side vector $b$ on input, and the solution vector $x$ on
  * output.
  */
-void vecmat_csolve(double* R, double* x)
+void vecmatn_csolve(double* R, double* x, int n)
 {
-    vecmat_head_t* head = vecmat(R);
-    int n = head->m;
-
     // Forward substitution
     for (int i = 0; i < n; ++i) {
         double bi = x[i];
@@ -135,6 +143,12 @@ void vecmat_csolve(double* R, double* x)
     }
 }
 
+void vecmat_csolve(double* R, double* x)
+{
+    vecmat_head_t* vm = vecmat(R);
+    vecmatn_csolve(R, x, vm->n);
+}
+
 /**
  * ## Norm computations
  * 
@@ -143,21 +157,29 @@ void vecmat_csolve(double* R, double* x)
  * norm of a vector.  We assume that things are sufficiently well scaled
  * that we don't need to worry about over/underflow.
  */
+double vecmatn_norm2(double* data, int n)
+{
+    double result = 0.0;
+    for (int j = 0; j < n; ++j) {
+        double xj = data[j];
+        result += xj*xj;
+    }
+    return sqrt(result);
+}
+
+double vecmatn_norm(double* data, int n)
+{
+    return sqrt(vecmatn_norm2(data, n));
+}
+
 double vecmat_norm2(double* data)
 {
     vecmat_head_t* vm = vecmat(data);
-    int m = vm->m, n = vm->n;
-    double* A = vm->data;
-    double result = 0.0;
-    for (int j = 0; j < n; ++j)
-        for (int i = 0; i < m; ++i) {
-            double Aij = A[i+j*m];
-            result += Aij*Aij;
-        }
-    return sqrt(result);
+    return vecmatn_norm2(data, vm->m * vm->n);
 }
 
 double vecmat_norm(double* data)
 {
-    return sqrt(vecmat_norm2(data));
+    vecmat_head_t* vm = vecmat(data);
+    return vecmatn_norm(data, vm->m * vm->n);
 }
