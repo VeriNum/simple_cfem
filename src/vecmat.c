@@ -150,6 +150,131 @@ void vecmat_csolve(double* R, double* x)
 }
 
 /**
+ * ## LU factorization and solve
+ * 
+ * Even if the system matrices in a finite element code are SPD, the
+ * Jacobians that are used in mapped elements generally will not be.
+ * Therefore, we need a basic pivoted LU factorization along with the basic
+ * Cholesky.
+ * 
+ * The factorization routine overwrites `A` with the $L$ and $U$ factors,
+ * packed into the (strictly) lower and the upper triangular parts of $A$.
+ * The pivot vector is stored in `ipiv`, where `ipiv[i] = l` implies that
+ * rows $i$ and $l$ were swapped at step $i$ of the elimination.
+ */
+void vecmatn_lufactor(int* ipiv, double* A, int n)
+{
+    for (int j = 0; j < n; ++j) {
+
+        // Find pivot row
+        int ipivj = j;
+        for (int i = j+1; i < n; ++i)
+            if (fabs(A[i+n*j]) > fabs(A[ipivj+n*j]))
+                ipivj = i;
+        ipiv[j] = ipivj;
+
+        // Apply row swap, if needed
+        if (ipivj != j)
+            for (int k = j; k < n; ++k) {
+                double t = A[j+n*k];
+                A[j+n*k] = A[ipivj+n*k];
+                A[ipivj+n*k] = t;
+            }
+
+        // Compute multipliers
+        double Ujj = A[j+j*n];
+        for (int i = j+1; i < n; ++i)
+            A[i+j*n] /= Ujj;
+
+        // Apply Schur complement update
+        for (int k = j+1; k < n; ++k) {
+            double Ujk = A[j+k*n];
+            for (int i = j+1; i < n; ++i) {
+                double Lij = A[i+j*n];
+                A[i+k*n] -= Lij*Ujk;
+            }
+        }
+    }
+}
+
+void vecmatn_lusolve(int* ipiv, double* A, double* x, int n)
+{
+    // Apply P
+    for (int i = 0; i < n; ++i)
+        if (ipiv[i] != i) {
+            double t = x[i];
+            x[i] = x[ipiv[i]];
+            x[ipiv[i]] = t;
+        }
+
+    // Forward substitution
+    for (int i = 0; i < n; ++i) {
+        double bi = x[i];
+        for (int j = 0; j < i; ++j)
+            bi -= A[i+j*n]*x[j];
+        x[i] = bi;
+    }
+
+    // Backward substitution
+    for (int i = n; i >= 0; --i) {
+        double yi = x[i];
+        for (int j = i+1; j < n; ++j)
+            yi -= A[i+n*j]*x[j];
+        x[i] = yi/A[i+i*n];
+    }
+}
+
+/**
+ * The `vecmat_lusolveT` variant solves a linear system $A^T x = b$
+ * $A^T = U^T L^T P$
+ */
+void vecmatn_lusolveT(int* ipiv, double* A, double* x, int n)
+{
+    // Forward substitution (with U^T)
+    for (int i = 0; i < n; ++i) {
+        double bi = x[i];
+        for (int j = 0; j < i; ++j)
+            bi -= A[j+i*n]*x[j];
+        x[i] = bi/A[i+i*n];
+    }
+    
+    // Backward substitution (with L^T)
+    for (int i = n; i >= 0; --i) {
+        double yi = x[i];
+        for (int j = i+1; j < n; ++j)
+            yi -= A[j+n*i]*x[j];
+        x[i] = yi;
+    }
+
+    // Apply P^T
+    for (int i = n-1; i >= 0; --i)
+        if (ipiv[i] != i) {
+            double t = x[i];
+            x[i] = x[ipiv[i]];
+            x[ipiv[i]] = t;
+        }
+}
+
+void vecmat_lufactor(int* ipiv, double* A)
+{
+    vecmat_head_t* vm = vecmat(A);
+    assert(vm->m == vm->n);
+    vecmatn_lufactor(ipiv, A, vm->m);
+}
+
+void vecmat_lusolve(int* ipiv, double* A, double* x)
+{
+    vecmat_head_t* vm = vecmat(A);
+    vecmatn_lusolve(ipiv, A, x, vm->m);
+}
+
+void vecmat_lusolveT(int* ipiv, double* A, double* x)
+{
+    vecmat_head_t* vm = vecmat(A);
+    vecmatn_lusolveT(ipiv, A, x, vm->m);
+}
+
+/**
  * ## Norm computations
  * 
  * Just for checking on residuals and errors, it's convenient to have

@@ -46,6 +46,14 @@ void vecmatn_csolve(double* R, double* x, int n);
 void vecmat_cfactor(double* A);
 void vecmat_csolve(double* R, double* x);
 
+// LU factorization and solve
+void vecmatn_lufactor(int* ipiv, double* A, int n);
+void vecmatn_lusolve(int* ipiv, double* A, double* x, int n);
+void vecmatn_lusolveT(int* ipiv, double* A, double* x, int n);
+void vecmat_lufactor(int* ipiv, double* A);
+void vecmat_lusolve(int* ipiv, double* A, double* x);
+void vecmat_lusolveT(int* ipiv, double* A, double* x);
+
 // Squared norm and norm computations
 double vecmatn_norm2(double* data, int n);
 double vecmatn_norm(double* data, int n);
