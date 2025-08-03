@@ -281,6 +281,23 @@ void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
     }
 }
 
+double mesh_shapes(mesh_t* mesh, int eltid, double* x,
+                   double* N, double* dN)
+{
+    // Allocate space to make a 3D element work
+    int ipiv[3];
+    double J[9];
+    double xout[3];
+    int d = mesh->d;
+
+    // Call mesh_to_spatial
+    mesh_to_spatial(mesh, eltid, x, xout, ipiv, J, N, dN);
+    memcpy(x, xout, d * sizeof(double));
+
+    // If we asked for J, return the Jacobian
+    return dN ? vecmatn_lujac(ipiv, J, d) : 0.0;
+}
+
 /**
  * ## I/O routines
  */

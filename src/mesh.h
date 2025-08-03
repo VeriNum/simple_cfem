@@ -99,6 +99,15 @@ void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
                      double* N, double* dN);
 
 /**
+ * We frequently are interested just in the mapped point location,
+ * shape functions and mapped derivatives, and the Jacobian
+ * determinant.  So we provide a convenience wrapper around
+ * `mesh_to_spatial` for this case.
+ */
+double mesh_shapes(mesh_t* mesh, int eltid, double* x,
+                   double* N, double* dN);
+
+/**
  * For debugging, it is helpful to be able to print out all or part of
  * the mesh geometry.
  */
