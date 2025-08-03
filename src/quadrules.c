@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "quadrules.h"
 
 double gauss_point(int i, int npts)
@@ -162,4 +165,66 @@ double gauss_weight(int i, int npts)
     };
 
     return gauss_wts[( npts*(npts-1) )/2 + i];
+}
+
+//ldoc on
+/**
+ * ## Implementation
+ */
+static int gauss2d_npoint1d(int npts)
+{
+    switch (npts) {
+    case  1: return 1;
+    case  4: return 2;
+    case  9: return 3;
+    case 16: return 4;
+    case 25: return 5;
+    default:
+        fprintf(stderr, "%d quadrature points unsupported by rule\n", npts);
+        exit(-1);
+    }
+}
+
+void gauss2d_point(double* xi, int i, int npts)
+{
+    int d = gauss2d_npoint1d(npts);
+    int ix = i%d, iy = i/d;
+    xi[0] = gauss_point(ix, d);
+    xi[1] = gauss_point(iy, d);
+}
+
+double gauss2d_weight(int i, int npts)
+{
+    int d = gauss2d_npoint1d(npts);
+    int ix = i%d, iy = i/d;
+    return gauss_weight(ix, d) * gauss_weight(iy, d);
+}
+
+/**
+ * We only implement one triangle quadrature (the three-point Hughes rule).
+ */
+void hughes_point(double* xi, int i, int npts)
+{
+    switch (i) {
+    case 0:
+        xi[0] = 0.5;
+        xi[1] = 0.0;
+        return;
+    case 1:
+        xi[0] = 0.5;
+        xi[1] = 0.5;
+        return;
+    case 2:
+        xi[0] = 0.0;
+        xi[1] = 0.5;
+        return;
+    default:
+        fprintf(stderr, "Quadrature node index out of bounds\n");
+        exit(-1);
+    }
+}
+
+double hughes_weight(int i, int npts)
+{
+    return 1.0/6.0;
 }

@@ -18,7 +18,7 @@ OBJS=	obj/quadrules.o \
 	obj/fem.o \
 	obj/element.o
 
-TESTS=	exe/test_gauss.x \
+TESTS=	exe/test_quad.x \
 	exe/test_shapes.x \
 	exe/test_mesh.x \
 	exe/test_vecmat.x \
@@ -81,6 +81,6 @@ test/test_assemble.o: src/vecmat.h src/bandmat.h src/assemble.h
 test/test_bandmat.o: src/vecmat.h src/bandmat.h
 test/test_fem1d.o: src/vecmat.h src/bandmat.h src/mesh.h src/shapes.h
 test/test_fem1d.o: src/assemble.h src/element.h src/fem.h
-test/test_gauss.o: src/quadrules.h
+test/test_quad.o: src/quadrules.h
 test/test_shapes.o: src/vecmat.h src/shapes.h
 test/test_vecmat.o: src/vecmat.h
