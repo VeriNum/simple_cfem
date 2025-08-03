@@ -269,7 +269,7 @@ void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
         // Factor
         vecmatn_lufactor(ipiv, J, d);
 
-        // Transform to spatial coordinates
+        // Transform shape derivatives to spatial coordinates
         for (int k = 0; k < nshape; ++k) {
             double dNk[3];
             for (int j = 0; j < d; ++j)
