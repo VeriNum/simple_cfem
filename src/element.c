@@ -35,39 +35,39 @@ void free_element(element_t* e)
  * carrying around any element parameters in this case).  The internal
  * wiring is:
  * 
- * - Element type data is stored in a structure like `poisson_elt_t`.
+ * - Element type data is stored in a structure like `poisson1d_elt_t`.
  * - One field of the specific element is an `element_t` containing
  *   the methods table for the element.
  * - The data pointer in the `element_t` field points back to the
- *   containing struct (the `poisson_elt_t` in this case).
+ *   containing struct (the `poisson1d_elt_t` in this case).
  * 
  * Externally, we always pass around `element_t` pointers.  Internally,
- * we always use the more specific `poisson_elt_t` from the `element_t`
+ * we always use the more specific `poisson1d_elt_t` from the `element_t`
  * data pointer.
  */
 // Poisson element type data structure
-typedef struct poisson_elt_t {
+typedef struct poisson1d_elt_t {
     // Material parameters, etc go here in more complex cases
     element_t e; // For dispatch table
-} poisson_elt_t;
+} poisson1d_elt_t;
 
 // Declare methods for Poisson element type
-static void poisson_elt_dR(void* p, fem_t* fe, int eltid,
+static void poisson1d_elt_dR(void* p, fem_t* fe, int eltid,
                            double* Re, double* Ke);
-static void poisson_elt_free(void* p);
+static void poisson1d_elt_free(void* p);
 
 // Allocate a Poisson element type
-element_t* malloc_poisson_element()
+element_t* malloc_poisson1d_element()
 {
-    poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
+    poisson1d_elt_t* le = (poisson1d_elt_t*) malloc(sizeof(poisson1d_elt_t));
     le->e.p = le;
-    le->e.dR = poisson_elt_dR;
-    le->e.free = poisson_elt_free;
+    le->e.dR = poisson1d_elt_dR;
+    le->e.free = poisson1d_elt_free;
     return &(le->e);
 }
 
 // Free a Poisson element type
-static void poisson_elt_free(void* p)
+static void poisson1d_elt_free(void* p)
 {
     free(p);
 }
@@ -101,7 +101,7 @@ static void poisson_elt_free(void* p)
  * domain, and the weights are multiplied by the Jacobian determinant for this
  * computation.
  */
-static void poisson_elt_dR(
+static void poisson1d_elt_dR(
     void* p,                   // Context pointer (not used)
     fem_t* fe, int eltid,      // Mesh and element ID in mesh
     double* Re, double* Ke)    // Outputs: element residual and tangent

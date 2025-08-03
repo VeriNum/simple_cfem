@@ -29,7 +29,7 @@ fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 void test_fem1(int d)
 {
     fem_t* fe = setup_test_mesh(6, d, 0.0, 1.0);
-    fe->etype = malloc_poisson_element();
+    fe->etype = malloc_poisson1d_element();
 
     // Set up globals and assemble system
     double* R = malloc_vecmat(fe->nactive, 1);
@@ -60,7 +60,7 @@ void rhs_const1(double* x, double* fx)
 void test_fem2(int d)
 {
     fem_t* fe = setup_test_mesh(6, d, 0.0, 0.0);
-    fe->etype = malloc_poisson_element();
+    fe->etype = malloc_poisson1d_element();
     fem_set_load(fe, rhs_const1);
 
     // Set up globals and assemble system
