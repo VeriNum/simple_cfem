@@ -13,7 +13,7 @@
  * followed by a data array.  We generally pass the object around with
  * a pointer to the start of the data (in standard C style), only
  * backing up in memory to access size information when we need it.
- *
+ * 
  * For convenience, we have two versions of everything except
  * allocation: a `vecmat` version that works with the implicit size
  * parameters, and a `vecmatn` version that works with explicit size
