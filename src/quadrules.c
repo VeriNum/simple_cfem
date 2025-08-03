@@ -1,4 +1,4 @@
-#include "gaussquad.h"
+#include "quadrules.h"
 
 double gauss_point(int i, int npts)
 {

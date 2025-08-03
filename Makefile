@@ -1,6 +1,6 @@
 LDOC= 	lua util/ldoc.lua
 
-DOCS=	docs/gaussquad.qmd \
+DOCS=	docs/quadrules.qmd \
 	docs/shapes.qmd \
 	docs/vecmat.qmd \
 	docs/bandmat.qmd \
@@ -9,7 +9,7 @@ DOCS=	docs/gaussquad.qmd \
 	docs/fem.qmd \
 	docs/element.qmd 
 
-OBJS=	obj/gaussquad.o \
+OBJS=	obj/quadrules.o \
 	obj/shapes.o \
 	obj/vecmat.o \
 	obj/bandmat.o \
@@ -68,11 +68,11 @@ clean:
 
 src/assemble.o: src/assemble.h src/vecmat.h src/bandmat.h
 src/bandmat.o: src/vecmat.h src/bandmat.h
-src/element.o: src/shapes.h src/gaussquad.h src/assemble.h src/mesh.h
+src/element.o: src/shapes.h src/quadrules.h src/assemble.h src/mesh.h
 src/element.o: src/fem.h src/element.h
 src/fem.o: src/assemble.h src/element.h src/bandmat.h src/mesh.h src/shapes.h
 src/fem.o: src/fem.h
-src/gaussquad.o: src/gaussquad.h
+src/quadrules.o: src/quadrules.h
 src/mesh.o: src/mesh.h src/shapes.h
 src/shapes.o: src/shapes.h
 src/vecmat.o: src/vecmat.h
@@ -81,6 +81,6 @@ test/test_assemble.o: src/vecmat.h src/bandmat.h src/assemble.h
 test/test_bandmat.o: src/vecmat.h src/bandmat.h
 test/test_fem1d.o: src/vecmat.h src/bandmat.h src/mesh.h src/shapes.h
 test/test_fem1d.o: src/assemble.h src/element.h src/fem.h
-test/test_gauss.o: src/gaussquad.h
+test/test_gauss.o: src/quadrules.h
 test/test_shapes.o: src/vecmat.h src/shapes.h
 test/test_vecmat.o: src/vecmat.h

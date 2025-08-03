@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "shapes.h"
-#include "gaussquad.h"
+#include "quadrules.h"
 #include "assemble.h"
 #include "mesh.h"
 #include "fem.h"

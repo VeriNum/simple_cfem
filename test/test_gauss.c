@@ -1,7 +1,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include "gaussquad.h"
+#include "quadrules.h"
 
 int main()
 {
