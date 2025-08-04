@@ -27,9 +27,9 @@ void assemble_clear(assemble_t* assembler)
  * 
  */
 // Declare private implementations for the methods
-static void assemble_dense_add(void* p, double* emat, int* ids, int ne);
-static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne);
-static void assemble_vecmat_clear(void* p);
+/*static*/ void assemble_dense_add(void* p, double* emat, int* ids, int ne);
+/*static*/ void assemble_bandmat_add(void* p, double* emat, int* ids, int ne);
+/*static*/ void assemble_vecmat_clear(void* p);
 
 // Initialize a dense assembler
 void init_assemble_dense(assemble_t* assembler, double* A)
@@ -55,7 +55,7 @@ void init_assemble_band(assemble_t* assembler, double* b)
  * where the global indices are negative (indicating that these
  * contributions are not needed because of an essential boundary condition.
  */
-static void assemble_dense_add(void* p, double* emat, int* ids, int ne)
+/*static*/ void assemble_dense_add(void* p, double* emat, int* ids, int ne)
 {
     vecmat_head_t* head = vecmat(p);
     double* A = head->data;
@@ -71,7 +71,7 @@ static void assemble_dense_add(void* p, double* emat, int* ids, int ne)
     }
 }
 
-static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
+/*static*/ void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
 {
     vecmat_head_t* head = vecmat(p);
     double* P = head->data;
@@ -94,7 +94,7 @@ static void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
 /**
  * ## Clearing storage
  */
-static void assemble_vecmat_clear(void* p)
+/*static*/ void assemble_vecmat_clear(void* p)
 {
     vecmat_clear((double*) p);
 }

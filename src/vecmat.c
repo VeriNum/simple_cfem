@@ -18,7 +18,7 @@
 vecmat_head_t* vecmat(double* data)
 {
     vecmat_head_t dummy;
-    void* p = (void*) data + ((void*) &dummy - (void*) dummy.data);
+    void* p = (char*) data + ((char*) &dummy - (char*) dummy.data);
     return (vecmat_head_t*) p;
 }
 

@@ -67,8 +67,8 @@ void free_element(element_t* e);
  * There are no PDE coefficients or other special parameters to keep 
  * track of for this element tyle.
  */
-element_t* malloc_poisson1d_element();
-element_t* malloc_poisson2d_element();
+element_t* malloc_poisson1d_element(void);
+element_t* malloc_poisson2d_element(void);
 
 //ldoc off
 #endif /* ELEMENT_H */

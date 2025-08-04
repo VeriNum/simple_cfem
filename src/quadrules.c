@@ -171,7 +171,7 @@ double gauss_weight(int i, int npts)
 /**
  * ## Implementation
  */
-static int gauss2d_npoint1d(int npts)
+/*static*/ int gauss2d_npoint1d(int npts)
 {
     switch (npts) {
     case  1: return 1;

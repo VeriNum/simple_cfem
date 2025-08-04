@@ -14,7 +14,7 @@ void test_K_setup(assemble_t* assembler)
     ids[0] = 1; ids[1] = 2; assemble_add(assembler, emat, ids, 2);
 }
 
-void test_Kassembly()
+void test_Kassembly(void)
 {
     double* A = malloc_vecmat(3,3);
     double* P = malloc_bandmat(3,1);
@@ -38,7 +38,7 @@ void test_Kassembly()
     free_vecmat(A);
 }
 
-void test_Rassembly()
+void test_Rassembly(void)
 {
     double* v = malloc_vecmat(3,1);
     double ve[] = {1.0, -1.0};
@@ -52,7 +52,7 @@ void test_Rassembly()
     free_vecmat(v);
 }
 
-int main()
+int main(void)
 {
     test_Kassembly();
     test_Rassembly();

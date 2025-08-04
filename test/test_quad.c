@@ -4,7 +4,7 @@
 
 #include "quadrules.h"
 
-void test_gauss1d()
+void test_gauss1d(void)
 {
     // Should be exact on polynomials of degree 2k-1
     // Test on x^5 + 3x^4 - x^3 + x^2 + x + 1
@@ -24,7 +24,7 @@ void test_gauss1d()
     }
 }
 
-void test_gauss2d()
+void test_gauss2d(void)
 {
     for (int d = 1; d < 5; ++d) {
         int npts = d*d;
@@ -47,7 +47,7 @@ void test_gauss2d()
     }
 }
 
-void test_hughes()
+void test_hughes(void)
 {
     int npts = 3;
     double Iref[] = {0.5, 1.0/6, 1.0/6, 1.0/24};
@@ -68,7 +68,7 @@ void test_hughes()
     }
 }
 
-int main()
+int main(void)
 {
     test_gauss1d();
     test_gauss2d();
