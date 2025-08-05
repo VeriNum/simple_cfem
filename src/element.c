@@ -54,14 +54,14 @@ typedef struct poisson_elt_t {
 } poisson_elt_t;
 
 // Declare methods for 1D and 2D Poisson element types
-static void poisson1d_elt_dR(void* p, fem_t* fe, int eltid,
+/*static*/ void poisson1d_elt_dR(void* p, fem_t* fe, int eltid,
                              double* Re, double* Ke);
-static void poisson2d_elt_dR(void* p, fem_t* fe, int eltid,
+/*static*/ void poisson2d_elt_dR(void* p, fem_t* fe, int eltid,
                              double* Re, double* Ke);
-static void simple_elt_free(void* p);
+/*static*/ void simple_elt_free(void* p);
 
 // Allocate a 1D Poisson element type
-element_t* malloc_poisson1d_element()
+element_t* malloc_poisson1d_element(void)
 {
     poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
     le->e.p = le;
@@ -71,7 +71,7 @@ element_t* malloc_poisson1d_element()
 }
 
 // Allocate a 2D Poisson element type
-element_t* malloc_poisson2d_element()
+element_t* malloc_poisson2d_element(void)
 {
     poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
     le->e.p = le;
@@ -81,7 +81,7 @@ element_t* malloc_poisson2d_element()
 }
 
 // Free a Poisson element type
-static void simple_elt_free(void* p)
+/*static*/ void simple_elt_free(void* p)
 {
     free(p);
 }
@@ -115,7 +115,7 @@ static void simple_elt_free(void* p)
  * domain, and the weights are multiplied by the Jacobian determinant for this
  * computation.
  */
-static void poisson1d_elt_dR(
+/*static*/ void poisson1d_elt_dR(
     void* p,                   // Context pointer (not used)
     fem_t* fe, int eltid,      // Mesh and element ID in mesh
     double* Re, double* Ke)    // Outputs: element residual and tangent
@@ -171,7 +171,7 @@ static void poisson1d_elt_dR(
  * The one thing that is a little different is that we will do a little
  * more work to get an appropriate quadrature rule.
  */
-static int get_quad2d(shapes_t shapefn,
+/*static*/ int get_quad2d(shapes_t shapefn,
                       void (**quad_pt)(double*, int, int),
                       double (**quad_wt)(int, int))
 {
@@ -195,7 +195,7 @@ static int get_quad2d(shapes_t shapefn,
         assert(0);
 }
 
-static void poisson2d_elt_dR(
+/*static*/ void poisson2d_elt_dR(
     void* p,                   // Context pointer (not used)
     fem_t* fe, int eltid,      // Mesh and element ID in mesh
     double* Re, double* Ke)    // Outputs: element residual and tangent

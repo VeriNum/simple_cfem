@@ -5,7 +5,7 @@
 
 #include "vecmat.h"
 
-int main()
+int main(void)
 {
     int ipiv[3];
     double* x = malloc_vecmat(3, 1);

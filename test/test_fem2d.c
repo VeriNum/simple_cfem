@@ -13,7 +13,7 @@
 
 
 // Set up the mesh on [0,1]^2 with Dirichlet BC
-void test_fem1()
+void test_fem1(void)
 {
     mesh_t* mesh = mesh_block2d_P1(2, 2);
     fem_t* fe = malloc_fem(mesh, 1);
@@ -56,7 +56,7 @@ void test_fem1()
     free_fem(fe);
 }
 
-int main()
+int main(void)
 {
     test_fem1();
     return 0;

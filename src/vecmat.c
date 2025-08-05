@@ -18,7 +18,7 @@
 vecmat_head_t* vecmat(double* data)
 {
     vecmat_head_t dummy;
-    void* p = (void*) data + ((void*) &dummy - (void*) dummy.data);
+    void* p = (char*) data + ((char*) &dummy - (char*) dummy.data);
     return (vecmat_head_t*) p;
 }
 
@@ -330,7 +330,7 @@ double vecmatn_norm2(double* data, int n)
         double xj = data[j];
         result += xj*xj;
     }
-    return sqrt(result);
+    return result;
 }
 
 double vecmatn_norm(double* data, int n)

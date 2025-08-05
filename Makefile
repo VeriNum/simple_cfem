@@ -1,3 +1,6 @@
+-include CONFIGURE
+CFLAGS ?= -Wall
+
 LDOC= 	lua util/ldoc.lua
 
 DOCS=	docs/quadrules.qmd \
@@ -31,14 +34,16 @@ TESTS=	exe/test_quad.x \
 
 all:
 
+objs:  $(OBJS)
+
 obj/%.o: src/%.c
-	gcc -Wall -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 obj/%.o: test/%.c
-	gcc -Wall -Isrc -c $< -o $@
+	$(CC) $(CFLAGS) -Isrc -c $< -o $@
 
 exe/%.x: obj/%.o $(OBJS)
-	gcc -Wall -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^
 
 docs/%.qmd: src/%.h src/%.c
 	$(LDOC) -highlight c -p quarto -o $@ $^
@@ -72,7 +77,7 @@ src/bandmat.o: src/vecmat.h src/bandmat.h
 src/element.o: src/shapes.h src/quadrules.h src/assemble.h src/mesh.h
 src/element.o: src/fem.h src/element.h
 src/fem.o: src/assemble.h src/element.h src/bandmat.h src/mesh.h src/shapes.h
-src/fem.o: src/fem.h
+src/fem.o: src/fem.h src/element.h
 src/quadrules.o: src/quadrules.h
 src/mesh.o: src/mesh.h src/shapes.h
 src/shapes.o: src/shapes.h

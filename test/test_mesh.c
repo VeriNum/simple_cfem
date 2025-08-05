@@ -102,7 +102,7 @@ void check_mesh(mesh_t* mesh,
         assert(eref[i] == mesh->elt[i]);
 }
 
-void test_block_meshers()
+void test_block_meshers(void)
 {
     mesh_t* mesh = mesh_block2d_P1(3,2);
     check_mesh(mesh, 12, XrefP1, 6, 4, erefP1);
@@ -129,7 +129,7 @@ void test_block_map(double* xy)
     xy[1] = 1.0 + x+y;
 }
 
-void test_emap()
+void test_emap(void)
 {
     int ipiv[2];
     double N[4], dN[4*2], xymap[2], J[2*2];
@@ -154,7 +154,7 @@ void test_emap()
     free_mesh(mesh);
 }
 
-int main()
+int main(void)
 {
     test_block_meshers();
     test_emap();

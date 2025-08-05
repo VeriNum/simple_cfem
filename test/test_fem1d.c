@@ -87,7 +87,7 @@ void test_fem2(int d)
     free_fem(fe);
 }
 
-int main()
+int main(void)
 {
     for (int d = 1; d <= 3; ++d)
         test_fem1(d);
