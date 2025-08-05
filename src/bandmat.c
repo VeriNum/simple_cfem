@@ -13,19 +13,22 @@
  * 
  */
 // Allocate a band matrix
-double* malloc_bandmat(int n, int b)
+vecmat_t* malloc_bandmat(int n, int b)
 {
-    return malloc_vecmat(n, b+1);
+  vecmat_t *vm = malloc_vecmat(n*(b+1));
+  vm->m=n; vm->n=b+1;
+  return vm;
 }
 
 // Convert dense n-by-n A to band matrix P with bandwidth bw
-double* dense_to_band(double* A, int n, int bw)
+vecmat_t* dense_to_band(vecmat_t* A, int bw)
 {
-    double* P = malloc_bandmat(n, bw);
+    int n = A->n;
+    vecmat_t* P = malloc_bandmat(n, bw);
     for (int d = 0; d <= bw; ++d)
         for (int j = d; j < n; ++j) {
             int i = j-d;
-            P[j+d*n] = A[i+j*n];
+            P->data[j+d*n] = A->data[i+j*n];
         }
     return P;
 }
@@ -45,14 +48,13 @@ double* dense_to_band(double* A, int n, int bw)
  * 
  */
 // Print band format array
-void bandmat_print(double* PA)
+void bandmat_print(vecmat_t* PA)
 {
-    vecmat_head_t* head = vecmat(PA);
-    int n = head->m, bw = head->n-1;
+    int n = PA->m, bw = PA->n-1;
 
     for (int i = 0; i < n; ++i) {
         for (int d = 0; d <= bw && d <= i; ++d)
-            printf("  % 6.3g", PA[i+d*n]);
+            printf("  % 6.3g", PA->data[i+d*n]);
         printf("\n");
     }
 }
@@ -75,25 +77,24 @@ void bandmat_print(double* PA)
  * (violating the assumption of positive definiteness).
  * 
  */
-void bandmat_factor(double* PA)
+void bandmat_factor(vecmat_t* PA)
 {
-    vecmat_head_t* head = vecmat(PA);
-    int n = head->m, bw=head->n-1;
+    int n = PA->m, bw=PA->n-1;
     
     for (int k = 0; k < n; ++k) {
 
         // Compute kth diagonal element
-        assert(PA[k] >= 0);
-        PA[k] = sqrt(PA[k]);
+        assert(PA->data[k] >= 0);
+        PA->data[k] = sqrt(PA->data[k]);
 
         // Scale across the row
         for (int j = k+1; j < n && j <= k+bw; ++j)
-            PA[j+n*(j-k)] /= PA[k];
+            PA->data[j+n*(j-k)] /= PA->data[k];
 
         // Apply the Schur complement update
         for (int j = k+1; j < n && j <= k+bw; ++j)
             for (int i = k+1; i <= j; ++i)
-                PA[j+n*(j-i)] -= PA[i+n*(i-k)]*PA[j+n*(j-k)];
+                PA->data[j+n*(j-i)] -= PA->data[i+n*(i-k)]*PA->data[j+n*(j-k)];
     }    
 }
 
@@ -104,25 +105,24 @@ void bandmat_factor(double* PA)
  * on input the `x` argument should be set to the system right-hand side,
  * and on output it will be the solution vector.
  */
-void bandmat_solve(double* PR, double* x)
+void bandmat_solve(vecmat_t* PR, double* x)
 {
-    vecmat_head_t* head = vecmat(PR);
-    int n = head->m, bw = head->n-1;
+    int n = PR->m, bw = PR->n-1;
     
     // Forward substitution
     for (int i = 0; i < n; ++i) {
         double bi = x[i];
         for (int dj = 1; dj <= bw && dj <= i; ++dj)
-            bi -= PR[i+dj*n]*x[i-dj];
-        x[i] = bi/PR[i];
+            bi -= PR->data[i+dj*n]*x[i-dj];
+        x[i] = bi/PR->data[i];
     }
 
     // Backward substitution
     for (int i = n-1; i >= 0; --i) {
         double yi = x[i];
         for (int j = i+1; j <= i+bw && j < n; ++j)
-            yi -= PR[j+(j-i)*n]*x[j];
-        x[i] = yi/PR[i];
+            yi -= PR->data[j+(j-i)*n]*x[j];
+        x[i] = yi/PR->data[i];
     }
 }
 

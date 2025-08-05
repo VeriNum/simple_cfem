@@ -1,5 +1,6 @@
 #ifndef ASSEMBLE_H
 #define ASSEMBLE_H
+#include "vecmat.h"
 
 //ldoc on
 /**
@@ -69,20 +70,19 @@
  *   matrix (`ematrix`) into the global structure referenced by the
  *   assembler.  The `ids` array implements the map $\iota$ from local
  *   indices to global indices (i.e. `ids[ilocal] = iglobal`).
- * - `clear(assembler)` zeros out the matrix storage in preparation
- *   for assembly of a new matrix.
+ * - we don't need `clear` method-pointer, because `clear` is a generic
+ *   operation for all vecmat representations
  * 
  */
 // Interface for general assembler object (callback + context)
 typedef struct assemble_t {
-    void* p;                                // Context
-    void (*add)(void*, double*, int*, int); // Add contribution
-    void (*clear)(void*);                   // Clear
+    vecmat_t* p;                            // Context
+    void (*add)(vecmat_t*, double*, int*, int); // Add contribution
 } assemble_t;
 
 // Convenience functions that call the assembler methods
 void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne);
-void assemble_clear(assemble_t* assembler);
+void assemble_clear(assemble_t *assembler);
 
 /**
  * We currently only support two types of assemblers: dense and band.
@@ -97,8 +97,8 @@ void assemble_clear(assemble_t* assembler);
  * dimension arguments.
  * 
  */
-void init_assemble_dense(assemble_t* assembler, double* A);
-void init_assemble_band(assemble_t* assembler, double* b);
+void init_assemble_dense(assemble_t* assembler, vecmat_t* A);
+void init_assemble_band(assemble_t* assembler, vecmat_t* b);
 
 /**
  * ## Vector assembly interface

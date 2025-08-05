@@ -24,15 +24,15 @@
  * 
  */
 // Allocate a new bandmat (and maybe populate from a dense matrix)
-double* malloc_bandmat(int n, int b);
-double* dense_to_band(double* A, int n, int bw);
+vecmat_t* malloc_bandmat(int n, int b);
+vecmat_t* dense_to_band(vecmat_t* A, int bw);
 
 // Print a bandmat
-void bandmat_print(double* PA);
+void bandmat_print(vecmat_t* PA);
 
 // Cholesky and linear solve with Cholesky
-void bandmat_factor(double* PA);
-void bandmat_solve(double* PR, double* x);
+void bandmat_factor(vecmat_t* PA);
+void bandmat_solve(vecmat_t* PR, double* x);
 
 //ldoc off
 #endif /* BANDMAT_H */

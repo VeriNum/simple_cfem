@@ -96,8 +96,8 @@ void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx));
  * a `NULL` pointer means "do not assemble this".
  */
 void fem_assemble(fem_t* fe, double* R, struct assemble_t* Kassembler);
-void fem_assemble_band(fem_t* fe, double* R, double* K);
-void fem_assemble_dense(fem_t* fe, double* R, double* K);
+void fem_assemble_band(fem_t* fe, double* R, vecmat_t* K);
+void fem_assemble_dense(fem_t* fe, double* R, vecmat_t* K);
 
 /**
  * For debugging small problems, it is also useful to have a routine to

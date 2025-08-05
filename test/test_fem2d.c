@@ -36,14 +36,14 @@ void test_fem1(void)
     fem_assign_ids(fe);
 
     // Set up globals and assemble system
-    double* R = malloc_vecmat(fe->nactive, 1);
-    double* K = malloc_vecmat(fe->nactive, fe->nactive);
-    fem_assemble_dense(fe, R, K);
+    vecmat_t* R = dense_malloc_vecmat(fe->nactive, 1);
+    vecmat_t* K = dense_malloc_vecmat(fe->nactive, fe->nactive);
+    fem_assemble_dense(fe, R->data, K);
 
     // Factor, solve, and update
-    vecmat_cfactor(K);
-    vecmat_csolve(K, R);
-    fem_update_U(fe, R);
+    dense_vecmat_cfactor(K);
+    dense_vecmat_csolve(K, R->data);
+    fem_update_U(fe, R->data);
 
     // Check against reference solution (u = x)
     for (int i = 0; i < fe->mesh->numnp; ++i) {

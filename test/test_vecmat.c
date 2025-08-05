@@ -8,58 +8,57 @@
 int main(void)
 {
     int ipiv[3];
-    double* x = malloc_vecmat(3, 1);
+    vecmat_t* x = dense_malloc_vecmat(3, 1);
 
     // Check dimension setup
-    assert(vecmat(x)->m == 3);
-    assert(vecmat(x)->n == 1);
-    assert(vecmat(x)->data == x);
+    assert(x->m == 3);
+    assert(x->n == 1);
 
     // Check clear functionality
-    memset(x, 0xF, 3*sizeof(double));
+    memset(x->data, 0xF, 3*sizeof(double));
     vecmat_clear(x);
     assert(vecmat_norm(x) == 0.0);
 
     // Check Cholesky factorization of a reference matrix
-    double* A = malloc_vecmat(3, 3);
-    A[0] = 1.0;  A[1] =  2.0;  A[2] =  3.0;
-    A[3] = 2.0;  A[4] = 20.0;  A[5] = 26.0;
-    A[6] = 3.0;  A[7] = 26.0;  A[8] = 70.0;
-    vecmat_cfactor(A);
-    assert(A[0] == 1.0 && A[3] == 2.0 && A[6] == 3.0
-                       && A[4] == 4.0 && A[7] == 5.0
-                                      && A[8] == 6.0);
+    vecmat_t* A = dense_malloc_vecmat(3, 3);
+    A->data[0] = 1.0;  A->data[1] =  2.0;  A->data[2] =  3.0;
+    A->data[3] = 2.0;  A->data[4] = 20.0;  A->data[5] = 26.0;
+    A->data[6] = 3.0;  A->data[7] = 26.0;  A->data[8] = 70.0;
+    dense_vecmat_cfactor(A);
+    assert(A->data[0] == 1.0 && A->data[3] == 2.0 && A->data[6] == 3.0
+                       && A->data[4] == 4.0 && A->data[7] == 5.0
+                                      && A->data[8] == 6.0);
 
     // Check Cholesky solve on a reference matrix
-    x[0] = 20.0;  x[1] = 168.0;  x[2] = 364.0;
-    vecmat_csolve(A, x);
-    assert(x[0] == 2.0 && x[1] == 3.0 && x[2] == 4.0);
+    x->data[0] = 20.0;  x->data[1] = 168.0;  x->data[2] = 364.0;
+    dense_vecmat_csolve(A, x->data);
+    assert(x->data[0] == 2.0 && x->data[1] == 3.0 && x->data[2] == 4.0);
 
     // Check LU factorization of a reference matrix
-    A[0] = 2.25; A[3] = 5.25; A[6] = 15.375;
-    A[1] = 1.5;  A[4] = 8.0;  A[7] = 9.5;
-    A[2] = 3.0;  A[5] = 4.0;  A[8] = 5.0;
-    vecmat_lufactor(ipiv, A);
+    A->data[0] = 2.25; A->data[3] = 5.25; A->data[6] = 15.375;
+    A->data[1] = 1.5;  A->data[4] = 8.0;  A->data[7] = 9.5;
+    A->data[2] = 3.0;  A->data[5] = 4.0;  A->data[8] = 5.0;
+    dense_vecmat_lufactor(ipiv, A);
     assert(ipiv[0] == 2 && ipiv[1] == 1 && ipiv[2] == 2);
-    assert(A[0] == 3.0  && A[3] == 4.0   && A[6] == 5.0 &&
-           A[1] == 0.5  && A[4] == 6.0   && A[7] == 7.0 &&
-           A[2] == 0.75 && A[5] == 0.375 && A[8] == 9.0);
+    assert(A->data[0] == 3.0  && A->data[3] == 4.0   && A->data[6] == 5.0 &&
+           A->data[1] == 0.5  && A->data[4] == 6.0   && A->data[7] == 7.0 &&
+           A->data[2] == 0.75 && A->data[5] == 0.375 && A->data[8] == 9.0);
 
     // Check Jacobian determinant
-    assert(vecmat_lujac(ipiv, A) == -162.0);
+    assert(dense_vecmat_lujac(ipiv, A) == -162.0);
 
     // Check LU solve on a reference matrix
-    x[0] = 186.375; x[1] = 149.0; x[2] = 88.0;
-    vecmat_lusolve(ipiv, A, x);
-    assert(x[0] == 5.0 && x[1] == 7.0 && x[2] == 9.0);
+    x->data[0] = 186.375; x->data[1] = 149.0; x->data[2] = 88.0;
+    dense_vecmat_lusolve(ipiv, A, x->data);
+    assert(x->data[0] == 5.0 && x->data[1] == 7.0 && x->data[2] == 9.0);
 
     // Check LU transpose solve on reference matrix
-    x[0] = 25.5; x[1] = 62.5; x[2] = 93.75;
-    vecmat_lusolveT(ipiv, A, x);
-    assert(x[0] == 2.0 && x[1] == 4.0 && x[2] == 5.0);
+    x->data[0] = 25.5; x->data[1] = 62.5; x->data[2] = 93.75;
+    dense_vecmat_lusolveT(ipiv, A, x->data);
+    assert(x->data[0] == 2.0 && x->data[1] == 4.0 && x->data[2] == 5.0);
 
     // Check norm
-    x[0] = 3.0; x[1] = 4.0; x[2] = 0.0;
+    x->data[0] = 3.0; x->data[1] = 4.0; x->data[2] = 0.0;
     assert(vecmat_norm(x) == 5.0);
 
     free_vecmat(A);

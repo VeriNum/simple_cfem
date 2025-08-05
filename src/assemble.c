@@ -14,37 +14,35 @@ void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne)
     (*(assembler->add))(assembler->p, emat, ids, ne);
 }
 
-void assemble_clear(assemble_t* assembler)
+/**
+ * ## Generic clear
+ */
+void assemble_clear (assemble_t *assembler)
 {
-    (*(assembler->clear))(assembler->p);
+  vecmat_clear(assembler->p);
 }
 
 /**
  * Setting up an assembler object just involves initializing the
- * data pointer `p` and setting up the method table.  Note that
- * both the dense and band storage sit on top of our `vecmat_t` array
- * manager, so we can use the same `clear` implementation in both cases.
+ * data pointer `p` and setting up the method table.  
  * 
  */
 // Declare private implementations for the methods
-/*static*/ void assemble_dense_add(void* p, double* emat, int* ids, int ne);
-/*static*/ void assemble_bandmat_add(void* p, double* emat, int* ids, int ne);
-/*static*/ void assemble_vecmat_clear(void* p);
+/*static*/ void assemble_dense_add(vecmat_t* p, double* emat, int* ids, int ne);
+/*static*/ void assemble_bandmat_add(vecmat_t* p, double* emat, int* ids, int ne);
 
 // Initialize a dense assembler
-void init_assemble_dense(assemble_t* assembler, double* A)
+void init_assemble_dense(assemble_t* assembler, vecmat_t* A)
 {
     assembler->p = A;
     assembler->add = assemble_dense_add;
-    assembler->clear = assemble_vecmat_clear;
 }
 
 // Initialize a band assembler
-void init_assemble_band(assemble_t* assembler, double* b)
+void init_assemble_band(assemble_t* assembler, vecmat_t* b)
 {
     assembler->p = b;
     assembler->add = assemble_bandmat_add;
-    assembler->clear = assemble_vecmat_clear;
 }
 
 /**
@@ -55,28 +53,24 @@ void init_assemble_band(assemble_t* assembler, double* b)
  * where the global indices are negative (indicating that these
  * contributions are not needed because of an essential boundary condition.
  */
-/*static*/ void assemble_dense_add(void* p, double* emat, int* ids, int ne)
+/*static*/ void assemble_dense_add(vecmat_t* A, double* emat, int* ids, int ne)
 {
-    vecmat_head_t* head = vecmat(p);
-    double* A = head->data;
-    int n = head->m;
+    int n = A->m;
 
     for (int je = 0; je < ne; ++je) {
         int j = ids[je];
         for (int ie = 0; ie <= je; ++ie) {
             int i = ids[ie];
             if (i >= 0 && j >= i)
-                A[i+n*j] += emat[ie+ne*je];
+                A->data[i+n*j] += emat[ie+ne*je];
         }
     }
 }
 
-/*static*/ void assemble_bandmat_add(void* p, double* emat, int* ids, int ne)
+/*static*/ void assemble_bandmat_add(vecmat_t* P, double* emat, int* ids, int ne)
 {
-    vecmat_head_t* head = vecmat(p);
-    double* P = head->data;
-    int n = head->m;
-    int b = head->n-1;
+    int n = P->m;
+    int b = P->n-1;
 
     for (int je = 0; je < ne; ++je) {
         int j = ids[je];
@@ -85,18 +79,10 @@ void init_assemble_band(assemble_t* assembler, double* b)
             int d = j-i;
             if (j >= 0 && d >= 0) {
                 assert(d <= b);
-                P[j+n*d] += emat[ie+ne*je];
+                P->data[j+n*d] += emat[ie+ne*je];
             }
         }
     }
-}
-
-/**
- * ## Clearing storage
- */
-/*static*/ void assemble_vecmat_clear(void* p)
-{
-    vecmat_clear((double*) p);
 }
 
 /**

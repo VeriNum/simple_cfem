@@ -78,25 +78,25 @@ void get_xref(double* x)
     memcpy(x, xref, 6*sizeof(double));
 }
 
-int main()
+int main(void)
 {
-    double* A    = malloc_vecmat(6, 6);
-    double* xref = malloc_vecmat(6, 1);
-    double* x    = malloc_vecmat(6, 1);
+    vecmat_t* A    = dense_malloc_vecmat(6, 6);
+    vecmat_t* xref = malloc_bandmat(6, 1);
+    vecmat_t* x    = malloc_bandmat(6, 1);
 
     // Get problem data
-    get_Aref(A);
-    get_xref(xref);
-    get_bref(x);
+    get_Aref(A->data);
+    get_xref(xref->data);
+    get_bref(x->data);
 
     // Extract to band, factor, solve
-    double* P = dense_to_band(A, 6, 2);
+    vecmat_t* P = dense_to_band(A, 2);
     bandmat_factor(P);
-    bandmat_solve(P, x);
+    bandmat_solve(P, x->data);
 
     // Check residual
     for (int i = 0; i < 6; ++i)
-        x[i] -= xref[i];
+        x->data[i] -= xref->data[i];
     assert(vecmat_norm(x) < 1e-8);
     
     free_vecmat(P);

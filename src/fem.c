@@ -118,7 +118,7 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 }
 
 // Convenience function for assembling band matrix
-void fem_assemble_band(fem_t* fe, double* R, double* K)
+void fem_assemble_band(fem_t* fe, double* R, vecmat_t* K)
 {
     if (K) {
         assemble_t Kassembler;
@@ -130,7 +130,7 @@ void fem_assemble_band(fem_t* fe, double* R, double* K)
 }
 
 // Convenience function for assembling dense matrix
-void fem_assemble_dense(fem_t* fe, double* R, double* K)
+void fem_assemble_dense(fem_t* fe, double* R, vecmat_t* K)
 {
     if (K) {
         assemble_t Kassembler;

@@ -193,6 +193,7 @@ element_t* malloc_poisson2d_element(void)
         return 3;
     } else
         assert(0);
+    return 0; /* unreachable */
 }
 
 /*static*/ void poisson2d_elt_dR(

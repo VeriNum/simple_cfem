@@ -267,14 +267,14 @@ void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
                     J[i+j*d] += X[i+d*elt[k]] * dN[k+j*nshape];
 
         // Factor
-        vecmatn_lufactor(ipiv, J, d);
+        dense_vecmatn_lufactor(ipiv, J, d);
 
         // Transform shape derivatives to spatial coordinates
         for (int k = 0; k < nshape; ++k) {
             double dNk[3];
             for (int j = 0; j < d; ++j)
                 dNk[j] = dN[k+j*nshape];
-            vecmatn_lusolveT(ipiv, J, dNk, d);
+            dense_vecmatn_lusolveT(ipiv, J, dNk, d);
             for (int j = 0; j < d; ++j)
                 dN[k+j*nshape] = dNk[j];
         }
@@ -295,7 +295,7 @@ double mesh_shapes(mesh_t* mesh, int eltid, double* x,
     memcpy(x, xout, d * sizeof(double));
 
     // If we asked for J, return the Jacobian
-    return dN ? vecmatn_lujac(ipiv, J, d) : 0.0;
+    return dN ? dense_vecmatn_lujac(ipiv, J, d) : 0.0;
 }
 
 /**

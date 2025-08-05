@@ -32,14 +32,14 @@ void test_fem1(int d)
     fe->etype = malloc_poisson1d_element();
 
     // Set up globals and assemble system
-    double* R = malloc_vecmat(fe->nactive, 1);
-    double* K = malloc_bandmat(fe->nactive, d);
-    fem_assemble_band(fe, R, K);
+    vecmat_t* R = dense_malloc_vecmat(fe->nactive, 1);
+    vecmat_t* K = malloc_bandmat(fe->nactive, d);
+    fem_assemble_band(fe, R->data, K);
 
     // Factor, solve, and update
     bandmat_factor(K);
-    bandmat_solve(K, R);
-    fem_update_U(fe, R);
+    bandmat_solve(K, R->data);
+    fem_update_U(fe, R->data);
 
     // Check linear interpolation
     for (int i = 0; i < fe->mesh->numnp; ++i)
@@ -64,14 +64,14 @@ void test_fem2(int d)
     fem_set_load(fe, rhs_const1);
 
     // Set up globals and assemble system
-    double* R = malloc_vecmat(fe->nactive, 1);
-    double* K = malloc_bandmat(fe->nactive, d);
-    fem_assemble_band(fe, R, K);
+    vecmat_t* R = dense_malloc_vecmat(fe->nactive, 1);
+    vecmat_t* K = malloc_bandmat(fe->nactive, d);
+    fem_assemble_band(fe, R->data, K);
 
     // Factor, solve, and update
     bandmat_factor(K);
-    bandmat_solve(K, R);
-    fem_update_U(fe, R);
+    bandmat_solve(K, R->data);
+    fem_update_U(fe, R->data);
 
     // Solution should be exact (d > 1)
     for (int i = 0; i < fe->mesh->numnp; ++i) {

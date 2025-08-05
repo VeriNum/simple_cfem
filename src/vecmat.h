@@ -5,64 +5,61 @@
 /**
  * # Vector and matrix conveniences
  * 
- * C does not make it particularly easy to work with matrices and
- * vectors.  Part of the difficulty is the lack of a convenient place
- * to store size information.  We work around this by defining a data
- * structure (which we will refer to as a `vecmat_t`, though this type
- * is never explicitly used in our code) consisting of dimension data
- * followed by a data array.  We generally pass the object around with
- * a pointer to the start of the data (in standard C style), only
- * backing up in memory to access size information when we need it.
+ * We define a structure `vecmat_t` consisting of dimension/sparsity data
+ * followed by a data array.  A `vecmat_t` can represent a dense matrix,
+ * banded matrix, sparse matrix (in various formats).  The `vecmat_t` doesn't
+ * tell you which representation it's in, you just have to know from context.
+ * All representations must store all their nonzero elements in the `data` array,
+ * and no two slots in the `data` array can represent the same (i,j) matrix element.
  * 
- * For convenience, we have two versions of everything except
- * allocation: a `vecmat` version that works with the implicit size
- * parameters, and a `vecmatn` version that works with explicit size
- * parameters.
+ * Therefore "clear" (set to zeros without changing sparsity structure)
+ * and Frobenius norm can be done generically.
  */
 
-typedef struct vecmat_head_t {
-    int m, n;       // Row and column counts
+typedef struct vecmat_t {
+    int len;       // length of data array
+    int m,n;       // representation-specific data, e.g. but not necessarily number of rows, cols
+    int *ind1, *ind2;  // indexing arrays for sparse matrices, if needed, otherwise NULL
     double data[1]; // Start of data array
-} vecmat_head_t;
-
-// Get header information by backing up from data pointer
-vecmat_head_t* vecmat(double* data);
+} vecmat_t;
 
 // Create and free 
-double* malloc_vecmat(int m, int n);
-void free_vecmat(double* data);
+vecmat_t* malloc_vecmat(int len);
+void free_vecmat(vecmat_t* vecmat);
+
+vecmat_t* dense_malloc_vecmat(int m, int n);
 
 // Clear storage
-void vecmatn_clear(double* data, int m, int n);
-void vecmat_clear(double* data);
+void vecmatn_clear(double* data, int len);
+void vecmat_clear(vecmat_t* data);
 
 // Print array (assumes column major order)
-void vecmatn_print(double* data, int m, int n);
-void vecmat_print(double* data);
+void dense_vecmatn_print(double* data, int m, int n);
+void dense_vecmat_print(vecmat_t* data);
 
 // Cholesky factorization and solve (uses only upper triangular)
-void vecmatn_cfactor(double* A, int n);
-void vecmatn_csolve(double* R, double* x, int n);
-void vecmat_cfactor(double* A);
-void vecmat_csolve(double* R, double* x);
+void dense_vecmatn_cfactor(double* A, int n);
+void dense_vecmatn_csolve(double* R, double* x, int n);
+void dense_vecmat_cfactor(vecmat_t* A);
+void dense_vecmat_csolve(vecmat_t* R, double* x);
 
 // LU factorization and solve
-void vecmatn_lufactor(int* ipiv, double* A, int n);
-void vecmatn_lusolve(int* ipiv, double* A, double* x, int n);
-void vecmatn_lusolveT(int* ipiv, double* A, double* x, int n);
-void vecmat_lufactor(int* ipiv, double* A);
-void vecmat_lusolve(int* ipiv, double* A, double* x);
-void vecmat_lusolveT(int* ipiv, double* A, double* x);
+void dense_vecmatn_lufactor(int* ipiv, double* A, int n);
+void dense_vecmatn_lusolve(int* ipiv, double* A, double* x, int n);
+void dense_vecmatn_lusolveT(int* ipiv, double* A, double* x, int n);
+void dense_vecmat_lufactor(int* ipiv, vecmat_t* A);
+void dense_vecmat_lusolve(int* ipiv, vecmat_t* A, double* x);
+void dense_vecmat_lusolveT(int* ipiv, vecmat_t* A, double* x);
 
 // Jacobian determinant from LU factorization
-double vecmatn_lujac(int* ipiv, double* A, int n);
-double vecmat_lujac(int* ipiv, double* A);
+double dense_vecmatn_lujac(int* ipiv, double* A, int n);
+double dense_vecmat_lujac(int* ipiv, vecmat_t* A);
 
 // Squared norm and norm computations
-double vecmatn_norm2(double* data, int n);
-double vecmatn_norm(double* data, int n);
-double vecmat_norm2(double* data);
-double vecmat_norm(double* data);
+double vecmatn_norm2(double* data, int len);
+double vecmatn_norm(double* data, int len);
+double vecmat_norm2(vecmat_t* data);
+double vecmat_norm(vecmat_t* data);
 
 //ldoc off
 #endif /* VECMAT_H */
