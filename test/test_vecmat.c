@@ -60,7 +60,7 @@ int main(void)
 
     // Check norm
     x[0] = 3.0; x[1] = 4.0; x[2] = 0.0;
-    assert(vecmat_norm2(x) == 5.0);
+    assert(vecmat_norm(x) == 5.0);
 
     free_vecmat(A);
     free_vecmat(x);
