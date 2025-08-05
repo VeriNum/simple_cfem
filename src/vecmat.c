@@ -330,7 +330,7 @@ double vecmatn_norm2(double* data, int n)
         double xj = data[j];
         result += xj*xj;
     }
-    return sqrt(result);
+    return result;
 }
 
 double vecmatn_norm(double* data, int n)
