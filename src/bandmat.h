@@ -20,7 +20,7 @@
 
 typedef struct bandmat_t {
     int m,b;  // rows, bands
-    double data[1];  // Start of data array
+    double data[0];  // Start of data array
 } bandmat_t;
 
 // Allocate a new bandmat (and maybe populate from a dense matrix)

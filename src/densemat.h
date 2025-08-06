@@ -1,6 +1,8 @@
 #ifndef DENSEMAT_H
 #define DENSEMAT_H
 
+#include "alloc.h"
+
 //ldoc on
 /**
  * # Vector and matrix conveniences
@@ -11,7 +13,7 @@
 
 typedef struct densemat_t {
     int m,n;  // rows, columns
-    double data[1];  // Start of data array
+    double data[0];  // Start of data array
 } densemat_t;
 
 // Create and free 

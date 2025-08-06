@@ -93,11 +93,6 @@ forward_for_simple_bound n (EX i: Z, PROP() LOCAL(temp _p p; temp _n (Vint (Int.
 Qed.
 
 Definition prog' := ltac:(QPprog prog).
-Compute map (
-    (fun i : positive =>
-     isSomeGfunExternal (Maps.PTree.get i (QP.prog_defs prog'))))
-    (map fst allocASI).
-
 
 Definition allocVSU: @VSU NullExtension.Espec
          alloc_E alloc_imported_specs ltac:(QPprog prog) allocASI mem_mgr.

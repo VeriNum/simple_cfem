@@ -63,7 +63,7 @@ typedef struct poisson_elt_t {
 // Allocate a 1D Poisson element type
 element_t* malloc_poisson1d_element(void)
 {
-    poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
+    poisson_elt_t* le = (poisson_elt_t*) surely_malloc(sizeof(poisson_elt_t));
     le->e.p = le;
     le->e.dR = poisson1d_elt_dR;
     le->e.free = simple_elt_free;
@@ -73,7 +73,7 @@ element_t* malloc_poisson1d_element(void)
 // Allocate a 2D Poisson element type
 element_t* malloc_poisson2d_element(void)
 {
-    poisson_elt_t* le = (poisson_elt_t*) malloc(sizeof(poisson_elt_t));
+    poisson_elt_t* le = (poisson_elt_t*) surely_malloc(sizeof(poisson_elt_t));
     le->e.p = le;
     le->e.dR = poisson2d_elt_dR;
     le->e.free = simple_elt_free;

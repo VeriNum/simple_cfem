@@ -18,7 +18,7 @@ fem_t* fem_malloc(mesh_t* mesh, int ndof)
 {
     int numnp = mesh->numnp;
 
-    fem_t* fe = malloc(sizeof(fem_t));
+    fem_t* fe = surely_malloc(sizeof(fem_t));
     fe->mesh    = mesh;
     fe->etype   = NULL;
     fe->ndof    = ndof;

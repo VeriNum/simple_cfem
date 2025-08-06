@@ -15,7 +15,7 @@
 // Allocate a band matrix
 bandmat_t* bandmat_malloc(int n, int b)
 {
-  bandmat_t *vm = malloc(sizeof(bandmat_t) + (n*(b+1)-1)*sizeof(double));
+  bandmat_t *vm = surely_malloc(sizeof(bandmat_t) + (n*(b+1))*sizeof(double));
   vm->m=n; vm->b=b;
   return vm;
 }

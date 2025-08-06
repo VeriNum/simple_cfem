@@ -13,7 +13,7 @@
  */
 mesh_t* mesh_malloc(int d, int numnp, int nen, int numelt)
 {
-    mesh_t* mesh = malloc(sizeof(mesh_t));
+    mesh_t* mesh = surely_malloc(sizeof(mesh_t));
     mesh->d      = d;
     mesh->numnp  = numnp;
     mesh->nen    = nen;

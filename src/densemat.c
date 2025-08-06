@@ -16,7 +16,7 @@
  */
 densemat_t* densemat_malloc(int m, int n)
 {
-    densemat_t* h = malloc(sizeof(densemat_t) + (m*n-1)*sizeof(double));
+    densemat_t* h = surely_malloc(sizeof(densemat_t) + (m*n)*sizeof(double));
     h->m=m;
     h->n=n;
     return h;

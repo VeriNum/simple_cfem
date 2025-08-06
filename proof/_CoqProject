@@ -9,3 +9,5 @@ mesh.v
 quadrules.v
 shapes.v
 spec_alloc.v
+verif_alloc.v
+spec_densemat.v
