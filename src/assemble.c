@@ -46,23 +46,47 @@ void assemble_print (assemble_t *assembler)
 /*static*/ void assemble_bandmat_add(assemble_data_t* p, double* emat, int* ids, int ne);
 
 // Initialize a dense assembler
+void casted_densemat_clear(assemble_data_t *p) {
+  densemat_clear ((densemat_t*)p);
+}
+
+double casted_densemat_norm2(assemble_data_t *p) {
+  return densemat_norm2 ((densemat_t*)p);
+}
+
+void casted_densemat_print(assemble_data_t *p) {
+  densemat_print ((densemat_t*)p);
+}
+
 void init_assemble_dense(assemble_t* assembler, densemat_t* A)
 {
     assembler->p = (assemble_data_t*)A;
     assembler->add = assemble_dense_add;
-    assembler->clear = (void (*)(densemat_t*))densemat_clear;
-    assembler->norm2 = (double (*)(densemat_t*))densemat_norm2;
-    assembler->print = (void (*)(densemat_t*))densemat_print;
+    assembler->clear = casted_densemat_clear;
+    assembler->norm2 = casted_densemat_norm2;
+    assembler->print = casted_densemat_print;
 }
 
 // Initialize a band assembler
+void casted_bandmat_clear(assemble_data_t *p) {
+  bandmat_clear ((bandmat_t*)p);
+}
+
+double casted_bandmat_norm2(assemble_data_t *p) {
+  return bandmat_norm2 ((bandmat_t*)p);
+}
+
+void casted_bandmat_print(assemble_data_t *p) {
+  bandmat_print ((bandmat_t*)p);
+}
+
 void init_assemble_band(assemble_t* assembler, bandmat_t* b)
 {
     assembler->p = (assemble_data_t*)b;
     assembler->add = assemble_bandmat_add;
-    assembler->clear = (void (*)(bandmat_t*))bandmat_clear;
-    assembler->norm2 = (double (*)(bandmat_t*))bandmat_norm2;
-    assembler->print = (void (*)(bandmat_t*))bandmat_print;
+    assembler->clear = casted_bandmat_clear;
+    assembler->norm2 = casted_bandmat_norm2;
+    assembler->print = casted_bandmat_print;
 }
 
 /**
