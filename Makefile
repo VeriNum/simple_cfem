@@ -3,7 +3,8 @@ CFLAGS ?= -Wall
 
 LDOC= 	lua util/ldoc.lua
 
-DOCS=	docs/quadrules.qmd \
+DOCS=	docs/alloc.qmd \
+	docs/quadrules.qmd \
 	docs/shapes.qmd \
 	docs/densemat.qmd \
 	docs/bandmat.qmd \
@@ -12,7 +13,8 @@ DOCS=	docs/quadrules.qmd \
 	docs/fem.qmd \
 	docs/element.qmd 
 
-OBJS=	obj/quadrules.o \
+OBJS=	obj/alloc.o \
+        obj/quadrules.o \
 	obj/shapes.o \
 	obj/densemat.o \
 	obj/bandmat.o \
@@ -74,21 +76,23 @@ clean:
 
 src/assemble.o: src/assemble.h src/densemat.h src/bandmat.h
 src/bandmat.o: src/densemat.h src/bandmat.h
-src/element.o: src/shapes.h src/quadrules.h src/assemble.h src/mesh.h
-src/element.o: src/fem.h src/element.h
-src/fem.o: src/assemble.h src/element.h src/bandmat.h src/mesh.h src/shapes.h
-src/fem.o: src/fem.h src/element.h
-src/quadrules.o: src/quadrules.h
-src/mesh.o: src/mesh.h src/shapes.h
-src/shapes.o: src/shapes.h
 src/densemat.o: src/densemat.h
+src/element.o: src/shapes.h src/quadrules.h src/assemble.h src/densemat.h
+src/element.o: src/bandmat.h src/mesh.h src/fem.h src/element.h
+src/fem.o: src/alloc.h src/assemble.h src/densemat.h src/bandmat.h
+src/fem.o: src/element.h src/mesh.h src/shapes.h src/fem.h
+src/mesh.o: src/densemat.h src/mesh.h src/shapes.h
+src/quadrules.o: src/quadrules.h
+src/shapes.o: src/shapes.h
+src/assemble.o: src/densemat.h src/bandmat.h
 src/mesh.o: src/shapes.h
 test/test_assemble.o: src/densemat.h src/bandmat.h src/assemble.h
 test/test_bandmat.o: src/densemat.h src/bandmat.h
+test/test_densemat.o: src/densemat.h
 test/test_fem1d.o: src/densemat.h src/bandmat.h src/mesh.h src/shapes.h
 test/test_fem1d.o: src/assemble.h src/element.h src/fem.h
 test/test_fem2d.o: src/densemat.h src/bandmat.h src/mesh.h src/shapes.h
 test/test_fem2d.o: src/assemble.h src/element.h src/fem.h
+test/test_mesh.o: src/mesh.h src/shapes.h
 test/test_quad.o: src/quadrules.h
 test/test_shapes.o: src/densemat.h src/shapes.h
-test/test_densemat.o: src/densemat.h

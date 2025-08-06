@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "alloc.h"
 #include "assemble.h"
 #include "element.h"
 #include "bandmat.h"
@@ -23,9 +24,9 @@ fem_t* fem_malloc(mesh_t* mesh, int ndof)
     fe->ndof    = ndof;
     fe->nactive = numnp * ndof;
 
-    fe->U  = (double*) calloc(ndof * numnp, sizeof(double));
-    fe->F  = (double*) calloc(ndof * numnp, sizeof(double));
-    fe->id = (int*)    calloc(ndof * numnp, sizeof(int));
+    fe->U  = double_calloc(ndof * numnp);
+    fe->F  = double_calloc(ndof * numnp);
+    fe->id = int_calloc(ndof * numnp);
 
     return fe;
 }
@@ -86,9 +87,9 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
     element_t* etype = fe->etype;
 
     // Set up local storage for element contributions
-    int* ids   =     calloc(nen,     sizeof(int));
-    double* Re = R ? calloc(nen,     sizeof(double)) : NULL;
-    double* Ke = K ? calloc(nen*nen, sizeof(double)) : NULL;
+    int* ids   =     int_calloc(nen);
+    double* Re = R ? double_calloc(nen) : NULL;
+    double* Ke = K ? double_calloc(nen*nen) : NULL;
 
     // Clear storage for assembly
     if (R) memset(R, 0, fe->nactive * sizeof(double));

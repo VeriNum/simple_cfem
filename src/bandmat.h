@@ -25,6 +25,7 @@ typedef struct bandmat_t {
 
 // Allocate a new bandmat (and maybe populate from a dense matrix)
 bandmat_t* bandmat_malloc(int n, int b);
+void bandmat_free(bandmat_t* vm);
 bandmat_t* dense_to_band(densemat_t* A, int bw);
 
 // Clear

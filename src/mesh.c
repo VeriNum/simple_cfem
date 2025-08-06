@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "alloc.h"
 #include "densemat.h"
 #include "mesh.h"
 
@@ -17,8 +18,8 @@ mesh_t* mesh_malloc(int d, int numnp, int nen, int numelt)
     mesh->numnp  = numnp;
     mesh->nen    = nen;
     mesh->numelt = numelt;
-    mesh->X      = calloc(d   * numnp,  sizeof(double));
-    mesh->elt    = calloc(nen * numelt, sizeof(int));
+    mesh->X      = double_calloc(d   * numnp);
+    mesh->elt    = int_calloc(nen * numelt);
     mesh->shape  = NULL;
     return mesh;
 }
