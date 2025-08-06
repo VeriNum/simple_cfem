@@ -1,4 +1,4 @@
--I . CFEM
+-Q . CFEM
 alloc.v
 assemble.v
 bandmat.v
@@ -8,3 +8,4 @@ fem.v
 mesh.v
 quadrules.v
 shapes.v
+spec_alloc.v
