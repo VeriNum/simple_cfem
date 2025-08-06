@@ -13,7 +13,7 @@
  * ## Implementation
  */
 // Allocate mesh object
-fem_t* malloc_fem(mesh_t* mesh, int ndof)
+fem_t* fem_malloc(mesh_t* mesh, int ndof)
 {
     int numnp = mesh->numnp;
 
@@ -31,12 +31,12 @@ fem_t* malloc_fem(mesh_t* mesh, int ndof)
 }
 
 // Free mesh object
-void free_fem(fem_t* fe)
+void fem_free(fem_t* fe)
 {
     free(fe->id);
     free(fe->F);
     free(fe->U);
-    free_mesh(fe->mesh);
+    mesh_free(fe->mesh);
     free(fe);
 }
 
@@ -118,7 +118,7 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 }
 
 // Convenience function for assembling band matrix
-void fem_assemble_band(fem_t* fe, double* R, vecmat_t* K)
+void fem_assemble_band(fem_t* fe, double* R, bandmat_t* K)
 {
     if (K) {
         assemble_t Kassembler;
@@ -130,7 +130,7 @@ void fem_assemble_band(fem_t* fe, double* R, vecmat_t* K)
 }
 
 // Convenience function for assembling dense matrix
-void fem_assemble_dense(fem_t* fe, double* R, vecmat_t* K)
+void fem_assemble_dense(fem_t* fe, double* R, densemat_t* K)
 {
     if (K) {
         assemble_t Kassembler;

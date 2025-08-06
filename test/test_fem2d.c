@@ -4,7 +4,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include "vecmat.h"
+#include "densemat.h"
 #include "bandmat.h"
 #include "mesh.h"
 #include "assemble.h"
@@ -16,7 +16,7 @@
 void test_fem1(void)
 {
     mesh_t* mesh = mesh_block2d_P1(2, 2);
-    fem_t* fe = malloc_fem(mesh, 1);
+    fem_t* fe = fem_malloc(mesh, 1);
     fe->etype = malloc_poisson2d_element();
 
     // Move midpoint to off center (patch test!)
@@ -36,13 +36,13 @@ void test_fem1(void)
     fem_assign_ids(fe);
 
     // Set up globals and assemble system
-    vecmat_t* R = dense_malloc_vecmat(fe->nactive, 1);
-    vecmat_t* K = dense_malloc_vecmat(fe->nactive, fe->nactive);
+    densemat_t* R = densemat_malloc(fe->nactive, 1);
+    densemat_t* K = densemat_malloc(fe->nactive, fe->nactive);
     fem_assemble_dense(fe, R->data, K);
 
     // Factor, solve, and update
-    dense_vecmat_cfactor(K);
-    dense_vecmat_csolve(K, R->data);
+    densemat_cfactor(K);
+    densemat_csolve(K, R->data);
     fem_update_U(fe, R->data);
 
     // Check against reference solution (u = x)
@@ -50,10 +50,10 @@ void test_fem1(void)
         assert(fabs(fe->mesh->X[2*i] - fe->U[i]) < 1e-8);
     }
 
-    free_vecmat(K);
-    free_vecmat(R);
-    free_element(fe->etype);
-    free_fem(fe);
+    densemat_free(K);
+    densemat_free(R);
+    element_free(fe->etype);
+    fem_free(fe);
 }
 
 int main(void)

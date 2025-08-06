@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "vecmat.h"
+#include "densemat.h"
 #include "bandmat.h"
 
 void get_Aref(double* A)
@@ -80,9 +80,9 @@ void get_xref(double* x)
 
 int main(void)
 {
-    vecmat_t* A    = dense_malloc_vecmat(6, 6);
-    vecmat_t* xref = malloc_bandmat(6, 1);
-    vecmat_t* x    = malloc_bandmat(6, 1);
+    densemat_t* A    = densemat_malloc(6, 6);
+    bandmat_t* xref = bandmat_malloc(6, 1);
+    bandmat_t* x    = bandmat_malloc(6, 1);
 
     // Get problem data
     get_Aref(A->data);
@@ -90,18 +90,18 @@ int main(void)
     get_bref(x->data);
 
     // Extract to band, factor, solve
-    vecmat_t* P = dense_to_band(A, 2);
+    bandmat_t* P = dense_to_band(A, 2);
     bandmat_factor(P);
     bandmat_solve(P, x->data);
 
     // Check residual
     for (int i = 0; i < 6; ++i)
         x->data[i] -= xref->data[i];
-    assert(vecmat_norm(x) < 1e-8);
+    assert(bandmat_norm(x) < 1e-8);
     
-    free_vecmat(P);
-    free_vecmat(x);
-    free_vecmat(xref);
-    free_vecmat(A);
+    bandmat_free(P);
+    bandmat_free(x);
+    bandmat_free(xref);
+    densemat_free(A);
     return 0;
 }

@@ -1,8 +1,9 @@
 #include <stdio.h>
+#include <math.h>
 #include <assert.h>
 
 #include "assemble.h"
-#include "vecmat.h"
+#include "densemat.h"
 #include "bandmat.h"
 
 //ldoc on
@@ -14,13 +15,26 @@ void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne)
     (*(assembler->add))(assembler->p, emat, ids, ne);
 }
 
-/**
- * ## Generic clear
- */
 void assemble_clear (assemble_t *assembler)
 {
-  vecmat_clear(assembler->p);
+    (*(assembler->clear))(assembler->p);
 }
+
+double assemble_norm2 (assemble_t *assembler)
+{
+   return (*(assembler->norm2))(assembler->p);
+}
+
+double assemble_norm (assemble_t *assembler) {
+  return sqrt(assemble_norm2(assembler));
+}
+
+void assemble_print (assemble_t *assembler)
+{
+    (*(assembler->print))(assembler->p);
+}
+
+
 
 /**
  * Setting up an assembler object just involves initializing the
@@ -28,21 +42,27 @@ void assemble_clear (assemble_t *assembler)
  * 
  */
 // Declare private implementations for the methods
-/*static*/ void assemble_dense_add(vecmat_t* p, double* emat, int* ids, int ne);
-/*static*/ void assemble_bandmat_add(vecmat_t* p, double* emat, int* ids, int ne);
+/*static*/ void assemble_dense_add(assemble_data_t* p, double* emat, int* ids, int ne);
+/*static*/ void assemble_bandmat_add(assemble_data_t* p, double* emat, int* ids, int ne);
 
 // Initialize a dense assembler
-void init_assemble_dense(assemble_t* assembler, vecmat_t* A)
+void init_assemble_dense(assemble_t* assembler, densemat_t* A)
 {
-    assembler->p = A;
+    assembler->p = (assemble_data_t*)A;
     assembler->add = assemble_dense_add;
+    assembler->clear = (void (*)(densemat_t*))densemat_clear;
+    assembler->norm2 = (double (*)(densemat_t*))densemat_norm2;
+    assembler->print = (void (*)(densemat_t*))densemat_print;
 }
 
 // Initialize a band assembler
-void init_assemble_band(assemble_t* assembler, vecmat_t* b)
+void init_assemble_band(assemble_t* assembler, bandmat_t* b)
 {
-    assembler->p = b;
+    assembler->p = (assemble_data_t*)b;
     assembler->add = assemble_bandmat_add;
+    assembler->clear = (void (*)(bandmat_t*))bandmat_clear;
+    assembler->norm2 = (double (*)(bandmat_t*))bandmat_norm2;
+    assembler->print = (void (*)(bandmat_t*))bandmat_print;
 }
 
 /**
@@ -53,8 +73,9 @@ void init_assemble_band(assemble_t* assembler, vecmat_t* b)
  * where the global indices are negative (indicating that these
  * contributions are not needed because of an essential boundary condition.
  */
-/*static*/ void assemble_dense_add(vecmat_t* A, double* emat, int* ids, int ne)
+/*static*/ void assemble_dense_add(assemble_data_t* p, double* emat, int* ids, int ne)
 {
+    densemat_t *A = (densemat_t*)p;
     int n = A->m;
 
     for (int je = 0; je < ne; ++je) {
@@ -67,10 +88,11 @@ void init_assemble_band(assemble_t* assembler, vecmat_t* b)
     }
 }
 
-/*static*/ void assemble_bandmat_add(vecmat_t* P, double* emat, int* ids, int ne)
+/*static*/ void assemble_bandmat_add(assemble_data_t* p, double* emat, int* ids, int ne)
 {
+    bandmat_t *P = (bandmat_t *)p;
     int n = P->m;
-    int b = P->n-1;
+    int b = P->b;
 
     for (int je = 0; je < ne; ++je) {
         int j = ids[je];

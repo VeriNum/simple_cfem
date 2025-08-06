@@ -66,8 +66,8 @@ typedef struct mesh_t {
  * nodes in the same location, but we will not bother with tied meshes
  * for now.
  */
-mesh_t* malloc_mesh(int d, int numnp, int nen, int numelt);
-void free_mesh(mesh_t* mesh);
+mesh_t* mesh_malloc(int d, int numnp, int nen, int numelt);
+void mesh_free(mesh_t* mesh);
 
 /**
  * The simplest mesher creates a 1D mesh on an interval $[a,b]$.

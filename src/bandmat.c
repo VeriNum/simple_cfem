@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "vecmat.h"
+#include "densemat.h"
 #include "bandmat.h"
 
 //ldoc on
@@ -13,24 +13,39 @@
  * 
  */
 // Allocate a band matrix
-vecmat_t* malloc_bandmat(int n, int b)
+bandmat_t* bandmat_malloc(int n, int b)
 {
-  vecmat_t *vm = malloc_vecmat(n*(b+1));
-  vm->m=n; vm->n=b+1;
+  bandmat_t *vm = malloc(sizeof(bandmat_t) + (n*(b+1)-1)*sizeof(double));
+  vm->m=n; vm->b=b;
   return vm;
 }
 
 // Convert dense n-by-n A to band matrix P with bandwidth bw
-vecmat_t* dense_to_band(vecmat_t* A, int bw)
+bandmat_t* dense_to_band(densemat_t* A, int bw)
 {
     int n = A->n;
-    vecmat_t* P = malloc_bandmat(n, bw);
+    bandmat_t* P = bandmat_malloc(n, bw);
     for (int d = 0; d <= bw; ++d)
         for (int j = d; j < n; ++j) {
             int i = j-d;
             P->data[j+d*n] = A->data[i+j*n];
         }
     return P;
+}
+
+void bandmat_free(bandmat_t* vm)
+{
+    free(vm);
+}
+
+void bandmatn_clear(double* data, int m, int b)
+{
+  memset(data, 0, (m*(b+1)) * sizeof(double));
+}
+
+void bandmat_clear(bandmat_t* vm)
+{
+  bandmatn_clear(vm->data, vm->m, vm->b);
 }
 
 /**
@@ -48,9 +63,9 @@ vecmat_t* dense_to_band(vecmat_t* A, int bw)
  * 
  */
 // Print band format array
-void bandmat_print(vecmat_t* PA)
+void bandmat_print(bandmat_t* PA)
 {
-    int n = PA->m, bw = PA->n-1;
+    int n = PA->m, bw = PA->b;
 
     for (int i = 0; i < n; ++i) {
         for (int d = 0; d <= bw && d <= i; ++d)
@@ -69,7 +84,7 @@ void bandmat_print(vecmat_t* PA)
  * algorithm is essentially identical to the ordinary Cholesky
  * factorization, except with indexing appropriate to the packed data
  * structure.  As with the dense Cholesky implementation in
- * `vecmat_t`, we only ever reference the upper triangle of the
+ * `densemat_t`, we only ever reference the upper triangle of the
  * matrix, and we overwrite the input arrays (representing the upper
  * triangle of a symmetric input) by the output (representing an upper
  * triangular Cholesky factor).  Also as with dense Cholesky, we will
@@ -77,9 +92,9 @@ void bandmat_print(vecmat_t* PA)
  * (violating the assumption of positive definiteness).
  * 
  */
-void bandmat_factor(vecmat_t* PA)
+void bandmat_factor(bandmat_t* PA)
 {
-    int n = PA->m, bw=PA->n-1;
+    int n = PA->m, bw=PA->b;
     
     for (int k = 0; k < n; ++k) {
 
@@ -105,9 +120,9 @@ void bandmat_factor(vecmat_t* PA)
  * on input the `x` argument should be set to the system right-hand side,
  * and on output it will be the solution vector.
  */
-void bandmat_solve(vecmat_t* PR, double* x)
+void bandmat_solve(bandmat_t* PR, double* x)
 {
-    int n = PR->m, bw = PR->n-1;
+    int n = PR->m, bw = PR->b;
     
     // Forward substitution
     for (int i = 0; i < n; ++i) {
@@ -126,3 +141,16 @@ void bandmat_solve(vecmat_t* PR, double* x)
     }
 }
 
+/**
+ * ## Norm computations
+ */
+
+double bandmat_norm2(bandmat_t* vm)
+{
+  return data_norm2(vm->data, vm->m*(vm->b+1));
+}
+
+double bandmat_norm(bandmat_t* vm)
+{
+  return data_norm(vm->data, vm->m*(vm->b+1));
+}

@@ -3,26 +3,26 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../src/vecmat.h"
+#include "../src/densemat.h"
 #include "../src/shapes.h"
 
 void test_shape(shapes_t shape, double* nodes, int d, int numnodes)
 {
-    vecmat_t* N = dense_malloc_vecmat(numnodes,1);
+    densemat_t* N = densemat_malloc(numnodes,1);
     for (int i = 0; i < numnodes; ++i) {
         shape(N->data, NULL, nodes+i*d);
         N->data[i] -= 1.0;
-        assert(vecmat_norm(N) < 1e-8);
+        assert(densemat_norm(N) < 1e-8);
     }
-    free_vecmat(N);
+    densemat_free(N);
 }
 
 
 void test_dshape(shapes_t shape, double* x0, int d, int numnodes)
 {
-    vecmat_t* Np = dense_malloc_vecmat(numnodes,1);
-    vecmat_t* Nm = dense_malloc_vecmat(numnodes,1);
-    vecmat_t* dN = dense_malloc_vecmat(numnodes,d);
+    densemat_t* Np = densemat_malloc(numnodes,1);
+    densemat_t* Nm = densemat_malloc(numnodes,1);
+    densemat_t* dN = densemat_malloc(numnodes,d);
     double h = 1e-6;
 
     double xp[3], xm[3];
@@ -38,9 +38,9 @@ void test_dshape(shapes_t shape, double* x0, int d, int numnodes)
         }
     }
 
-    free_vecmat(dN);
-    free_vecmat(Nm);
-    free_vecmat(Np);
+    densemat_free(dN);
+    densemat_free(Nm);
+    densemat_free(Np);
 }
 
 

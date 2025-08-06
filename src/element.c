@@ -26,7 +26,7 @@ void element_dR(element_t* e, struct fem_t* fe, int eltid,
 }
 
 // Call element free
-void free_element(element_t* e)
+void element_free(element_t* e)
 {
     (*(e->free))(e->p);
 }

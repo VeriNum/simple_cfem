@@ -3,14 +3,14 @@
 #include <string.h>
 #include <assert.h>
 
-#include "vecmat.h"
+#include "densemat.h"
 #include "mesh.h"
 
 //ldoc on
 /**
  * ## Memory management
  */
-mesh_t* malloc_mesh(int d, int numnp, int nen, int numelt)
+mesh_t* mesh_malloc(int d, int numnp, int nen, int numelt)
 {
     mesh_t* mesh = malloc(sizeof(mesh_t));
     mesh->d      = d;
@@ -23,7 +23,7 @@ mesh_t* malloc_mesh(int d, int numnp, int nen, int numelt)
     return mesh;
 }
 
-void free_mesh(mesh_t* mesh)
+void mesh_free(mesh_t* mesh)
 {
     free(mesh->elt);
     free(mesh->X);
@@ -41,7 +41,7 @@ mesh_t* mesh_create1d(int numelt, int degree, double a, double b)
 {
     int numnp = numelt * degree + 1;
     int nen = degree + 1;
-    mesh_t* mesh = malloc_mesh(1, numnp, nen, numelt);
+    mesh_t* mesh = mesh_malloc(1, numnp, nen, numelt);
 
     if      (degree == 1) mesh->shape = shapes1dP1;
     else if (degree == 2) mesh->shape = shapes1dP2;
@@ -75,7 +75,7 @@ mesh_t* mesh_create1d(int numelt, int degree, double a, double b)
 mesh_t* mesh_block2d_P1(int nex, int ney)
 {
     int nx = nex+1, ny = ney+1;
-    mesh_t* mesh = malloc_mesh(2, nx*ny, 4, nex*ney);
+    mesh_t* mesh = mesh_malloc(2, nx*ny, 4, nex*ney);
     mesh->shape = shapes2dP1;
 
     // Set up nodes (row-by-row, SW to NE)
@@ -108,7 +108,7 @@ mesh_t* mesh_block2d_P1(int nex, int ney)
 mesh_t* mesh_block2d_P2(int nex, int ney)
 {
     int nx = 2*nex+1, ny = 2*ney+1;
-    mesh_t* mesh = malloc_mesh(2, nx*ny, 9, nex*ney);
+    mesh_t* mesh = mesh_malloc(2, nx*ny, 9, nex*ney);
     mesh->shape = shapes2dP2;
 
     // Set up nodes (row-by-row, SW to NE)
@@ -147,7 +147,7 @@ mesh_t* mesh_block2d_S2(int nex, int ney)
 {
     int nx0 = 2*nex+1, nx1 = nex+1; // Even/odd row sizes
     int numnp = (ney+1)*nx0 + ney*nx1;
-    mesh_t* mesh = malloc_mesh(2, numnp, 8, nex*ney);
+    mesh_t* mesh = mesh_malloc(2, numnp, 8, nex*ney);
     mesh->shape = shapes2dS2;
 
     // Set up nodes (row-by-row, SW to NE)
@@ -205,7 +205,7 @@ mesh_t* mesh_block2d_S2(int nex, int ney)
 mesh_t* mesh_block2d_T1(int nex, int ney)
 {
     int nx = nex+1, ny = ney+1;
-    mesh_t* mesh = malloc_mesh(2, nx*ny, 3, 2*nex*ney);
+    mesh_t* mesh = mesh_malloc(2, nx*ny, 3, 2*nex*ney);
     mesh->shape = shapes2dT1;
 
     // Set up nodes (row-by-row, SW to NE)
@@ -267,14 +267,14 @@ void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
                     J[i+j*d] += X[i+d*elt[k]] * dN[k+j*nshape];
 
         // Factor
-        dense_vecmatn_lufactor(ipiv, J, d);
+        densematn_lufactor(ipiv, J, d);
 
         // Transform shape derivatives to spatial coordinates
         for (int k = 0; k < nshape; ++k) {
             double dNk[3];
             for (int j = 0; j < d; ++j)
                 dNk[j] = dN[k+j*nshape];
-            dense_vecmatn_lusolveT(ipiv, J, dNk, d);
+            densematn_lusolveT(ipiv, J, dNk, d);
             for (int j = 0; j < d; ++j)
                 dN[k+j*nshape] = dNk[j];
         }
@@ -295,7 +295,7 @@ double mesh_shapes(mesh_t* mesh, int eltid, double* x,
     memcpy(x, xout, d * sizeof(double));
 
     // If we asked for J, return the Jacobian
-    return dN ? dense_vecmatn_lujac(ipiv, J, d) : 0.0;
+    return dN ? densematn_lujac(ipiv, J, d) : 0.0;
 }
 
 /**

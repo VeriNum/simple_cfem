@@ -1,7 +1,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "vecmat.h"
+#include "densemat.h"
 #include "bandmat.h"
 #include "assemble.h"
 
@@ -16,8 +16,8 @@ void test_K_setup(assemble_t* assembler)
 
 void test_Kassembly(void)
 {
-    vecmat_t* A = dense_malloc_vecmat(3,3);
-    vecmat_t* P = malloc_bandmat(3,1);
+    densemat_t* A = densemat_malloc(3,3);
+    bandmat_t* P = bandmat_malloc(3,1);
     assemble_t assembler;
 
     memset(A->data, 0xF, 9 * sizeof(double));
@@ -34,22 +34,22 @@ void test_Kassembly(void)
     assert(P->data[0] == 1.0 && P->data[1] ==  2.0 && P->data[2] ==  1.0
                        && P->data[4] == -1.0 && P->data[5] == -1.0);
 
-    free_vecmat(P);
-    free_vecmat(A);
+    bandmat_free(P);
+    densemat_free(A);
 }
 
 void test_Rassembly(void)
 {
-    vecmat_t* v = dense_malloc_vecmat(3,1);
+    densemat_t* v = densemat_malloc(3,1);
     double ve[] = {1.0, -1.0};
     int id[2];
 
-    vecmat_clear(v);
+    densemat_clear(v);
     id[0] = 0; id[1] = 1; assemble_vector(v->data, ve, id, 2);
     id[0] = 1; id[1] = 2; assemble_vector(v->data, ve, id, 2);
     assert(v->data[0] == 1.0 && v->data[1] == 0.0 && v->data[2] == -1.0);
 
-    free_vecmat(v);
+    densemat_free(v);
 }
 
 int main(void)
