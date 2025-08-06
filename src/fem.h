@@ -22,7 +22,7 @@ struct mesh_t;
  * - `id`: Indices of solution values in a reduced solution vector.
  *   One column per node, with the same dimensions as `U` (and `F`),
  *   so that `ureduced[id[i,j]]` corresponds to `U[i,j]` when
- *   `id[i,j]` is positive.  The reduced solution vector contains only
+ *   `id[i,j]` is nonnegative.  The reduced solution vector contains only
  *   those variables that are not constrained a priori by boundary
  *   conditions; we mark the latter with negative entries in the `id`
  *   array.
@@ -47,7 +47,7 @@ typedef struct fem_t {
     int* id;    // Global to reduced ID map (ndof-by-numnp)
 
     // Dimensions
-    int ndof;    // Number of unknowns per nodal point (ndof = 1)
+    int ndof;    // Number of unknowns per nodal point (tested only with ndof = 1)
     int nactive; // Number of active dofs
 
 } fem_t;
@@ -55,8 +55,8 @@ typedef struct fem_t {
 /**
  * ## Mesh operations
  */
-fem_t* malloc_fem(struct mesh_t* mesh, int ndof);
-void free_fem(fem_t* fe);
+fem_t* fem_malloc(struct mesh_t* mesh, int ndof);
+void fem_free(fem_t* fe);
 
 /**
  * The `fem_assign_ids` function sets up the `id` array.  On input,
@@ -96,8 +96,8 @@ void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx));
  * a `NULL` pointer means "do not assemble this".
  */
 void fem_assemble(fem_t* fe, double* R, struct assemble_t* Kassembler);
-void fem_assemble_band(fem_t* fe, double* R, double* K);
-void fem_assemble_dense(fem_t* fe, double* R, double* K);
+void fem_assemble_band(fem_t* fe, double* R, bandmat_t* K);
+void fem_assemble_dense(fem_t* fe, double* R, densemat_t* K);
 
 /**
  * For debugging small problems, it is also useful to have a routine to

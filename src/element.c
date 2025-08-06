@@ -26,7 +26,7 @@ void element_dR(element_t* e, struct fem_t* fe, int eltid,
 }
 
 // Call element free
-void free_element(element_t* e)
+void element_free(element_t* e)
 {
     (*(e->free))(e->p);
 }
@@ -193,6 +193,7 @@ element_t* malloc_poisson2d_element(void)
         return 3;
     } else
         assert(0);
+    return 0; /* unreachable */
 }
 
 /*static*/ void poisson2d_elt_dR(

@@ -4,54 +4,37 @@
 #include <math.h>
 #include <assert.h>
 
-#include "vecmat.h"
+#include "densemat.h"
 
 //ldoc on
 /**
  * ## Memory management
- * 
- * We usually refer to a `vecmat_t` with a pointer to the (extended)
- * `data` array whose start is declared in the `vecmat_head_t` structure.
- * The `vecmat` function takes a double precision pointer to such a
- * data field and backs up to get a pointer to the struct.
- */
-vecmat_head_t* vecmat(double* data)
-{
-    vecmat_head_t dummy;
-    void* p = (char*) data + ((char*) &dummy - (char*) dummy.data);
-    return (vecmat_head_t*) p;
-}
-
-/**
- * The `malloc_vecmat` function allocates space for the head structure
+ *
+ * The `densemat_malloc` function allocates space for the head structure
  * (which contains the first entry in the data array) along with space
- * for the remainder of the `m*n` double precision numbers in the data
- * array.  Because we want to be able to pass `vecmat_t` data into C
- * functions that take plain pointers, we don't return the pointer to
- * the head structure, but the pointer to the data field.
+ * for the remainder of the `m*n` double precision numbers in the data array.  
  */
-double* malloc_vecmat(int m, int n)
+densemat_t* densemat_malloc(int m, int n)
 {
-    vecmat_head_t* h = malloc(sizeof(vecmat_head_t) + (m*n-1)*sizeof(double));
-    h->m = m;
-    h->n = n;
-    return h->data;
+    densemat_t* h = malloc(sizeof(densemat_t) + (m*n-1)*sizeof(double));
+    h->m=m;
+    h->n=n;
+    return h;
 }
 
-void free_vecmat(double* data)
+void densemat_free(densemat_t* vm)
 {
-    free(vecmat(data));
+    free(vm);
 }
 
-void vecmatn_clear(double* data, int m, int n)
+void densematn_clear(double* data, int m, int n)
 {
-    memset(data, 0, m*n * sizeof(double));
+  memset(data, 0, (m*n) * sizeof(double));
 }
 
-void vecmat_clear(double* data)
+void densemat_clear(densemat_t* vm)
 {
-    vecmat_head_t* vm = vecmat(data);
-    vecmatn_clear(data, vm->m, vm->n);
+  densematn_clear(vm->data, vm->m, vm->n);
 }
 
 /**
@@ -63,7 +46,7 @@ void vecmat_clear(double* data)
  * digits in each entry.  Note that we assume column major layout
  * throughout.
  */
-void vecmatn_print(double* data, int m, int n)
+void densematn_print(double* data, int m, int n)
 {
     printf("%d-by-%d\n", m, n);
     for (int i = 0; i < m; ++i) {
@@ -73,10 +56,9 @@ void vecmatn_print(double* data, int m, int n)
     }
 }
 
-void vecmat_print(double* data)
+void densemat_print(densemat_t* vm)
 {
-    vecmat_head_t* vm = vecmat(data);    
-    vecmatn_print(data, vm->m, vm->n);
+    densematn_print(vm->data, vm->m, vm->n);
 }
 
 /**
@@ -90,9 +72,9 @@ void vecmat_print(double* data)
  * Cholesky factor.  We will error out if we encounter a negative diagonal
  * (in violation of the assumed positive definiteness).
  * 
- * We will not bother to show the wrapper around the `vecmatn` version.
+ * We will not bother to show the wrapper around the `densematn` version.
  */
-void vecmatn_cfactor(double* A, int n)
+void densematn_cfactor(double* A, int n)
 {
     for (int k = 0; k < n; ++k) {
 
@@ -114,21 +96,20 @@ void vecmatn_cfactor(double* A, int n)
 }
 
 //ldoc off
-void vecmat_cfactor(double* A)
+void densemat_cfactor(densemat_t* A)
 {
-    vecmat_head_t* vm = vecmat(A);
-    assert(vm->m == vm->n);
-    vecmatn_cfactor(A, vm->m);
+    assert(A->m == A->n);
+    densematn_cfactor(A->data, A->m);
 }
 
 //ldoc on
 /**
- * The `vecmat_csolve(R, x)` function assumes a Cholesky factor in the
+ * The `densemat_csolve(R, x)` function assumes a Cholesky factor in the
  * upper triangle of input argument `R`; the argument `x` is the
  * right-hand side vector $b$ on input, and the solution vector $x$ on
  * output.
  */
-void vecmatn_csolve(double* R, double* x, int n)
+void densematn_csolve(double* R, double* x, int n)
 {
     // Forward substitution
     for (int i = 0; i < n; ++i) {
@@ -148,10 +129,9 @@ void vecmatn_csolve(double* R, double* x, int n)
 }
 
 //ldoc off
-void vecmat_csolve(double* R, double* x)
+void densemat_csolve(densemat_t* R, double* x)
 {
-    vecmat_head_t* vm = vecmat(R);
-    vecmatn_csolve(R, x, vm->n);
+    densematn_csolve(R->data, x, R->n);
 }
 
 //ldoc on
@@ -168,7 +148,7 @@ void vecmat_csolve(double* R, double* x)
  * The pivot vector is stored in `ipiv`, where `ipiv[i] = l` implies that
  * rows $i$ and $l$ were swapped at step $i$ of the elimination.
  */
-void vecmatn_lufactor(int* ipiv, double* A, int n)
+void densematn_lufactor(int* ipiv, double* A, int n)
 {
     for (int j = 0; j < n; ++j) {
 
@@ -204,11 +184,11 @@ void vecmatn_lufactor(int* ipiv, double* A, int n)
 }
 
 /**
- * The `vecmat_lusolve` function assumes that the factorization has
+ * The `densemat_lusolve` function assumes that the factorization has
  * already been computed.  On input, `x` represents $b$; on output,
  * `x` represents $x = A^{-1} b$.
  */
-void vecmatn_lusolve(int* ipiv, double* A, double* x, int n)
+void densematn_lusolve(int* ipiv, double* A, double* x, int n)
 {
     // Apply P
     for (int i = 0; i < n; ++i)
@@ -236,10 +216,10 @@ void vecmatn_lusolve(int* ipiv, double* A, double* x, int n)
 }
 
 /**
- * The `vecmat_lusolveT` variant solves a linear system $A^T x = b$ where
+ * The `densemat_lusolveT` variant solves a linear system $A^T x = b$ where
  * $A^T = U^T L^T P$
  */
-void vecmatn_lusolveT(int* ipiv, double* A, double* x, int n)
+void densematn_lusolveT(int* ipiv, double* A, double* x, int n)
 {
     // Forward substitution (with U^T)
     for (int i = 0; i < n; ++i) {
@@ -271,7 +251,7 @@ void vecmatn_lusolveT(int* ipiv, double* A, double* x, int n)
  * diagonals of $U$ times the sign of the permutation matrix (given by
  * the parity of the number of swaps in the factored permutation).
  */
-double vecmatn_lujac(int* ipiv, double* A, int n)
+double densematn_lujac(int* ipiv, double* A, int n)
 {
     double J = 1.0;
     int nswap = 0;
@@ -285,33 +265,29 @@ double vecmatn_lujac(int* ipiv, double* A, int n)
 
 //ldoc off
 /**
- * We don't bother including the `vecmat_t` callthroughs in the
+ * We don't bother including the `densemat_t` callthroughs in the
  * autodoc output.
  */
 
-void vecmat_lufactor(int* ipiv, double* A)
+void densemat_lufactor(int* ipiv, densemat_t* A)
 {
-    vecmat_head_t* vm = vecmat(A);
-    assert(vm->m == vm->n);
-    vecmatn_lufactor(ipiv, A, vm->m);
+    assert(A->m == A->n);
+    densematn_lufactor(ipiv, A->data, A->m);
 }
 
-void vecmat_lusolve(int* ipiv, double* A, double* x)
+void densemat_lusolve(int* ipiv, densemat_t* A, double* x)
 {
-    vecmat_head_t* vm = vecmat(A);
-    vecmatn_lusolve(ipiv, A, x, vm->m);
+    densematn_lusolve(ipiv, A->data, x, A->m);
 }
 
-void vecmat_lusolveT(int* ipiv, double* A, double* x)
+void densemat_lusolveT(int* ipiv, densemat_t* A, double* x)
 {
-    vecmat_head_t* vm = vecmat(A);
-    vecmatn_lusolveT(ipiv, A, x, vm->m);
+    densematn_lusolveT(ipiv, A->data, x, A->m);
 }
 
-double vecmat_lujac(int* ipiv, double* A)
+double densemat_lujac(int* ipiv, densemat_t* A)
 {
-    vecmat_head_t* vm = vecmat(A);
-    return vecmatn_lujac(ipiv, A, vm->m);
+    return densematn_lujac(ipiv, A->data, A->m);
 }
 
 //ldoc on
@@ -323,7 +299,7 @@ double vecmat_lujac(int* ipiv, double* A)
  * norm of a vector.  We assume that things are sufficiently well scaled
  * that we don't need to worry about over/underflow.
  */
-double vecmatn_norm2(double* data, int n)
+double data_norm2(double* data, int n)
 {
     double result = 0.0;
     for (int j = 0; j < n; ++j) {
@@ -333,20 +309,17 @@ double vecmatn_norm2(double* data, int n)
     return result;
 }
 
-double vecmatn_norm(double* data, int n)
+double data_norm(double* data, int n)
 {
-    return sqrt(vecmatn_norm2(data, n));
+    return sqrt(data_norm2(data, n));
 }
 
-//ldoc off
-double vecmat_norm2(double* data)
+double densemat_norm2(densemat_t* vm)
 {
-    vecmat_head_t* vm = vecmat(data);
-    return vecmatn_norm2(data, vm->m * vm->n);
+    return data_norm2(vm->data, vm->m*vm->n);
 }
 
-double vecmat_norm(double* data)
+double densemat_norm(densemat_t* vm)
 {
-    vecmat_head_t* vm = vecmat(data);
-    return vecmatn_norm(data, vm->m * vm->n);
+    return data_norm(vm->data, vm->m*vm->n);
 }

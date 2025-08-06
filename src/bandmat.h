@@ -16,23 +16,35 @@
  * in the interest of keeping our indexing simple).  Because we are
  * interested in symmetric matrices, we only need to explicitly store
  * the upper triangle (`d >= 0`).
- * 
- * Because the storage format is essentially a dense `n`-by-`b+1`
- * array, we will not introduce a totally new data structure for the
- * band matrix; the `vecmat_t` storage container for dense matrices
- * that we introduced before works well enough.
- * 
  */
+
+typedef struct bandmat_t {
+    int m,b;  // rows, bands
+    double data[1];  // Start of data array
+} bandmat_t;
+
 // Allocate a new bandmat (and maybe populate from a dense matrix)
-double* malloc_bandmat(int n, int b);
-double* dense_to_band(double* A, int n, int bw);
+bandmat_t* bandmat_malloc(int n, int b);
+void bandmat_free(bandmat_t* vm);
+bandmat_t* dense_to_band(densemat_t* A, int bw);
+
+// Clear
+
+void bandmatn_clear(double* data, int m, int b);
+void bandmat_clear(bandmat_t* vm);
+
 
 // Print a bandmat
-void bandmat_print(double* PA);
+void bandmat_print(bandmat_t* PA);
+
+// Frobenius norm-squared and norm 
+double bandmat_norm2(bandmat_t* vm);
+double bandmat_norm(bandmat_t* vm);
+
 
 // Cholesky and linear solve with Cholesky
-void bandmat_factor(double* PA);
-void bandmat_solve(double* PR, double* x);
+void bandmat_factor(bandmat_t* PA);
+void bandmat_solve(bandmat_t* PR, double* x);
 
 //ldoc off
 #endif /* BANDMAT_H */

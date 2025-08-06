@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "vecmat.h"
+#include "densemat.h"
 #include "bandmat.h"
 
 //ldoc on
@@ -13,21 +13,39 @@
  * 
  */
 // Allocate a band matrix
-double* malloc_bandmat(int n, int b)
+bandmat_t* bandmat_malloc(int n, int b)
 {
-    return malloc_vecmat(n, b+1);
+  bandmat_t *vm = malloc(sizeof(bandmat_t) + (n*(b+1)-1)*sizeof(double));
+  vm->m=n; vm->b=b;
+  return vm;
 }
 
 // Convert dense n-by-n A to band matrix P with bandwidth bw
-double* dense_to_band(double* A, int n, int bw)
+bandmat_t* dense_to_band(densemat_t* A, int bw)
 {
-    double* P = malloc_bandmat(n, bw);
+    int n = A->n;
+    bandmat_t* P = bandmat_malloc(n, bw);
     for (int d = 0; d <= bw; ++d)
         for (int j = d; j < n; ++j) {
             int i = j-d;
-            P[j+d*n] = A[i+j*n];
+            P->data[j+d*n] = A->data[i+j*n];
         }
     return P;
+}
+
+void bandmat_free(bandmat_t* vm)
+{
+    free(vm);
+}
+
+void bandmatn_clear(double* data, int m, int b)
+{
+  memset(data, 0, (m*(b+1)) * sizeof(double));
+}
+
+void bandmat_clear(bandmat_t* vm)
+{
+  bandmatn_clear(vm->data, vm->m, vm->b);
 }
 
 /**
@@ -45,14 +63,13 @@ double* dense_to_band(double* A, int n, int bw)
  * 
  */
 // Print band format array
-void bandmat_print(double* PA)
+void bandmat_print(bandmat_t* PA)
 {
-    vecmat_head_t* head = vecmat(PA);
-    int n = head->m, bw = head->n-1;
+    int n = PA->m, bw = PA->b;
 
     for (int i = 0; i < n; ++i) {
         for (int d = 0; d <= bw && d <= i; ++d)
-            printf("  % 6.3g", PA[i+d*n]);
+            printf("  % 6.3g", PA->data[i+d*n]);
         printf("\n");
     }
 }
@@ -67,7 +84,7 @@ void bandmat_print(double* PA)
  * algorithm is essentially identical to the ordinary Cholesky
  * factorization, except with indexing appropriate to the packed data
  * structure.  As with the dense Cholesky implementation in
- * `vecmat_t`, we only ever reference the upper triangle of the
+ * `densemat_t`, we only ever reference the upper triangle of the
  * matrix, and we overwrite the input arrays (representing the upper
  * triangle of a symmetric input) by the output (representing an upper
  * triangular Cholesky factor).  Also as with dense Cholesky, we will
@@ -75,25 +92,24 @@ void bandmat_print(double* PA)
  * (violating the assumption of positive definiteness).
  * 
  */
-void bandmat_factor(double* PA)
+void bandmat_factor(bandmat_t* PA)
 {
-    vecmat_head_t* head = vecmat(PA);
-    int n = head->m, bw=head->n-1;
+    int n = PA->m, bw=PA->b;
     
     for (int k = 0; k < n; ++k) {
 
         // Compute kth diagonal element
-        assert(PA[k] >= 0);
-        PA[k] = sqrt(PA[k]);
+        assert(PA->data[k] >= 0);
+        PA->data[k] = sqrt(PA->data[k]);
 
         // Scale across the row
         for (int j = k+1; j < n && j <= k+bw; ++j)
-            PA[j+n*(j-k)] /= PA[k];
+            PA->data[j+n*(j-k)] /= PA->data[k];
 
         // Apply the Schur complement update
         for (int j = k+1; j < n && j <= k+bw; ++j)
             for (int i = k+1; i <= j; ++i)
-                PA[j+n*(j-i)] -= PA[i+n*(i-k)]*PA[j+n*(j-k)];
+                PA->data[j+n*(j-i)] -= PA->data[i+n*(i-k)]*PA->data[j+n*(j-k)];
     }    
 }
 
@@ -104,25 +120,37 @@ void bandmat_factor(double* PA)
  * on input the `x` argument should be set to the system right-hand side,
  * and on output it will be the solution vector.
  */
-void bandmat_solve(double* PR, double* x)
+void bandmat_solve(bandmat_t* PR, double* x)
 {
-    vecmat_head_t* head = vecmat(PR);
-    int n = head->m, bw = head->n-1;
+    int n = PR->m, bw = PR->b;
     
     // Forward substitution
     for (int i = 0; i < n; ++i) {
         double bi = x[i];
         for (int dj = 1; dj <= bw && dj <= i; ++dj)
-            bi -= PR[i+dj*n]*x[i-dj];
-        x[i] = bi/PR[i];
+            bi -= PR->data[i+dj*n]*x[i-dj];
+        x[i] = bi/PR->data[i];
     }
 
     // Backward substitution
     for (int i = n-1; i >= 0; --i) {
         double yi = x[i];
         for (int j = i+1; j <= i+bw && j < n; ++j)
-            yi -= PR[j+(j-i)*n]*x[j];
-        x[i] = yi/PR[i];
+            yi -= PR->data[j+(j-i)*n]*x[j];
+        x[i] = yi/PR->data[i];
     }
 }
 
+/**
+ * ## Norm computations
+ */
+
+double bandmat_norm2(bandmat_t* vm)
+{
+  return data_norm2(vm->data, vm->m*(vm->b+1));
+}
+
+double bandmat_norm(bandmat_t* vm)
+{
+  return data_norm(vm->data, vm->m*(vm->b+1));
+}

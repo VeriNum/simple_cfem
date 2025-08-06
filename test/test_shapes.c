@@ -3,44 +3,44 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "vecmat.h"
-#include "shapes.h"
+#include "../src/densemat.h"
+#include "../src/shapes.h"
 
 void test_shape(shapes_t shape, double* nodes, int d, int numnodes)
 {
-    double* N = malloc_vecmat(numnodes,1);
+    densemat_t* N = densemat_malloc(numnodes,1);
     for (int i = 0; i < numnodes; ++i) {
-        shape(N, NULL, nodes+i*d);
-        N[i] -= 1.0;
-        assert(vecmat_norm(N) < 1e-8);
+        shape(N->data, NULL, nodes+i*d);
+        N->data[i] -= 1.0;
+        assert(densemat_norm(N) < 1e-8);
     }
-    free_vecmat(N);
+    densemat_free(N);
 }
 
 
 void test_dshape(shapes_t shape, double* x0, int d, int numnodes)
 {
-    double* Np = malloc_vecmat(numnodes,1);
-    double* Nm = malloc_vecmat(numnodes,1);
-    double* dN = malloc_vecmat(numnodes,d);
+    densemat_t* Np = densemat_malloc(numnodes,1);
+    densemat_t* Nm = densemat_malloc(numnodes,1);
+    densemat_t* dN = densemat_malloc(numnodes,d);
     double h = 1e-6;
 
     double xp[3], xm[3];
-    shape(NULL, dN, x0);
+    shape(NULL, dN->data, x0);
     for (int j = 0; j < d; ++j) {
         memcpy(xp, x0, d*sizeof(double));
         memcpy(xm, x0, d*sizeof(double));
-        xp[j] += h;  shape(Np, NULL, xp);
-        xm[j] -= h;  shape(Nm, NULL, xm);
+        xp[j] += h;  shape(Np->data, NULL, xp);
+        xm[j] -= h;  shape(Nm->data, NULL, xm);
         for (int k = 0; k < numnodes; ++k) {
-            double dN_kj_fd = (Np[k]-Nm[k])/2/h;
-            assert(fabs(dN_kj_fd - dN[k+j*numnodes]) < 1e-8);
+            double dN_kj_fd = (Np->data[k]-Nm->data[k])/2/h;
+            assert(fabs(dN_kj_fd - dN->data[k+j*numnodes]) < 1e-8);
         }
     }
 
-    free_vecmat(dN);
-    free_vecmat(Nm);
-    free_vecmat(Np);
+    densemat_free(dN);
+    densemat_free(Nm);
+    densemat_free(Np);
 }
 
 
@@ -73,7 +73,7 @@ static double nodes_2dT1[] = {
 
 static double x2test[] = { 0.1312, 0.2488 };
 
-int main()
+int main(void)
 {
     test_shape(shapes1dP1, nodes_1dP1, 1, 2);
     test_shape(shapes1dP2, nodes_1dP2, 1, 3);

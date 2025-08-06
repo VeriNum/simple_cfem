@@ -1,5 +1,7 @@
 #ifndef ASSEMBLE_H
 #define ASSEMBLE_H
+#include "densemat.h"
+#include "bandmat.h"
 
 //ldoc on
 /**
@@ -69,20 +71,26 @@
  *   matrix (`ematrix`) into the global structure referenced by the
  *   assembler.  The `ids` array implements the map $\iota$ from local
  *   indices to global indices (i.e. `ids[ilocal] = iglobal`).
- * - `clear(assembler)` zeros out the matrix storage in preparation
- *   for assembly of a new matrix.
+ * - `clear(assembler)` sets the matrix to zero, preserving the
+ *   sparsity pattern ("graph").
  * 
  */
 // Interface for general assembler object (callback + context)
+typedef struct assemble_data_t assemble_data_t;
+
 typedef struct assemble_t {
-    void* p;                                // Context
-    void (*add)(void*, double*, int*, int); // Add contribution
-    void (*clear)(void*);                   // Clear
+    assemble_data_t* p;                            // Context
+    void (*add)(assemble_data_t*, double*, int*, int); // Add contribution
+    void (*clear)(assemble_data_t*); // set to zero
+    double (*norm2)(assemble_data_t*); // square of Frobenius norm
+    void (*print)(assemble_data_t*);
 } assemble_t;
 
 // Convenience functions that call the assembler methods
 void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne);
-void assemble_clear(assemble_t* assembler);
+void assemble_clear(assemble_t *assembler);
+double assemble_norm2(assemble_t *assembler);
+void assemble_print(assemble_t *assembler);
 
 /**
  * We currently only support two types of assemblers: dense and band.
@@ -91,14 +99,9 @@ void assemble_clear(assemble_t* assembler);
  * band assembler, we do check to make sure there are no contributions
  * that are outside the band (and error out if a contribution does live
  * outside the expected band).
- * 
- * Both the dense and the band matrix expect pointers to data using
- * our `vecmat_t` scheme, so we do not need to pass in explicit
- * dimension arguments.
- * 
  */
-void init_assemble_dense(assemble_t* assembler, double* A);
-void init_assemble_band(assemble_t* assembler, double* b);
+void init_assemble_dense(assemble_t* assembler, densemat_t* A);
+void init_assemble_band(assemble_t* assembler, bandmat_t* b);
 
 /**
  * ## Vector assembly interface

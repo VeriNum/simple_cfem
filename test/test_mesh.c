@@ -106,19 +106,19 @@ void test_block_meshers(void)
 {
     mesh_t* mesh = mesh_block2d_P1(3,2);
     check_mesh(mesh, 12, XrefP1, 6, 4, erefP1);
-    free_mesh(mesh);
+    mesh_free(mesh);
 
     mesh = mesh_block2d_P2(3,2);
     check_mesh(mesh, 35, XrefP2, 6, 9, erefP2);
-    free_mesh(mesh);
+    mesh_free(mesh);
 
     mesh = mesh_block2d_S2(3,2);
     check_mesh(mesh, 29, XrefS2, 6, 8, erefS2);
-    free_mesh(mesh);
+    mesh_free(mesh);
     
     mesh = mesh_block2d_T1(3,2);
     check_mesh(mesh, 12, XrefP1, 12, 3, erefT1);
-    free_mesh(mesh);
+    mesh_free(mesh);
 }
 
 // Stretch and shear operation
@@ -151,7 +151,7 @@ void test_emap(void)
     assert(J[0] == 1.0 && J[2] == 0.0 &&
            J[1] == 0.5 && J[3] == 0.5);
     
-    free_mesh(mesh);
+    mesh_free(mesh);
 }
 
 int main(void)

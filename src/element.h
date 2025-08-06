@@ -53,7 +53,7 @@ typedef struct element_t {
 // Wrappers for calling the dR and free method
 void element_dR(element_t* e, struct fem_t* fe, int eltid,
                 double* Re, double* Ke);
-void free_element(element_t* e);
+void element_free(element_t* e);
 
 /**
  * Write now, we only have one element type, corresponding to a 1D Poisson

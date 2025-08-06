@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "alloc.h"
 #include "assemble.h"
 #include "element.h"
 #include "bandmat.h"
@@ -13,7 +14,7 @@
  * ## Implementation
  */
 // Allocate mesh object
-fem_t* malloc_fem(mesh_t* mesh, int ndof)
+fem_t* fem_malloc(mesh_t* mesh, int ndof)
 {
     int numnp = mesh->numnp;
 
@@ -23,20 +24,20 @@ fem_t* malloc_fem(mesh_t* mesh, int ndof)
     fe->ndof    = ndof;
     fe->nactive = numnp * ndof;
 
-    fe->U  = (double*) calloc(ndof * numnp, sizeof(double));
-    fe->F  = (double*) calloc(ndof * numnp, sizeof(double));
-    fe->id = (int*)    calloc(ndof * numnp, sizeof(int));
+    fe->U  = double_calloc(ndof * numnp);
+    fe->F  = double_calloc(ndof * numnp);
+    fe->id = int_calloc(ndof * numnp);
 
     return fe;
 }
 
 // Free mesh object
-void free_fem(fem_t* fe)
+void fem_free(fem_t* fe)
 {
     free(fe->id);
     free(fe->F);
     free(fe->U);
-    free_mesh(fe->mesh);
+    mesh_free(fe->mesh);
     free(fe);
 }
 
@@ -86,9 +87,9 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
     element_t* etype = fe->etype;
 
     // Set up local storage for element contributions
-    int* ids   =     calloc(nen,     sizeof(int));
-    double* Re = R ? calloc(nen,     sizeof(double)) : NULL;
-    double* Ke = K ? calloc(nen*nen, sizeof(double)) : NULL;
+    int* ids   =     int_calloc(nen);
+    double* Re = R ? double_calloc(nen) : NULL;
+    double* Ke = K ? double_calloc(nen*nen) : NULL;
 
     // Clear storage for assembly
     if (R) memset(R, 0, fe->nactive * sizeof(double));
@@ -118,7 +119,7 @@ void fem_assemble(fem_t* fe, double* R, assemble_t* K)
 }
 
 // Convenience function for assembling band matrix
-void fem_assemble_band(fem_t* fe, double* R, double* K)
+void fem_assemble_band(fem_t* fe, double* R, bandmat_t* K)
 {
     if (K) {
         assemble_t Kassembler;
@@ -130,7 +131,7 @@ void fem_assemble_band(fem_t* fe, double* R, double* K)
 }
 
 // Convenience function for assembling dense matrix
-void fem_assemble_dense(fem_t* fe, double* R, double* K)
+void fem_assemble_dense(fem_t* fe, double* R, densemat_t* K)
 {
     if (K) {
         assemble_t Kassembler;
