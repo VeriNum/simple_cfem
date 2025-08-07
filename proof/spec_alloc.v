@@ -21,9 +21,21 @@ Definition exit_spec :=
   POST [ tvoid ]
     PROP (False) RETURN () SEP().
 
-Definition surely_malloc_spec :=
+Definition surely_malloc_spec' :=
   DECLARE _surely_malloc
-   WITH t:Ctypes.type, gv: globals
+   WITH n:Z, gv: globals
+   PRE [ size_t ]
+       PROP (0 <= n <= Ptrofs.max_unsigned)
+       PARAMS (Vptrofs (Ptrofs.repr n)) GLOBALS (gv)
+       SEP (mem_mgr gv)
+    POST [ tptr tvoid ] EX p:_,
+       PROP ()
+       RETURN (p)
+       SEP (mem_mgr gv; malloc_token' Ews n p * memory_block Ews n p).
+
+Definition surely_malloc_spec {cs: compspecs} (t: Ctypes.type) :=
+  DECLARE _surely_malloc
+   WITH gv: globals
    PRE [ size_t ]
        PROP (0 <= sizeof t <= Ptrofs.max_unsigned;
                 complete_legal_cosu_type t = true;
@@ -34,6 +46,24 @@ Definition surely_malloc_spec :=
        PROP ()
        RETURN (p)
        SEP (mem_mgr gv; malloc_token Ews t p * data_at_ Ews t p).
+
+
+Lemma surely_malloc_spec_sub:
+ forall {cs: compspecs} (t: type), 
+   funspec_sub (snd surely_malloc_spec') (snd (surely_malloc_spec t)).
+Proof.
+do_funspec_sub. rename w into gv. clear H.
+Exists (sizeof t, gv) emp. simpl; entailer!.
+intros tau ? ?. Exists (eval_id ret_temp tau).
+entailer!.
+unfold malloc_token.
+assert_PROP (field_compatible t [] (eval_id ret_temp tau)).
+{ entailer!.
+  apply malloc_compatible_field_compatible; auto. }
+entailer!.
+rewrite memory_block_data_at_; auto.
+Qed.
+
 
 Definition double_calloc_spec :=
   DECLARE _double_calloc
@@ -75,4 +105,4 @@ Definition double_clear_spec :=
 
 
 Definition allocASI : funspecs := [ 
-   exit_spec; surely_malloc_spec; double_calloc_spec; int_calloc_spec; double_clear_spec ].
+   exit_spec; surely_malloc_spec'; double_calloc_spec; int_calloc_spec; double_clear_spec ].

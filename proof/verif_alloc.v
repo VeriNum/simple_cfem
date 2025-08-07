@@ -19,20 +19,17 @@ Parameter body_exit:
 Definition alloc_E : funspecs := [exit_spec].
 Definition alloc_imported_specs : funspecs := MallocASI.
 Definition alloc_internal_specs : funspecs := allocASI.
-(*  [surely_malloc_spec; double_calloc_spec;
-    int_calloc_spec; double_clear_spec].
-*)
 Definition Gprog := alloc_imported_specs ++ alloc_internal_specs.
 
-Lemma body_surely_malloc: semax_body Vprog Gprog f_surely_malloc surely_malloc_spec.
+Lemma body_surely_malloc: semax_body Vprog Gprog f_surely_malloc surely_malloc_spec'.
 Proof.
 start_function.
-  forward_call (malloc_spec_sub t) gv. (* p = malloc(n); *)
+  forward_call. (* p = malloc(n); *)
   Intros p.
   forward_if
   (PROP ( )
    LOCAL (temp _p p)
-   SEP (mem_mgr gv; malloc_token Ews t p * data_at_ Ews t p)).
+   SEP (mem_mgr gv; malloc_token' Ews n p * memory_block Ews n p)).
 *
   if_tac.
     subst p. entailer!.
@@ -52,7 +49,7 @@ Qed.
 Lemma body_double_calloc: semax_body Vprog Gprog f_double_calloc double_calloc_spec.
 Proof.
 start_function.
-forward_call (tarray tdouble n, gv).
+forward_call (surely_malloc_spec_sub (tarray tdouble n)) gv.
 entailer!. simpl. do 3 f_equal. rep_lia.
 simpl. rep_lia.
 Intros p.
@@ -66,7 +63,7 @@ Qed.
 Lemma body_int_calloc: semax_body Vprog Gprog f_int_calloc int_calloc_spec.
 Proof.
 start_function.
-forward_call (tarray tint n, gv).
+forward_call (surely_malloc_spec_sub (tarray tint n)) gv.
 entailer!. simpl. do 3 f_equal. rep_lia.
 simpl. rep_lia.
 Intros p.
@@ -92,18 +89,15 @@ forward_for_simple_bound n (EX i: Z, PROP() LOCAL(temp _p p; temp _n (Vint (Int.
 - entailer!. apply derives_refl'. f_equal. list_solve.
 Qed.
 
-Definition prog' := ltac:(QPprog prog).
-
 Definition allocVSU: @VSU NullExtension.Espec
-         alloc_E alloc_imported_specs ltac:(QPprog prog) allocASI mem_mgr.
+         alloc_E alloc_imported_specs ltac:(QPprog prog) allocASI (fun gv => emp).
   Proof.
     mkVSU prog alloc_internal_specs.
     - solve_SF_external (@body_exit NullExtension.Espec).
     - solve_SF_internal body_surely_malloc.
     - solve_SF_internal body_double_calloc.
     - solve_SF_internal body_int_calloc.
-    - solve_SF_internal body_double_clear. 
-    - intros. apply make_mem_mgr.
+    - solve_SF_internal body_double_clear.
 Qed.
 
 

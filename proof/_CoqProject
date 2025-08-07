@@ -11,3 +11,5 @@ shapes.v
 spec_alloc.v
 verif_alloc.v
 spec_densemat.v
+verif_densemat.v
+floatlib.v

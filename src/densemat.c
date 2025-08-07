@@ -29,7 +29,7 @@ void densemat_free(densemat_t* vm)
 
 void densematn_clear(double* data, int m, int n)
 {
-  memset(data, 0, (m*n) * sizeof(double));
+  double_clear(data,m*n);
 }
 
 void densemat_clear(densemat_t* vm)
