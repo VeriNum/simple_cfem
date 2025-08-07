@@ -2,3 +2,17 @@ C_FILES=alloc.c assemble.c bandmat.c densemat.c element.c fem.c mesh.c quadrules
 
 %.v: ../src/%.c
 	clightgen -normalize $< -o $@
+
+# the rest of this is adapted from the makedepend part of ../Makefile
+alloc.v: ../src/alloc.h
+assemble.v: ../src/assemble.h ../src/densemat.h ../src/bandmat.h
+bandmat.v: ../src/densemat.h ../src/bandmat.h
+densemat.v: ../src/densemat.h
+element.v: ../src/shapes.h ../src/quadrules.h ../src/assemble.h ../src/densemat.h
+element.v: ../src/bandmat.h ../src/mesh.h ../src/fem.h ../src/element.h
+fem.v: ../src/alloc.h ../src/assemble.h ../src/densemat.h ../src/bandmat.h
+fem.v: ../src/element.h ../src/mesh.h ../src/shapes.h ../src/fem.h
+mesh.v: ../src/densemat.h ../src/mesh.h ../src/shapes.h
+quadrules.v: ../src/quadrules.h
+shapes.v: ../src/shapes.h
+mesh.v: ../src/shapes.h
