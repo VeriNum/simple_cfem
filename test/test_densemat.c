@@ -8,7 +8,7 @@
 int main(void)
 {
     int ipiv[3];
-    densemat_t* x = densemat_malloc(3, 1);
+    densemat_t x = densemat_malloc(3, 1);
 
     // Check dimension setup
     assert(x->m == 3);
@@ -20,7 +20,7 @@ int main(void)
     assert(densemat_norm(x) == 0.0);
 
     // Check Cholesky factorization of a reference matrix
-    densemat_t* A = densemat_malloc(3, 3);
+    densemat_t A = densemat_malloc(3, 3);
     A->data[0] = 1.0;  A->data[1] =  2.0;  A->data[2] =  3.0;
     A->data[3] = 2.0;  A->data[4] = 20.0;  A->data[5] = 26.0;
     A->data[6] = 3.0;  A->data[7] = 26.0;  A->data[8] = 70.0;

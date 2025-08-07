@@ -14,15 +14,15 @@
  * (which contains the first entry in the data array) along with space
  * for the remainder of the `m*n` double precision numbers in the data array.  
  */
-densemat_t* densemat_malloc(int m, int n)
+densemat_t densemat_malloc(int m, int n)
 {
-    densemat_t* h = surely_malloc(sizeof(densemat_t) + (m*n)*sizeof(double));
+    densemat_t h = surely_malloc(sizeof(struct densemat_t) + (m*n)*sizeof(double));
     h->m=m;
     h->n=n;
     return h;
 }
 
-void densemat_free(densemat_t* vm)
+void densemat_free(densemat_t vm)
 {
     free(vm);
 }
@@ -32,7 +32,7 @@ void densematn_clear(double* data, int m, int n)
   double_clear(data,m*n);
 }
 
-void densemat_clear(densemat_t* vm)
+void densemat_clear(densemat_t vm)
 {
   densematn_clear(vm->data, vm->m, vm->n);
 }
@@ -56,7 +56,7 @@ void densematn_print(double* data, int m, int n)
     }
 }
 
-void densemat_print(densemat_t* vm)
+void densemat_print(densemat_t vm)
 {
     densematn_print(vm->data, vm->m, vm->n);
 }
@@ -96,7 +96,7 @@ void densematn_cfactor(double* A, int n)
 }
 
 //ldoc off
-void densemat_cfactor(densemat_t* A)
+void densemat_cfactor(densemat_t A)
 {
     assert(A->m == A->n);
     densematn_cfactor(A->data, A->m);
@@ -129,7 +129,7 @@ void densematn_csolve(double* R, double* x, int n)
 }
 
 //ldoc off
-void densemat_csolve(densemat_t* R, double* x)
+void densemat_csolve(densemat_t R, double* x)
 {
     densematn_csolve(R->data, x, R->n);
 }
@@ -269,23 +269,23 @@ double densematn_lujac(int* ipiv, double* A, int n)
  * autodoc output.
  */
 
-void densemat_lufactor(int* ipiv, densemat_t* A)
+void densemat_lufactor(int* ipiv, densemat_t A)
 {
     assert(A->m == A->n);
     densematn_lufactor(ipiv, A->data, A->m);
 }
 
-void densemat_lusolve(int* ipiv, densemat_t* A, double* x)
+void densemat_lusolve(int* ipiv, densemat_t A, double* x)
 {
     densematn_lusolve(ipiv, A->data, x, A->m);
 }
 
-void densemat_lusolveT(int* ipiv, densemat_t* A, double* x)
+void densemat_lusolveT(int* ipiv, densemat_t A, double* x)
 {
     densematn_lusolveT(ipiv, A->data, x, A->m);
 }
 
-double densemat_lujac(int* ipiv, densemat_t* A)
+double densemat_lujac(int* ipiv, densemat_t A)
 {
     return densematn_lujac(ipiv, A->data, A->m);
 }
@@ -314,12 +314,12 @@ double data_norm(double* data, int n)
     return sqrt(data_norm2(data, n));
 }
 
-double densemat_norm2(densemat_t* vm)
+double densemat_norm2(densemat_t vm)
 {
     return data_norm2(vm->data, vm->m*vm->n);
 }
 
-double densemat_norm(densemat_t* vm)
+double densemat_norm(densemat_t vm)
 {
     return data_norm(vm->data, vm->m*vm->n);
 }

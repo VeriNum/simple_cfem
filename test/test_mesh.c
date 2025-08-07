@@ -87,7 +87,7 @@ static int erefT1[] = {
     6,   7,  10,
    10,   7,  11};
 
-void check_mesh(mesh_t* mesh, 
+void check_mesh(mesh_t mesh, 
                 int numnp, double* Xref,
                 int numelt, int nen, int* eref)
 {
@@ -104,7 +104,7 @@ void check_mesh(mesh_t* mesh,
 
 void test_block_meshers(void)
 {
-    mesh_t* mesh = mesh_block2d_P1(3,2);
+    mesh_t mesh = mesh_block2d_P1(3,2);
     check_mesh(mesh, 12, XrefP1, 6, 4, erefP1);
     mesh_free(mesh);
 
@@ -135,7 +135,7 @@ void test_emap(void)
     double N[4], dN[4*2], xymap[2], J[2*2];
     double xyref[] = {0.5, 1.0};
 
-    mesh_t* mesh = mesh_block2d_P1(1, 1);
+    mesh_t mesh = mesh_block2d_P1(1, 1);
 
     // Trivial mapping ([-1,1]^2 ref domain to [0,1] mesh domain)
     mesh_to_spatial(mesh, 0, xyref, xymap, ipiv, J, N, dN);

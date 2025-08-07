@@ -11,9 +11,9 @@
 /**
  * ## Memory management
  */
-mesh_t* mesh_malloc(int d, int numnp, int nen, int numelt)
+mesh_t mesh_malloc(int d, int numnp, int nen, int numelt)
 {
-    mesh_t* mesh = surely_malloc(sizeof(mesh_t));
+    mesh_t mesh = surely_malloc(sizeof(struct mesh_t));
     mesh->d      = d;
     mesh->numnp  = numnp;
     mesh->nen    = nen;
@@ -24,7 +24,7 @@ mesh_t* mesh_malloc(int d, int numnp, int nen, int numelt)
     return mesh;
 }
 
-void mesh_free(mesh_t* mesh)
+void mesh_free(mesh_t mesh)
 {
     free(mesh->elt);
     free(mesh->X);
@@ -38,11 +38,11 @@ void mesh_free(mesh_t* mesh)
  * $[a,b]$. Elements are ordered from left to right.  We allow
  * elements of order 1-3.
  */
-mesh_t* mesh_create1d(int numelt, int degree, double a, double b)
+mesh_t mesh_create1d(int numelt, int degree, double a, double b)
 {
     int numnp = numelt * degree + 1;
     int nen = degree + 1;
-    mesh_t* mesh = mesh_malloc(1, numnp, nen, numelt);
+    mesh_t mesh = mesh_malloc(1, numnp, nen, numelt);
 
     if      (degree == 1) mesh->shape = shapes1dP1;
     else if (degree == 2) mesh->shape = shapes1dP2;
@@ -73,10 +73,10 @@ mesh_t* mesh_create1d(int numelt, int degree, double a, double b)
  * 
  * We start with the P1 case, which is the simplest (only corner nodes).
  */
-mesh_t* mesh_block2d_P1(int nex, int ney)
+mesh_t mesh_block2d_P1(int nex, int ney)
 {
     int nx = nex+1, ny = ney+1;
-    mesh_t* mesh = mesh_malloc(2, nx*ny, 4, nex*ney);
+    mesh_t mesh = mesh_malloc(2, nx*ny, 4, nex*ney);
     mesh->shape = shapes2dP1;
 
     // Set up nodes (row-by-row, SW to NE)
@@ -106,10 +106,10 @@ mesh_t* mesh_block2d_P1(int nex, int ney)
  * columns of the logical array of nodes.  This at least remains
  * mostly straightforward.
  */
-mesh_t* mesh_block2d_P2(int nex, int ney)
+mesh_t mesh_block2d_P2(int nex, int ney)
 {
     int nx = 2*nex+1, ny = 2*ney+1;
-    mesh_t* mesh = mesh_malloc(2, nx*ny, 9, nex*ney);
+    mesh_t mesh = mesh_malloc(2, nx*ny, 9, nex*ney);
     mesh->shape = shapes2dP2;
 
     // Set up nodes (row-by-row, SW to NE)
@@ -144,11 +144,11 @@ mesh_t* mesh_block2d_P2(int nex, int ney)
  * than P1 or P2, because we don't have a regular grid of mesh points
  * (because we don't need mesh points in the middle of our elements.
  */
-mesh_t* mesh_block2d_S2(int nex, int ney)
+mesh_t mesh_block2d_S2(int nex, int ney)
 {
     int nx0 = 2*nex+1, nx1 = nex+1; // Even/odd row sizes
     int numnp = (ney+1)*nx0 + ney*nx1;
-    mesh_t* mesh = mesh_malloc(2, numnp, 8, nex*ney);
+    mesh_t mesh = mesh_malloc(2, numnp, 8, nex*ney);
     mesh->shape = shapes2dS2;
 
     // Set up nodes (row-by-row, SW to NE)
@@ -203,10 +203,10 @@ mesh_t* mesh_block2d_S2(int nex, int ney)
  * is comprised of two triangles with a common edge going from the
  * southeast to the northwest edge of the quad.
  */
-mesh_t* mesh_block2d_T1(int nex, int ney)
+mesh_t mesh_block2d_T1(int nex, int ney)
 {
     int nx = nex+1, ny = ney+1;
-    mesh_t* mesh = mesh_malloc(2, nx*ny, 3, 2*nex*ney);
+    mesh_t mesh = mesh_malloc(2, nx*ny, 3, 2*nex*ney);
     mesh->shape = shapes2dT1;
 
     // Set up nodes (row-by-row, SW to NE)
@@ -238,7 +238,7 @@ mesh_t* mesh_block2d_T1(int nex, int ney)
 /**
  * ## Reference to spatial mapping
  */
-void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
+void mesh_to_spatial(mesh_t mesh, int eltid, double* xref,
                      double* x, int* ipiv, double* J,
                      double* N, double* dN)
 {
@@ -282,7 +282,7 @@ void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
     }
 }
 
-double mesh_shapes(mesh_t* mesh, int eltid, double* x,
+double mesh_shapes(mesh_t mesh, int eltid, double* x,
                    double* N, double* dN)
 {
     // Allocate space to make a 3D element work
@@ -302,7 +302,7 @@ double mesh_shapes(mesh_t* mesh, int eltid, double* x,
 /**
  * ## I/O routines
  */
-void mesh_print_nodes(mesh_t* mesh)
+void mesh_print_nodes(mesh_t mesh)
 {
     printf("\nNodal positions:\n");
     printf("   ID ");
@@ -318,7 +318,7 @@ void mesh_print_nodes(mesh_t* mesh)
     }
 }
 
-void mesh_print_elt(mesh_t* mesh)
+void mesh_print_elt(mesh_t mesh)
 {
     printf("\nElement connectivity:\n");
     for (int i = 0; i < mesh->numelt; ++i) {
@@ -329,7 +329,7 @@ void mesh_print_elt(mesh_t* mesh)
     }
 }
 
-void mesh_print(mesh_t* mesh)
+void mesh_print(mesh_t mesh)
 {
     mesh_print_nodes(mesh);
     mesh_print_elt(mesh);

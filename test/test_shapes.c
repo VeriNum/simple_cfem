@@ -8,7 +8,7 @@
 
 void test_shape(shapes_t shape, double* nodes, int d, int numnodes)
 {
-    densemat_t* N = densemat_malloc(numnodes,1);
+    densemat_t N = densemat_malloc(numnodes,1);
     for (int i = 0; i < numnodes; ++i) {
         shape(N->data, NULL, nodes+i*d);
         N->data[i] -= 1.0;
@@ -20,9 +20,9 @@ void test_shape(shapes_t shape, double* nodes, int d, int numnodes)
 
 void test_dshape(shapes_t shape, double* x0, int d, int numnodes)
 {
-    densemat_t* Np = densemat_malloc(numnodes,1);
-    densemat_t* Nm = densemat_malloc(numnodes,1);
-    densemat_t* dN = densemat_malloc(numnodes,d);
+    densemat_t Np = densemat_malloc(numnodes,1);
+    densemat_t Nm = densemat_malloc(numnodes,1);
+    densemat_t dN = densemat_malloc(numnodes,d);
     double h = 1e-6;
 
     double xp[3], xm[3];

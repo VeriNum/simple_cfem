@@ -54,7 +54,7 @@ typedef struct mesh_t {
     // Shape function
     int (*shape)(double* N, double* dN, double* x);
 
-} mesh_t;
+} *mesh_t;
 
 /**
  * One *can* allocate objects and then work out the node positions and
@@ -66,14 +66,14 @@ typedef struct mesh_t {
  * nodes in the same location, but we will not bother with tied meshes
  * for now.
  */
-mesh_t* mesh_malloc(int d, int numnp, int nen, int numelt);
-void mesh_free(mesh_t* mesh);
+mesh_t mesh_malloc(int d, int numnp, int nen, int numelt);
+void mesh_free(mesh_t mesh);
 
 /**
  * The simplest mesher creates a 1D mesh on an interval $[a,b]$.
  * We allow elements of order 1-3.
  */
-mesh_t* mesh_create1d(int numelt, int degree, double a, double b);
+mesh_t mesh_create1d(int numelt, int degree, double a, double b);
 
 /**
  * Things are more complicated in 2D, and we have distinct mesh
@@ -81,10 +81,10 @@ mesh_t* mesh_create1d(int numelt, int degree, double a, double b);
  * described in the `shapes` module.  Each of these generates a mesh
  * of the region $[0,1]^2$ with `nex`-by-`ney` elements.
  */
-mesh_t* mesh_block2d_P1(int nex, int ney);
-mesh_t* mesh_block2d_P2(int nex, int ney);
-mesh_t* mesh_block2d_S2(int nex, int ney);
-mesh_t* mesh_block2d_T1(int nex, int ney);
+mesh_t mesh_block2d_P1(int nex, int ney);
+mesh_t mesh_block2d_P2(int nex, int ney);
+mesh_t mesh_block2d_S2(int nex, int ney);
+mesh_t mesh_block2d_T1(int nex, int ney);
 
 /**
  * Given a mesh and a point in a reference geometry (given by an
@@ -94,7 +94,7 @@ mesh_t* mesh_block2d_T1(int nex, int ney);
  * Jacobian of the reference to spatial map).  The Jacobian matrix
  * is in LU-factored form.
  */
-void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
+void mesh_to_spatial(mesh_t mesh, int eltid, double* xref,
                      double* x, int* ipiv, double* J,
                      double* N, double* dN);
 
@@ -104,16 +104,16 @@ void mesh_to_spatial(mesh_t* mesh, int eltid, double* xref,
  * determinant.  So we provide a convenience wrapper around
  * `mesh_to_spatial` for this case.
  */
-double mesh_shapes(mesh_t* mesh, int eltid, double* x,
+double mesh_shapes(mesh_t mesh, int eltid, double* x,
                    double* N, double* dN);
 
 /**
  * For debugging, it is helpful to be able to print out all or part of
  * the mesh geometry.
  */
-void mesh_print_nodes(mesh_t* mesh);
-void mesh_print_elt(mesh_t* mesh);
-void mesh_print(mesh_t* mesh);
+void mesh_print_nodes(mesh_t mesh);
+void mesh_print_elt(mesh_t mesh);
+void mesh_print(mesh_t mesh);
 
 //ldoc off
 #endif /* MESH_H */

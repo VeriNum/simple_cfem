@@ -19,14 +19,14 @@
  * pointer in an element object's dispatch table.
  */
 // Call element dR method
-void element_dR(element_t* e, struct fem_t* fe, int eltid,
+void element_dR(element_t e, fem_t fe, int eltid,
                 double* Re, double* Ke)
 {
     (*(e->dR))(e->p, fe, eltid, Re, Ke);
 }
 
 // Call element free
-void element_free(element_t* e)
+void element_free(element_t e)
 {
     (*(e->free))(e->p);
 }
@@ -50,20 +50,20 @@ void element_free(element_t* e)
 // Poisson element type data structure
 typedef struct poisson_elt_t {
     // Material parameters, etc go here in more complex cases
-    element_t e; // For dispatch table
-} poisson_elt_t;
+    struct element_t e; // For dispatch table
+} *poisson_elt_t;
 
 // Declare methods for 1D and 2D Poisson element types
-/*static*/ void poisson1d_elt_dR(void* p, fem_t* fe, int eltid,
+/*static*/ void poisson1d_elt_dR(void* p, fem_t fe, int eltid,
                              double* Re, double* Ke);
-/*static*/ void poisson2d_elt_dR(void* p, fem_t* fe, int eltid,
+/*static*/ void poisson2d_elt_dR(void* p, fem_t fe, int eltid,
                              double* Re, double* Ke);
 /*static*/ void simple_elt_free(void* p);
 
 // Allocate a 1D Poisson element type
-element_t* malloc_poisson1d_element(void)
+element_t malloc_poisson1d_element(void)
 {
-    poisson_elt_t* le = (poisson_elt_t*) surely_malloc(sizeof(poisson_elt_t));
+    poisson_elt_t le = (poisson_elt_t) surely_malloc(sizeof(struct poisson_elt_t));
     le->e.p = le;
     le->e.dR = poisson1d_elt_dR;
     le->e.free = simple_elt_free;
@@ -71,9 +71,9 @@ element_t* malloc_poisson1d_element(void)
 }
 
 // Allocate a 2D Poisson element type
-element_t* malloc_poisson2d_element(void)
+element_t malloc_poisson2d_element(void)
 {
-    poisson_elt_t* le = (poisson_elt_t*) surely_malloc(sizeof(poisson_elt_t));
+    poisson_elt_t le = (poisson_elt_t) surely_malloc(sizeof(struct poisson_elt_t));
     le->e.p = le;
     le->e.dR = poisson2d_elt_dR;
     le->e.free = simple_elt_free;
@@ -117,7 +117,7 @@ element_t* malloc_poisson2d_element(void)
  */
 /*static*/ void poisson1d_elt_dR(
     void* p,                   // Context pointer (not used)
-    fem_t* fe, int eltid,      // Mesh and element ID in mesh
+    fem_t fe, int eltid,      // Mesh and element ID in mesh
     double* Re, double* Ke)    // Outputs: element residual and tangent
 {
     int nen  = fe->mesh->nen;
@@ -198,7 +198,7 @@ element_t* malloc_poisson2d_element(void)
 
 /*static*/ void poisson2d_elt_dR(
     void* p,                   // Context pointer (not used)
-    fem_t* fe, int eltid,      // Mesh and element ID in mesh
+    fem_t fe, int eltid,      // Mesh and element ID in mesh
     double* Re, double* Ke)    // Outputs: element residual and tangent
 {
     int nen  = fe->mesh->nen;
