@@ -45,11 +45,13 @@ void fem_free(fem_t* fe)
 int fem_assign_ids(fem_t* fe)
 {
     int numnp = fe->mesh->numnp;
+    int ndof = fe->ndof;
     int* id = fe->id;
     int next_id = 0;
     for (int i = 0; i < numnp; ++i)
-        if (id[i] >= 0)
-            id[i] = next_id++;
+        for (int j = 0; j < ndof; ++j)
+            if (id[j+i*ndof] >= 0)
+                id[j+i*ndof] = next_id++;
     fe->nactive = next_id;
     return next_id;
 }
