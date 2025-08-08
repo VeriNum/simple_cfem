@@ -36,10 +36,10 @@ struct mesh_t;
 typedef struct fem_t {
 
     // Mesh data
-    struct mesh_t* mesh;
+    struct mesh_t *mesh;
 
     // Element type (NB: can generalize with multiple types)
-    struct element_t* etype;
+    struct element_t *etype;
 
     // Storage for fields
     double* U;  // Global array of solution values (ndof-by-numnp)
@@ -50,13 +50,13 @@ typedef struct fem_t {
     int ndof;    // Number of unknowns per nodal point (tested only with ndof = 1)
     int nactive; // Number of active dofs
 
-} fem_t;
+} *fem_t;
 
 /**
  * ## Mesh operations
  */
-fem_t* fem_malloc(struct mesh_t* mesh, int ndof);
-void fem_free(fem_t* fe);
+fem_t fem_malloc(mesh_t mesh, int ndof);
+void fem_free(fem_t fe);
 
 /**
  * The `fem_assign_ids` function sets up the `id` array.  On input,
@@ -66,7 +66,7 @@ void fem_free(fem_t* fe);
  * subject to essential boundary conditions will be assigned indices from
  * 0 to `nactive` (and `nactive` will be updated appropriately).
  */
-int fem_assign_ids(fem_t* fe);
+int fem_assign_ids(fem_t fe);
 
 /**
  * The `fem_update_U` function applies an update to the internal state.
@@ -79,7 +79,7 @@ int fem_assign_ids(fem_t* fe);
  * and the same framework works for Newton iterations for nonlinear problems.
  * 
  */
-void fem_update_U(fem_t* fe, double* du_red);
+void fem_update_U(fem_t fe, double* du_red);
 
 /**
  * The `fem_set_load` function iterates through all nodes in the mesh,
@@ -87,7 +87,7 @@ void fem_update_U(fem_t* fe, double* du_red);
  * callback are the node position (an input argument) and the node
  * loading / right-hand side vector (an output argument).
  */
-void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx));
+void fem_set_load(fem_t fe, void (*f)(double* x, double* fx));
 
 /**
  * The assembly loops iterate through the elements and produce a global
@@ -95,15 +95,15 @@ void fem_set_load(fem_t* fe, void (*f)(double* x, double* fx));
  * The residual and tangent matrix assembler are passed in by pointers;
  * a `NULL` pointer means "do not assemble this".
  */
-void fem_assemble(fem_t* fe, double* R, struct assemble_t* Kassembler);
-void fem_assemble_band(fem_t* fe, double* R, bandmat_t* K);
-void fem_assemble_dense(fem_t* fe, double* R, densemat_t* K);
+void fem_assemble(fem_t fe, double* R, assemble_t Kassembler);
+void fem_assemble_band(fem_t fe, double* R, bandmat_t K);
+void fem_assemble_dense(fem_t fe, double* R, densemat_t K);
 
 /**
  * For debugging small problems, it is also useful to have a routine to
  * print out all the mesh arrays.
  */
-void fem_print(fem_t* fe);
+void fem_print(fem_t fe);
 
 //ldoc off
 #endif /* FEM1D_H */

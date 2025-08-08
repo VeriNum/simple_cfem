@@ -15,8 +15,8 @@
 // Set up the mesh on [0,1]^2 with Dirichlet BC
 void test_fem1(void)
 {
-    mesh_t* mesh = mesh_block2d_P1(2, 2);
-    fem_t* fe = fem_malloc(mesh, 1);
+    mesh_t mesh = mesh_block2d_P1(2, 2);
+    fem_t fe = fem_malloc(mesh, 1);
     fe->etype = malloc_poisson2d_element();
 
     // Move midpoint to off center (patch test!)
@@ -36,8 +36,8 @@ void test_fem1(void)
     fem_assign_ids(fe);
 
     // Set up globals and assemble system
-    densemat_t* R = densemat_malloc(fe->nactive, 1);
-    densemat_t* K = densemat_malloc(fe->nactive, fe->nactive);
+    densemat_t R = densemat_malloc(fe->nactive, 1);
+    densemat_t K = densemat_malloc(fe->nactive, fe->nactive);
     fem_assemble_dense(fe, R->data, K);
 
     // Factor, solve, and update

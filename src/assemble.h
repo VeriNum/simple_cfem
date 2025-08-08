@@ -76,21 +76,21 @@
  * 
  */
 // Interface for general assembler object (callback + context)
-typedef struct assemble_data_t assemble_data_t;
+typedef struct assemble_data_t *assemble_data_t;
 
 typedef struct assemble_t {
-    assemble_data_t* p;                            // Context
-    void (*add)(assemble_data_t*, double*, int*, int); // Add contribution
-    void (*clear)(assemble_data_t*); // set to zero
-    double (*norm2)(assemble_data_t*); // square of Frobenius norm
-    void (*print)(assemble_data_t*);
-} assemble_t;
+    assemble_data_t p;                            // Context
+    void (*add)(assemble_data_t, double*, int*, int); // Add contribution
+    void (*clear)(assemble_data_t); // set to zero
+    double (*norm2)(assemble_data_t); // square of Frobenius norm
+    void (*print)(assemble_data_t);
+} *assemble_t;
 
 // Convenience functions that call the assembler methods
-void assemble_add(assemble_t* assembler, double* emat, int* ids, int ne);
-void assemble_clear(assemble_t *assembler);
-double assemble_norm2(assemble_t *assembler);
-void assemble_print(assemble_t *assembler);
+void assemble_add(assemble_t assembler, double* emat, int* ids, int ne);
+void assemble_clear(assemble_t assembler);
+double assemble_norm2(assemble_t assembler);
+void assemble_print(assemble_t assembler);
 
 /**
  * We currently only support two types of assemblers: dense and band.
@@ -100,8 +100,8 @@ void assemble_print(assemble_t *assembler);
  * that are outside the band (and error out if a contribution does live
  * outside the expected band).
  */
-void init_assemble_dense(assemble_t* assembler, densemat_t* A);
-void init_assemble_band(assemble_t* assembler, bandmat_t* b);
+void init_assemble_dense(assemble_t assembler, densemat_t A);
+void init_assemble_band(assemble_t assembler, bandmat_t b);
 
 /**
  * ## Vector assembly interface

@@ -13,10 +13,10 @@
 
 
 // Set up the mesh on [0,1] with Dirichlet BC
-fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
+fem_t setup_test_mesh(int numelt, int degree, double u0, double u1)
 {
-    mesh_t* mesh = mesh_create1d(numelt, degree, 0.0, 1.0);
-    fem_t* fe = fem_malloc(mesh, 1);
+    mesh_t mesh = mesh_create1d(numelt, degree, 0.0, 1.0);
+    fem_t fe = fem_malloc(mesh, 1);
     int numnp = fe->mesh->numnp;
     fe->id[0]       = -1;
     fe->id[numnp-1] = -1;
@@ -28,12 +28,12 @@ fem_t* setup_test_mesh(int numelt, int degree, double u0, double u1)
 
 void test_fem1(int d)
 {
-    fem_t* fe = setup_test_mesh(6, d, 0.0, 1.0);
+    fem_t fe = setup_test_mesh(6, d, 0.0, 1.0);
     fe->etype = malloc_poisson1d_element();
 
     // Set up globals and assemble system
-    densemat_t* R = densemat_malloc(fe->nactive, 1);
-    bandmat_t* K = bandmat_malloc(fe->nactive, d);
+    densemat_t R = densemat_malloc(fe->nactive, 1);
+    bandmat_t K = bandmat_malloc(fe->nactive, d);
     fem_assemble_band(fe, R->data, K);
 
     // Factor, solve, and update
@@ -59,13 +59,13 @@ void rhs_const1(double* x, double* fx)
 
 void test_fem2(int d)
 {
-    fem_t* fe = setup_test_mesh(6, d, 0.0, 0.0);
+    fem_t fe = setup_test_mesh(6, d, 0.0, 0.0);
     fe->etype = malloc_poisson1d_element();
     fem_set_load(fe, rhs_const1);
 
     // Set up globals and assemble system
-    densemat_t* R = densemat_malloc(fe->nactive, 1);
-    bandmat_t* K = bandmat_malloc(fe->nactive, d);
+    densemat_t R = densemat_malloc(fe->nactive, 1);
+    bandmat_t K = bandmat_malloc(fe->nactive, d);
     fem_assemble_band(fe, R->data, K);
 
     // Factor, solve, and update

@@ -48,12 +48,12 @@ typedef struct element_t {
     void (*dR)(void* p, struct fem_t* fe, int eltid,
               double* Re, double* Ke);
     void (*free)(void* p);
-} element_t;
+} *element_t;
 
 // Wrappers for calling the dR and free method
-void element_dR(element_t* e, struct fem_t* fe, int eltid,
+void element_dR(element_t e, struct fem_t* fe, int eltid,
                 double* Re, double* Ke);
-void element_free(element_t* e);
+void element_free(element_t e);
 
 /**
  * Write now, we only have one element type, corresponding to a 1D Poisson
@@ -67,8 +67,8 @@ void element_free(element_t* e);
  * There are no PDE coefficients or other special parameters to keep 
  * track of for this element tyle.
  */
-element_t* malloc_poisson1d_element(void);
-element_t* malloc_poisson2d_element(void);
+element_t malloc_poisson1d_element(void);
+element_t malloc_poisson2d_element(void);
 
 //ldoc off
 #endif /* ELEMENT_H */

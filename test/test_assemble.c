@@ -5,7 +5,7 @@
 #include "bandmat.h"
 #include "assemble.h"
 
-void test_K_setup(assemble_t* assembler)
+void test_K_setup(assemble_t assembler)
 {
     double emat[] = {1.0, -1.0, -1.0, 1.0};
     int ids[2];
@@ -16,9 +16,9 @@ void test_K_setup(assemble_t* assembler)
 
 void test_Kassembly(void)
 {
-    densemat_t* A = densemat_malloc(3,3);
-    bandmat_t* P = bandmat_malloc(3,1);
-    assemble_t assembler;
+    densemat_t A = densemat_malloc(3,3);
+    bandmat_t P = bandmat_malloc(3,1);
+    struct assemble_t assembler;
 
     memset(A->data, 0xF, 9 * sizeof(double));
     memset(P->data, 0xF, 6 * sizeof(double));
@@ -40,7 +40,7 @@ void test_Kassembly(void)
 
 void test_Rassembly(void)
 {
-    densemat_t* v = densemat_malloc(3,1);
+    densemat_t v = densemat_malloc(3,1);
     double ve[] = {1.0, -1.0};
     int id[2];
 
