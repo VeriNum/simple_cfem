@@ -52,6 +52,7 @@ double data_norm(double* data, int n);
 double densemat_norm2(densemat_t dm);
 double densemat_norm(densemat_t dm);
 
+// Accessor/setter functions for column-major indexing
 double densemat_get(densemat_t dm, int i, int j);
 void densemat_set(densemat_t dm, int i, int j, double x);
 void densemat_addto(densemat_t dm, int i, int j, double x);

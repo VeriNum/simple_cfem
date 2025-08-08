@@ -146,6 +146,49 @@ Definition densemat_clear_spec :=
     RETURN () 
     SEP(densemat sh m n (fun _ _ => Some Float.zero) p).
 
+Definition densemat_get_spec :=
+  DECLARE _densemat_get
+  WITH m: Z, n: Z, v: Z -> Z -> option float, p: val, sh: share,
+       i: Z, j: Z, x: float
+  PRE [ tptr densemat_t , tint, tint ]
+    PROP(readable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some x ) 
+    PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j))
+    SEP(densemat sh m n v p)
+  POST [ tdouble ]
+    PROP () 
+    RETURN (Vfloat x) 
+    SEP(densemat sh m n v p).
+
+Definition densemat_upd (v: Z -> Z -> option float) (i j: Z) (x: float) : 
+   Z -> Z -> option float :=
+ fun i' j' => if zeq i' i then if zeq j' j then Some x else v i j else v i j.
+
+Definition densemat_set_spec :=
+  DECLARE _densemat_set
+  WITH m: Z, n: Z, v: Z -> Z -> option float, p: val, sh: share,
+       i: Z, j: Z, x: float
+  PRE [ tptr densemat_t, tint, tint, tdouble ]
+    PROP(writable_share sh; 0 <= i < m; 0 <= j < n ) 
+    PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j); Vfloat x)
+    SEP(densemat sh m n v p)
+  POST [ tvoid ]
+    PROP () 
+    RETURN () 
+    SEP(densemat sh m n (densemat_upd v i j x) p).
+
+Definition densemat_addto_spec :=
+  DECLARE _densemat_addto
+  WITH m: Z, n: Z, v: Z -> Z -> option float, p: val, sh: share,
+       i: Z, j: Z, y: float, x: float
+  PRE [ tptr densemat_t, tint, tint, tdouble ]
+    PROP(writable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some y ) 
+    PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j); Vfloat x)
+    SEP(densemat sh m n v p)
+  POST [ tvoid ]
+    PROP () 
+    RETURN () 
+    SEP(densemat sh m n (densemat_upd v i j (Float.add y x)) p).
+
 Definition data_norm_spec  : ident*funspec := 
  (_data_norm, vacuous_funspec (Internal f_data_norm)).
 Definition data_norm2_spec : ident*funspec := 

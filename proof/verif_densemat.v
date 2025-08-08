@@ -265,6 +265,154 @@ entailer!!.
 entailer!!.
 Qed.
 
+
+Lemma densemat_field_compat0: 
+ forall m n p, 
+  0 <= m -> 0 <= n -> m*n <= Int.max_unsigned ->
+  malloc_compatible
+    (densemat_data_offset + sizeof (tarray tdouble (m * n))) p ->
+  field_compatible0 (tarray tdouble (m*n)) (SUB (n*m)) 
+        (offset_val densemat_data_offset p).
+Proof.
+intros.
+destruct p; try contradiction.
+destruct H2.
+split3; [ | | split3]; auto.
+- simpl; auto.
+- simpl. rewrite Z.max_r by rep_lia.
+unfold densemat_data_offset in *.
+rewrite <- (Ptrofs.repr_unsigned i).
+rewrite ptrofs_add_repr.
+simpl in H3. rewrite Z.max_r in H3 by rep_lia.
+rewrite Ptrofs.unsigned_repr by rep_lia.
+lia.
+- red. unfold offset_val, densemat_data_offset in *.
+  apply align_compatible_rec_Tarray. 
+  intros.
+  eapply align_compatible_rec_by_value; try reflexivity.
+  simpl in *.
+  rewrite <- (Ptrofs.repr_unsigned i).
+  rewrite ptrofs_add_repr.
+  rewrite Ptrofs.unsigned_repr by rep_lia.
+  unfold natural_alignment in H2.
+  repeat apply Z.divide_add_r.
+  destruct H2 as [x ?]. rewrite H2. 
+  exists (2*x)%Z. lia.
+  exists 2; lia.
+  apply Z.divide_mul_l. exists 2; lia.
+- split; simpl; auto. lia.
+Qed.
+
+Lemma Znth_column_major:
+  forall m n i j (v: Z -> Z -> option float), 
+  0 <= i < m -> 0 <= j < n ->
+  Znth (i+j*m) (column_major m n v) = v i j.
+Proof.
+intros.
+unfold column_major.
+unfold mklist.
+Search (Z.of_nat (Z.to_nat _)).
+rewrite <- (Z2Nat.id i) in * by lia.
+rewrite <- (Z2Nat.id j) in * by lia.
+forget (Z.to_nat i) as a; clear i; rename a into i.
+forget (Z.to_nat j) as b; clear j; rename b into j.
+rewrite <- (Z2Nat.id m) in * by lia.
+forget (Z.to_nat m) as c; clear m; rename c into m.
+rewrite <- (Z2Nat.id n) in H0 by lia.
+forget (Z.to_nat n) as c; clear n; rename c into n.
+assert (i<m)%nat by lia.
+assert (j<n)%nat by lia.
+rewrite Nat2Z.id.
+clear H  H0.
+replace (Z.of_nat i + Z.of_nat j * Z.of_nat m)%Z with (Z.of_nat (i+j*m)) by lia.
+rewrite <- nth_Znth.
+2:{
+rewrite Zlength_correct.
+split. lia.
+Search (Z.of_nat _ < Z.of_nat _).
+apply inj_lt.
+rewrite length_concat.
+rewrite map_map.
+apply Nat.lt_le_trans with (n*m)%nat.
+nia.
+clear i j H1 H2.
+replace  (fun x : nat =>
+       Datatypes.length
+         (map (fun i : nat => v (Z.of_nat i) (Z.of_nat x))
+            (seq 0 m)))
+ with (fun x:nat => m).
+2:{
+extensionality x.
+rewrite length_map.
+rewrite length_seq.
+auto.
+}
+set (k:=O).
+unfold k at 2.
+replace (n*m)%nat with (n*m+k)%nat by lia.
+clearbody k.
+revert k; induction n; intro.
+simpl. lia.
+rewrite seq_S.
+rewrite map_app.
+simpl.
+rewrite fold_right_app.
+simpl.
+specialize (IHn (m+k)%nat).
+lia.
+}
+(* finish this later *)
+Admitted.
+
+Lemma body_densemat_get: semax_body Vprog Gprog f_densemat_get densemat_get_spec.
+Proof.
+start_function.
+unfold densemat; Intros.
+forward.
+assert (0 <= i + j * m < m * n). {
+ split. rep_lia.
+ rewrite (Z.mul_comm m).
+ replace n with (1 + (n-1)) by lia.
+ rewrite Z.mul_add_distr_r.
+ apply Z.add_lt_le_mono; try lia.
+ apply Z.mul_le_mono_nonneg_r; try lia.
+}
+assert_PROP (field_compatible0 (tarray tdouble (m*n)) (SUB (n*m)) 
+        (offset_val densemat_data_offset p)).
+ entailer!.
+assert_PROP (force_val
+   (sem_add_ptr_int tdouble Signed (offset_val 8 p)
+      (Vint
+         (Int.add (Int.repr i)
+            (Int.mul (Int.repr j) (Int.repr m))))) =
+ field_address (tarray tdouble (m*n)) (SUB (i+j*m)) 
+       (offset_val densemat_data_offset p)). {
+ entailer!!.
+ unfold field_address.
+ rewrite if_true.
+ 2:{ 
+  apply field_compatible_range with (lo:=0) (hi:=(m*n)%Z); auto.
+  auto with field_compatible.
+  rewrite (Z.mul_comm n) in H6; auto.
+ }
+ simpl. rewrite offset_offset_val.
+ unfold densemat_data_offset.
+ f_equal.
+}
+assert (0 <= i + j * m < Zlength (column_major m n v)) by admit.
+forward.
+entailer!!.
+rewrite Znth_map by auto.
+rewrite Znth_column_major by lia.
+rewrite H1; simpl. auto.
+forward.
+unfold densemat.
+entailer!!.
+rewrite Znth_map by auto.
+rewrite Znth_column_major by lia.
+rewrite H1; simpl. auto.
+Admitted.
+
 (* BEGIN workaround for VST issue #814, until we can install VST 2.16 which fixes it. *)
 Ltac new_simpl_fst_snd :=
   match goal with |- context[@fst ident funspec ?A] =>

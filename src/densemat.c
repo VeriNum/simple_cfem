@@ -37,6 +37,19 @@ void densemat_clear(densemat_t vm)
   densematn_clear(vm->data, vm->m, vm->n);
 }
 
+double densemat_get(densemat_t dm, int i, int j) {
+  return dm->data[i+j*dm->m];
+}
+
+void densemat_set(densemat_t dm, int i, int j, double x) {
+  dm->data[i+j*dm->m]= x;
+}
+
+
+void densemat_addto(densemat_t dm, int i, int j, double x) {
+  dm->data[i+j*dm->m] += x;
+}
+
 /**
  * ## I/O
  * 

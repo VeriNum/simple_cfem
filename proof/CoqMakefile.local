@@ -1,5 +1,3 @@
-C_FILES=alloc.c assemble.c bandmat.c densemat.c element.c fem.c mesh.c quadrules.c shapes.c
-
 %.v: ../src/%.c
 	clightgen -normalize $< -o $@
 
