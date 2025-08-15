@@ -100,14 +100,13 @@ void init_assemble_band(assemble_t assembler, bandmat_t b)
 /*static*/ void assemble_dense_add(assemble_data_t p, double* emat, int* ids, int ne)
 {
     densemat_t A = (densemat_t)p;
-    int n = A->m;
 
     for (int je = 0; je < ne; ++je) {
         int j = ids[je];
         for (int ie = 0; ie <= je; ++ie) {
             int i = ids[ie];
             if (i >= 0 && j >= i)
-                A->data[i+n*j] += emat[ie+ne*je];
+	      densemat_addto(A,i,j, emat[ie+ne*je]);
         }
     }
 }
@@ -125,7 +124,7 @@ void init_assemble_band(assemble_t assembler, bandmat_t b)
             int d = j-i;
             if (j >= 0 && d >= 0) {
                 assert(d <= b);
-                P->data[j+n*d] += emat[ie+ne*je];
+		bandmat_addto(P,j,d, emat[ie+ne*je]);
             }
         }
     }

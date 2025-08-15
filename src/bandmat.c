@@ -12,25 +12,12 @@
  * ## Band matrix construction
  * 
  */
-// Allocate a band matrix
+// Allocate/free/clear a band matrix
 bandmat_t bandmat_malloc(int n, int b)
 {
   bandmat_t vm = surely_malloc(sizeof(struct bandmat_t) + (n*(b+1))*sizeof(double));
   vm->m=n; vm->b=b;
   return vm;
-}
-
-// Convert dense n-by-n A to band matrix P with bandwidth bw
-bandmat_t dense_to_band(densemat_t A, int bw)
-{
-    int n = A->n;
-    bandmat_t P = bandmat_malloc(n, bw);
-    for (int d = 0; d <= bw; ++d)
-        for (int j = d; j < n; ++j) {
-            int i = j-d;
-            P->data[j+d*n] = A->data[i+j*n];
-        }
-    return P;
 }
 
 void bandmat_free(bandmat_t vm)
@@ -46,6 +33,47 @@ void bandmatn_clear(double* data, int m, int b)
 void bandmat_clear(bandmat_t vm)
 {
   bandmatn_clear(vm->data, vm->m, vm->b);
+}
+
+
+
+// Getting, setting, adding to band matrices
+double bandmatn_get(double *data, int rows, int i, int d) {
+  return data[i+d*rows];
+}
+
+void bandmatn_set(double *data, int rows, int i, int d, double x) {
+  data[i+d*rows] = x;
+}
+
+void bandmatn_addto(double *data, int rows, int i, int d, double x) {
+  data[i+d*rows] += x;
+}
+
+double bandmat_get(bandmat_t dm, int i, int d) {
+  return bandmatn_get(dm->data, dm->m, i, d);
+}
+
+void bandmat_set(bandmat_t dm, int i, int d, double x) {
+  bandmatn_set(dm->data, dm->m, i, d, x);
+}
+
+void bandmat_addto(bandmat_t dm, int i, int d, double x) {
+  bandmatn_addto(dm->data, dm->m, i, d, x);
+}
+
+
+// Convert dense n-by-n A to band matrix P with bandwidth bw
+bandmat_t dense_to_band(densemat_t A, int bw)
+{
+    int n = A->n;
+    bandmat_t P = bandmat_malloc(n, bw);
+    for (int d = 0; d <= bw; ++d)
+        for (int j = d; j < n; ++j) {
+            int i = j-d;
+	    bandmat_set(P,j,d, densemat_get(A,i,j));
+        }
+    return P;
 }
 
 /**
@@ -69,7 +97,7 @@ void bandmat_print(bandmat_t PA)
 
     for (int i = 0; i < n; ++i) {
         for (int d = 0; d <= bw && d <= i; ++d)
-            printf("  % 6.3g", PA->data[i+d*n]);
+	  printf("  % 6.3g", bandmat_get(PA,i,d));
         printf("\n");
     }
 }
@@ -96,20 +124,21 @@ void bandmat_factor(bandmat_t PA)
 {
     int n = PA->m, bw=PA->b;
     
+    
     for (int k = 0; k < n; ++k) {
 
         // Compute kth diagonal element
-        assert(PA->data[k] >= 0);
-        PA->data[k] = sqrt(PA->data[k]);
+        assert(bandmat_get(PA,k,0) >= 0);
+	bandmat_set(PA,k,0, sqrt(bandmat_get(PA,k,0)));
 
         // Scale across the row
         for (int j = k+1; j < n && j <= k+bw; ++j)
-            PA->data[j+n*(j-k)] /= PA->data[k];
+	  bandmat_set(PA,j,j-k, bandmat_get(PA,j,j-k)/bandmat_get(PA,k,0));
 
         // Apply the Schur complement update
         for (int j = k+1; j < n && j <= k+bw; ++j)
             for (int i = k+1; i <= j; ++i)
-                PA->data[j+n*(j-i)] -= PA->data[i+n*(i-k)]*PA->data[j+n*(j-k)];
+	      bandmat_addto(PA,j,j-i, - bandmat_get(PA,i,i-k)*bandmat_get(PA,j,j-k));
     }    
 }
 
@@ -128,16 +157,16 @@ void bandmat_solve(bandmat_t PR, double* x)
     for (int i = 0; i < n; ++i) {
         double bi = x[i];
         for (int dj = 1; dj <= bw && dj <= i; ++dj)
-            bi -= PR->data[i+dj*n]*x[i-dj];
-        x[i] = bi/PR->data[i];
+	  bi -= bandmat_get(PR,i,dj)*x[i-dj];
+        x[i] = bi/bandmat_get(PR,i,0);
     }
 
     // Backward substitution
     for (int i = n-1; i >= 0; --i) {
         double yi = x[i];
         for (int j = i+1; j <= i+bw && j < n; ++j)
-            yi -= PR->data[j+(j-i)*n]*x[j];
-        x[i] = yi/PR->data[i];
+	  yi -= bandmat_get(PR,j,j-i)*x[j];
+        x[i] = yi/bandmat_get(PR,i,0);
     }
 }
 

@@ -37,17 +37,30 @@ void densemat_clear(densemat_t vm)
   densematn_clear(vm->data, vm->m, vm->n);
 }
 
+double densematn_get(double *data, int rows, int i, int j) {
+  return data[i+j*rows];
+}
+
+void densematn_set(double *data, int rows, int i, int j, double x) {
+  data[i+j*rows]= x;
+}
+
+
+void densematn_addto(double *data, int rows, int i, int j, double x) {
+  data[i+j*rows] += x;
+}
+
 double densemat_get(densemat_t dm, int i, int j) {
-  return dm->data[i+j*dm->m];
+  return densematn_get(dm->data,dm->m,i,j);
 }
 
 void densemat_set(densemat_t dm, int i, int j, double x) {
-  dm->data[i+j*dm->m]= x;
+  densematn_set(dm->data,dm->m,i,j,x);
 }
 
 
 void densemat_addto(densemat_t dm, int i, int j, double x) {
-  dm->data[i+j*dm->m] += x;
+  densematn_addto(dm->data,dm->m,i,j,x);
 }
 
 /**
@@ -64,7 +77,7 @@ void densematn_print(double* data, int m, int n)
     printf("%d-by-%d\n", m, n);
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j)
-            printf(" % 6.2g", data[i+j*m]);
+	  printf(" % 6.2g", densematn_get(data,m,i,j));
         printf("\n");
     }
 }
@@ -95,16 +108,16 @@ void densematn_cfactor(double* A, int n)
         double akk = A[k+n*k];
         assert(akk >= 0.0);
         double rkk = sqrt(akk);
-        A[k+n*k] = rkk;
+	densematn_set(A,n,k,k,rkk);
 
         // Scale across the row
         for (int j = k+1; j < n; ++j)
-            A[k+n*j] /= rkk;
+	  densematn_set(A,n,k,j, densematn_get(A,n,k,j)/rkk);
 
         // Apply the Schur complement update
         for (int j = k+1; j < n; ++j)
             for (int i = k+1; i <= j; ++i)
-                A[i+j*n] -= A[k+i*n]*A[k+j*n];
+	      densematn_addto(A,n,i,j, -densematn_get(A,n,k,i)*densematn_get(A,n,k,j));
     }
 }
 
@@ -128,16 +141,16 @@ void densematn_csolve(double* R, double* x, int n)
     for (int i = 0; i < n; ++i) {
         double bi = x[i];
         for (int j = 0; j < i; ++j)
-            bi -= R[j+i*n]*x[j];
-        x[i] = bi/R[i+i*n];
+	  bi -= densematn_get(R,n,j,i)*x[j];
+        x[i] = bi/densematn_get(R,n,i,i);
     }
 
     // Backward substitution
     for (int i = n; i >= 0; --i) {
         double yi = x[i];
         for (int j = i+1; j < n; ++j)
-            yi -= R[i+n*j]*x[j];
-        x[i] = yi/R[i+i*n];
+	  yi -= densematn_get(R,n,i,j)*x[j];
+        x[i] = yi/densematn_get(R,n,i,i);
     }
 }
 
@@ -175,22 +188,22 @@ void densematn_lufactor(int* ipiv, double* A, int n)
         // Apply row swap, if needed
         if (ipivj != j)
             for (int k = j; k < n; ++k) {
-                double t = A[j+n*k];
-                A[j+n*k] = A[ipivj+n*k];
-                A[ipivj+n*k] = t;
+  	      double t = densematn_get(A,n,j,k);
+	      densematn_set(A,n,j,k, densematn_get(A,n,ipivj,k));
+	      densematn_set(A,n,ipivj,k, t);
             }
 
         // Compute multipliers
-        double Ujj = A[j+j*n];
+        double Ujj = densematn_get(A,n,j,j);
         for (int i = j+1; i < n; ++i)
-            A[i+j*n] /= Ujj;
+	  densematn_set(A,n,i,j, densematn_get(A,n,i,j)/Ujj);
 
         // Apply Schur complement update
         for (int k = j+1; k < n; ++k) {
-            double Ujk = A[j+k*n];
+	  double Ujk = densematn_get(A,n,j,k);
             for (int i = j+1; i < n; ++i) {
-                double Lij = A[i+j*n];
-                A[i+k*n] -= Lij*Ujk;
+	      double Lij = densematn_get(A,n,i,j);
+	      densematn_addto(A,n,i,k, -Lij*Ujk);
             }
         }
     }
@@ -215,7 +228,7 @@ void densematn_lusolve(int* ipiv, double* A, double* x, int n)
     for (int i = 0; i < n; ++i) {
         double bi = x[i];
         for (int j = 0; j < i; ++j)
-            bi -= A[i+j*n]*x[j];
+	  bi -= densematn_get(A,n,i,j)*x[j];
         x[i] = bi;
     }
 
@@ -223,8 +236,8 @@ void densematn_lusolve(int* ipiv, double* A, double* x, int n)
     for (int i = n; i >= 0; --i) {
         double yi = x[i];
         for (int j = i+1; j < n; ++j)
-            yi -= A[i+n*j]*x[j];
-        x[i] = yi/A[i+i*n];
+	  yi -= densematn_get(A,n,i,j)*x[j];
+        x[i] = yi/densematn_get(A,n,i,i);
     }
 }
 
@@ -238,7 +251,7 @@ void densematn_lusolveT(int* ipiv, double* A, double* x, int n)
     for (int i = 0; i < n; ++i) {
         double bi = x[i];
         for (int j = 0; j < i; ++j)
-            bi -= A[j+i*n]*x[j];
+	  bi -= densematn_get(A,n,j,i)*x[j];
         x[i] = bi/A[i+i*n];
     }
     
@@ -246,7 +259,7 @@ void densematn_lusolveT(int* ipiv, double* A, double* x, int n)
     for (int i = n; i >= 0; --i) {
         double yi = x[i];
         for (int j = i+1; j < n; ++j)
-            yi -= A[j+n*i]*x[j];
+	  yi -= densematn_get(A,n,j,i)*x[j];
         x[i] = yi;
     }
 
@@ -271,7 +284,7 @@ double densematn_lujac(int* ipiv, double* A, int n)
     for (int i = 0; i < n; ++i) {
         if (ipiv[i] != i)
             ++nswap;
-        J *= A[i+i*n];
+        J *= densematn_get(A,n,i,i);
     }
     return (nswap % 2 == 0) ? J : -J;
 }

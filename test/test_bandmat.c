@@ -96,7 +96,7 @@ int main(void)
 
     // Check residual
     for (int i = 0; i < 6; ++i)
-        x->data[i] -= xref->data[i];
+      bandmat_addto(x,i,0, -xref->data[i]);
     assert(bandmat_norm(x) < 1e-8);
     
     bandmat_free(P);

@@ -46,5 +46,15 @@ double bandmat_norm(bandmat_t vm);
 void bandmat_factor(bandmat_t PA);
 void bandmat_solve(bandmat_t PR, double* x);
 
+// Getting, setting, adding to band matrices
+double bandmatn_get(double *data, int rows, int i, int d);
+void bandmatn_set(double *data, int rows, int i, int d, double x);
+void bandmatn_addto(double *data, int rows, int i, int d, double x);
+
+double bandmat_get(bandmat_t dm, int i, int d);
+void bandmat_set(bandmat_t dm, int i, int d, double x);
+void bandmat_addto(bandmat_t dm, int i, int d, double x);
+
+
 //ldoc off
 #endif /* BANDMAT_H */
