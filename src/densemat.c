@@ -330,7 +330,7 @@ double data_norm2(double* data, int n)
     double result = 0.0;
     for (int j = 0; j < n; ++j) {
         double xj = data[j];
-        result += xj*xj;
+	result = fma(xj,xj,result);
     }
     return result;
 }
