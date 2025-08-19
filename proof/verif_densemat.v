@@ -365,7 +365,7 @@ f_equal.
 apply IHn.
 Qed.
 
-Lemma Zlength_column_major: forall {T} m n (v: Z -> Z -> option T),
+Lemma Zlength_column_major: forall {T} m n (v: Z -> Z -> T),
   0 <= m -> 0 <= n -> 
   Zlength (column_major m n v) = (m*n)%Z.
 Proof.
@@ -724,6 +724,66 @@ f_equal.
 apply proof_irr.
 Qed.
 
+
+Lemma val_of_optfloat_column_major:
+  forall t m n (v: Z -> Z -> ftype t),
+  map val_of_optfloat (column_major m n (fun i j : Z => Some (v i j)))
+  = map val_of_float (column_major m n v).
+Proof.
+intros.
+unfold column_major.
+rewrite !concat_map.
+f_equal.
+unfold mklist. rewrite !map_map.
+f_equal. extensionality x. rewrite !map_map. f_equal.
+Qed.
+
+Lemma body_densemat_norm2: semax_body Vprog Gprog f_densemat_norm2 densemat_norm2_spec.
+Proof.
+start_function.
+unfold densemat, densematn in POSTCONDITION|-*.
+Intros.
+forward.
+forward.
+forward_call (sh, column_major m n v, offset_val densemat_data_offset p);
+rewrite Zlength_column_major by lia.
+- entailer!!.
+- simpl. change (ctype_of_type the_type) with the_ctype.
+   change (reptype_ftype _ ?A) with A.
+   rewrite val_of_optfloat_column_major.
+   cancel.
+- lia.
+- forward.
+  simpl. change (ctype_of_type the_type) with the_ctype.
+   change (reptype_ftype _ ?A) with A.
+   rewrite val_of_optfloat_column_major.
+   rewrite Z.max_r by lia.
+  cancel.
+Qed.
+
+Lemma body_densemat_norm: semax_body Vprog Gprog f_densemat_norm densemat_norm_spec.
+Proof.
+start_function.
+unfold densemat, densematn in POSTCONDITION|-*.
+Intros.
+forward.
+forward.
+forward_call (sh, column_major m n v, offset_val densemat_data_offset p);
+rewrite Zlength_column_major by lia.
+- entailer!!.
+- simpl. change (ctype_of_type the_type) with the_ctype.
+   change (reptype_ftype _ ?A) with A.
+   rewrite val_of_optfloat_column_major.
+   cancel.
+- lia.
+- forward.
+  simpl. change (ctype_of_type the_type) with the_ctype.
+   change (reptype_ftype _ ?A) with A.
+   rewrite val_of_optfloat_column_major.
+   rewrite Z.max_r by lia.
+  cancel.
+Qed.
+
 (* BEGIN workaround for VST issue #814, until we can install VST 2.16 which fixes it. *)
 Ltac new_simpl_fst_snd :=
   match goal with |- context[@fst ident funspec ?A] =>
@@ -766,5 +826,7 @@ Definition densematVSU: @VSU NullExtension.Espec
     - solve_SF_internal body_densematn_addto.
     - solve_SF_internal body_data_norm.
     - solve_SF_internal body_data_norm2.
+    - solve_SF_internal body_densemat_norm.
+    - solve_SF_internal body_densemat_norm2.
   Qed.
 

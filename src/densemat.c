@@ -101,11 +101,35 @@ void densemat_print(densemat_t vm)
  * We will not bother to show the wrapper around the `densematn` version.
  */
 void densematn_cfactor(double* A, int n)
-{
+{ 
+  /* sdot method */
+  int i,j,k;
+  double s;
+  for (j=0; j<n; j++) {
+     for (i=0; i<j; i++) {
+       s = densematn_get(A,n,i,j);
+       for (k=0; k<i; k++)
+	 s = s - densematn_get(A,n,k,i)*densematn_get(A,n,k,j);
+       densematn_set(A,n,i,j, s/densematn_get(A,n,i,i));
+     }
+     s = densematn_get(A,n,j,j);
+     for (k=0; k<j; k++) {
+         double rkj = densematn_get(A,n,k,j);
+     	 s = s - rkj*rkj;
+     }
+     densematn_set(A,n,j,j, sqrt(s));
+  }
+}
+
+//ldoc off
+
+/* previously: outer-product method 
+void densematn_cfactor(double* A, int n)
+{ 
     for (int k = 0; k < n; ++k) {
 
         // Compute kth diagonal element
-        double akk = A[k+n*k];
+        double akk = densematn_get(A,n,k,k);
         assert(akk >= 0.0);
         double rkk = sqrt(akk);
 	densematn_set(A,n,k,k,rkk);
@@ -120,8 +144,8 @@ void densematn_cfactor(double* A, int n)
 	      densematn_addto(A,n,i,j, -densematn_get(A,n,k,i)*densematn_get(A,n,k,j));
     }
 }
+*/
 
-//ldoc off
 void densemat_cfactor(densemat_t A)
 {
     assert(A->m == A->n);

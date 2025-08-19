@@ -308,11 +308,36 @@ Definition data_norm_spec :=
     PROP() RETURN (Vfloat (FPStdLib.BSQRT(norm2 v))) 
     SEP(data_at sh (tarray the_ctype (Zlength v)) (map val_of_float v) p).
 
+Definition frobenius_norm2 {t: type} (m n: Z) (v: Z -> Z -> ftype t) :=
+  norm2 (column_major m n v).
 
-Definition densemat_norm_spec : ident*funspec := 
- (_densemat_norm, vacuous_funspec (Internal f_densemat_norm)).
-Definition densemat_norm2_spec : ident*funspec := 
- (_densemat_norm2, vacuous_funspec (Internal f_densemat_norm2)).
+Definition frobenius_norm {t: type} (m n: Z) (v: Z -> Z -> ftype t) :=
+  BSQRT (norm2 (column_major m n v)).
+
+
+Definition densemat_norm2_spec :=
+  DECLARE _densemat_norm2
+  WITH sh: share, m: Z, n: Z, v: Z -> Z -> ftype the_type, p: val
+  PRE [ tptr densemat_t ]
+    PROP (readable_share sh)
+    PARAMS (p)
+    SEP(densemat sh m n (fun i j => Some (v i j)) p)
+  POST [ the_ctype ]
+    PROP() RETURN (val_of_float (frobenius_norm2 m n v)) 
+    SEP(densemat sh m n (fun i j => Some (v i j)) p).
+
+Definition densemat_norm_spec :=
+  DECLARE _densemat_norm
+  WITH sh: share, m: Z, n: Z, v: Z -> Z -> ftype the_type, p: val
+  PRE [ tptr densemat_t ]
+    PROP (readable_share sh)
+    PARAMS (p)
+    SEP(densemat sh m n (fun i j => Some (v i j)) p)
+  POST [ the_ctype ]
+    PROP() RETURN (val_of_float (frobenius_norm m n v)) 
+    SEP(densemat sh m n (fun i j => Some (v i j)) p).
+
+
 Definition densemat_lujac_spec : ident*funspec := 
  (_densemat_lujac, vacuous_funspec (Internal f_densemat_lujac)).
 Definition densematn_lujac_spec : ident*funspec := 
