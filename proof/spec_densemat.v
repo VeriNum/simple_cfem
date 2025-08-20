@@ -372,6 +372,45 @@ Definition densemat_cfactor_spec :=
     RETURN ()
     SEP (densemat sh n n (joinLU n M (fun i j => Some (R i j))) p).
 
+Definition densematn_csolve_spec :=
+ DECLARE _densematn_csolve
+ WITH rsh: share, sh: share, n: Z, 
+      M: (Z -> Z -> option (ftype the_type)), 
+      R: (Z -> Z -> ftype the_type),
+      x: list (ftype the_type), p: val, xp: val
+ PRE [ tptr the_ctype, tptr the_ctype, tint ]
+    PROP (readable_share rsh; writable_share sh)
+    PARAMS (p; xp; Vint (Int.repr n))
+    SEP (densematn rsh n n (joinLU n M (fun i j => Some (R i j))) p;
+         data_at sh (tarray the_ctype n) (map val_of_float x) xp)
+ POST [ tvoid ]
+    PROP ()
+    RETURN ()
+    SEP (densematn rsh n n (joinLU n M (fun i j => Some (R i j))) p;
+         data_at sh (tarray the_ctype n) 
+          (map val_of_float (backward_subst n R (forward_subst n (transpose R) x)))
+           xp).
+
+Definition densemat_csolve_spec :=
+ DECLARE _densemat_csolve
+ WITH rsh: share, sh: share, n: Z, 
+      M: (Z -> Z -> option (ftype the_type)), 
+      R: (Z -> Z -> ftype the_type),
+      x: list (ftype the_type), p: val, xp: val
+ PRE [ tptr densemat_t, tptr the_ctype ]
+    PROP (readable_share rsh; writable_share sh)
+    PARAMS (p; xp)
+    SEP (densemat rsh n n (joinLU n M (fun i j => Some (R i j))) p;
+         data_at sh (tarray the_ctype n) (map val_of_float x) xp)
+ POST [ tvoid ]
+    PROP ()
+    RETURN ()
+    SEP (densemat rsh n n (joinLU n M (fun i j => Some (R i j))) p;
+         data_at sh (tarray the_ctype n) 
+          (map val_of_float (backward_subst n R (forward_subst n (transpose R) x)))
+           xp).
+
+
 Definition densemat_lujac_spec : ident*funspec := 
  (_densemat_lujac, vacuous_funspec (Internal f_densemat_lujac)).
 Definition densematn_lujac_spec : ident*funspec := 
@@ -388,10 +427,6 @@ Definition densemat_lufactor_spec : ident*funspec :=
  (_densemat_lufactor, vacuous_funspec (Internal f_densemat_lufactor)).
 Definition densematn_lufactor_spec : ident*funspec := 
  (_densematn_lufactor, vacuous_funspec (Internal f_densematn_lufactor)).
-Definition densemat_csolve_spec : ident*funspec := 
- (_densemat_csolve, vacuous_funspec (Internal f_densemat_csolve)).
-Definition densematn_csolve_spec : ident*funspec := 
- (_densematn_csolve, vacuous_funspec (Internal f_densematn_csolve)).
 Definition densematn_lusolveT_spec : ident*funspec := 
  (_densematn_lusolveT, vacuous_funspec (Internal f_densematn_lusolveT)).
 Definition densemat_lusolveT_spec : ident*funspec := 

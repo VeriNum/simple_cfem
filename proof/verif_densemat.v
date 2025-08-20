@@ -932,6 +932,207 @@ entailer!!.
 apply derives_refl.
 Qed.
 
+
+Lemma Zlength_forward_subst_step:
+  forall {t} n (L: Z -> Z -> ftype t) x i,
+   Zlength (forward_subst_step n L x i) = Zlength x.
+Proof.
+intros.
+unfold forward_subst_step.
+list_solve.
+Qed.
+
+Lemma Zlength_backward_subst_step:
+  forall {t} n (L: Z -> Z -> ftype t) x i,
+   Zlength (backward_subst_step n L x i) = Zlength x.
+Proof.
+intros.
+unfold backward_subst_step.
+list_solve.
+Qed.
+
+
+Lemma fold_left_preserves: forall [A C: Type] (g: A -> C) [B: Type] (f: A -> B -> A) (bl: list B),
+  (forall x y, g (f x y) = g x) -> 
+  (forall x, g (fold_left f bl x) = g x).
+Proof.
+intros.
+revert x; induction bl; simpl; intros; auto.
+rewrite IHbl; auto.
+Qed.
+
+Lemma Zrangelist_plus1:
+  forall lo hi, 0 <= lo <= hi -> Zrangelist lo (hi + 1) = Zrangelist lo hi ++ [hi].
+Proof.
+intros.
+unfold Zrangelist.
+replace [hi] with (map Z.of_nat [Z.to_nat hi]) by (simpl; f_equal; lia).
+rewrite <- map_app. f_equal.
+replace (Z.to_nat (hi+1-lo)) with (Z.to_nat (hi-lo)+1)%nat by lia.
+rewrite iota_plus1.
+f_equal. f_equal. lia.
+Qed.
+
+Lemma Zrangelist_minus1:
+  forall lo hi, 0 <= lo < hi -> Zrangelist lo hi = [lo] ++ Zrangelist (lo+1) hi.
+Proof.
+intros.
+unfold Zrangelist.
+replace [lo] with (map Z.of_nat [Z.to_nat lo]) by (simpl; f_equal; lia).
+rewrite <- map_app. f_equal.
+replace (Z.to_nat (hi-lo)) with (S (Z.to_nat (hi-(lo+1))))%nat by lia.
+simpl. f_equal. f_equal. lia.
+Qed.
+
+Lemma body_densematn_csolve: semax_body Vprog Gprog f_densematn_csolve densematn_csolve_spec.
+Proof.
+start_function. 
+assert_PROP (0 <= n <= Int.max_signed /\ Zlength x = n)
+  by (entailer!; list_solve).
+destruct H.
+forward_for_simple_bound n (EX i:Z,
+   PROP ( )
+   LOCAL (temp _R p; temp _x xp; temp _n (Vint (Int.repr n)))
+   SEP (densematn rsh n n (joinLU n M (fun i j : Z => Some (R i j))) p;
+        data_at sh (tarray the_ctype n) (map val_of_float 
+         (fold_left (forward_subst_step n (transpose R)) (Zrangelist 0 i) x)) xp))%assert.
+- entailer!!.
+- forward. {
+    entailer!!.
+    rewrite Znth_map. simpl; auto.
+    rewrite fold_left_preserves; auto.
+    intros. apply Zlength_forward_subst_step.
+  }
+  rewrite Znth_map.
+  set (x' := fold_left _ _ _).
+  set (xi := Znth i x').
+  forward_for_simple_bound i (EX j:Z,
+   PROP ( )
+   LOCAL (temp _bi (val_of_float (fold_left BMINUS 
+                     (map (fun j => BMULT (transpose R i j) (Znth j x')) (Zrangelist 0 j))
+                      (Znth i x'))); 
+          temp _i (Vint (Int.repr i)); temp _R p; 
+   temp _x xp; temp _n (Vint (Int.repr n)))
+   SEP (densematn rsh n n
+          (joinLU n M (fun i0 j : Z => Some (R i0 j))) p;
+   data_at sh (tarray the_ctype n) (map val_of_float x') xp))%assert.
+ + entailer!!.
+ + rename i0 into j.
+   assert (Zlength x' = Zlength x). {
+     apply fold_left_preserves; try lia.
+     intros. apply Zlength_forward_subst_step.
+   }
+   forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,rsh,j,i,R j i).
+   unfold joinLU; replace (andb _ _) with true by lia; auto.
+   forward. 
+    entailer!!;  rewrite Znth_map; simpl; auto; lia.
+   forward.
+   entailer!!.
+   rewrite Znth_map by lia.
+   simpl. 
+   rewrite Zrangelist_plus1 by lia.
+   rewrite map_app.
+   simpl map.
+   rewrite fold_left_app.
+   reflexivity.
+ +  forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,rsh,i,i,R i i).
+    unfold joinLU; replace (andb _ _) with true by lia; auto.
+    forward.
+   entailer!!.
+   apply derives_refl'. f_equal.
+   rewrite upd_Znth_map. f_equal.
+   rewrite Zrangelist_plus1 by lia.
+   rewrite fold_left_app.
+   reflexivity.
+ + rewrite fold_left_preserves. lia.
+   intros. apply Zlength_forward_subst_step.
+- 
+ deadvars!.
+ set (x1 := fold_left _ _ _).
+ assert (Zlength x1 = n). {
+     rewrite <- H0; apply fold_left_preserves; try lia.
+     intros. apply Zlength_forward_subst_step.
+   }
+forward_loop (EX i:Z,
+   PROP (0 <= i <= n)
+   LOCAL (temp _i__1 (Vint (Int.repr i));
+          temp _R p; temp _x xp; temp _n (Vint (Int.repr n)))
+   SEP (densematn rsh n n (joinLU n M (fun i j : Z => Some (R i j))) p;
+   data_at sh (tarray the_ctype n)
+     (map val_of_float 
+         (fold_left (backward_subst_step n R) (rev (Zrangelist i n)) x1)) xp))%assert.
+ + forward.
+  Exists n. entailer!!. 
+  unfold Zrangelist. rewrite Z.sub_diag. simpl. cancel.
+ + Intros i.
+  set (x2 := fold_left (backward_subst_step n R) (rev (Zrangelist i n)) x1).
+  assert (Zlength x2 = n). {
+     rewrite <- H1.
+     apply fold_left_preserves; try lia.
+     intros. apply Zlength_backward_subst_step.
+   }
+  forward_if.
+  * forward. entailer!!; rewrite Znth_map; simpl; auto; lia.
+    rewrite Znth_map by lia.
+  forward_for_simple_bound n (EX j:Z,
+   PROP (i <= j)
+   LOCAL (temp _yi (val_of_float 
+            (fold_left BMINUS 
+              (map (fun j => BMULT (R (i-1) j) (Znth j x2)) (Zrangelist i j))
+                      (Znth (i-1) x2))); 
+          temp _i__1 (Vint (Int.repr i)); temp _R p; 
+          temp _x xp; temp _n (Vint (Int.repr n)))
+   SEP (densematn rsh n n (joinLU n M (fun i j : Z => Some (R i j))) p;
+        data_at sh (tarray the_ctype n) (map val_of_float x2) xp))%assert.
+  -- forward. Exists i; entailer!!. unfold Zrangelist; rewrite Z.sub_diag; reflexivity. 
+  -- rename i0 into j. Intros.
+   forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,rsh,i-1,j,R (i-1) j).
+   unfold joinLU; replace (andb _ _) with true by lia; auto.
+   forward. 
+    entailer!!;  rewrite Znth_map; simpl; auto; lia.
+   forward.
+   entailer!!.
+   rewrite Znth_map by lia.
+   simpl. 
+   rewrite Zrangelist_plus1 by lia.
+   rewrite map_app.
+   simpl map.
+   rewrite fold_left_app.
+   reflexivity.
+ -- forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,rsh,i-1,i-1,R (i-1) (i-1)).
+    unfold joinLU; replace (andb _ _) with true by lia; auto.
+    Intros vret. subst vret.
+    forward.
+    forward.
+    Exists (i-1).
+    entailer!!.
+    apply derives_refl'. f_equal.
+    rewrite upd_Znth_map. f_equal.
+   rewrite (Zrangelist_minus1 (i-1)) by lia.
+   simpl rev.
+   rewrite fold_left_app.
+   unfold backward_subst_step.
+   simpl.
+   replace (i-1+1) with i by lia.
+   reflexivity.
+  *
+   forward.
+   entailer!!.
+   assert (i=0) by lia. subst i.
+   apply derives_refl.
+Qed.
+
+
+Lemma body_densemat_csolve: semax_body Vprog Gprog f_densemat_csolve densemat_csolve_spec.
+Proof.
+start_function.
+unfold densemat in POSTCONDITION|-*.
+Intros. 
+forward.
+forward_call (rsh,sh,n,M,R,x, offset_val densemat_data_offset p, xp).
+entailer!!.
+Qed.
+
 (* BEGIN workaround for VST issue #814, until we can install VST 2.16 which fixes it. *)
 Ltac new_simpl_fst_snd :=
   match goal with |- context[@fst ident funspec ?A] =>
@@ -976,6 +1177,8 @@ Definition densematVSU: @VSU NullExtension.Espec
     - solve_SF_internal body_data_norm2.
     - solve_SF_internal body_densemat_norm.
     - solve_SF_internal body_densemat_norm2.
+    - solve_SF_internal body_densemat_csolve.
+    - solve_SF_internal body_densematn_csolve.
     - solve_SF_internal body_densemat_cfactor.
     - solve_SF_internal body_densematn_cfactor.
   Qed.
