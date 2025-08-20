@@ -1,7 +1,7 @@
 Require Import VST.floyd.proofauto.
-From CFEM Require Import densemat spec_alloc floatlib.
 From vcfloat Require Import FPStdCompCert FPStdLib.
 From VSTlib Require Import spec_math spec_malloc.
+From CFEM Require Import densemat spec_alloc floatlib cholesky_model.
 Require Import Coq.Classes.RelationClasses.
 
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
@@ -337,6 +337,40 @@ Definition densemat_norm_spec :=
     PROP() RETURN (val_of_float (frobenius_norm m n v)) 
     SEP(densemat sh m n (fun i j => Some (v i j)) p).
 
+(* joinLU n L U    produces a matrix whose upper-triangle (including diagonal) matches U,
+         and whose lower_triangle (excluding diagonal) matches L *)
+Definition joinLU {T} n (L: Z -> Z -> T) (U: Z -> Z -> T) : Z -> Z -> T :=
+ fun i j => if ((0 <=? i) && (i <=? j) && (j <? n))%bool then U i j else L i j.
+
+Definition densematn_cfactor_spec :=
+ DECLARE _densematn_cfactor
+ WITH sh: share, n: Z, 
+      M: (Z -> Z -> option (ftype the_type)), 
+      A: (Z -> Z -> ftype the_type), p: val
+ PRE [ tptr the_ctype, tint ]
+    PROP (writable_share sh)
+    PARAMS (p; Vint (Int.repr n))
+    SEP (densematn sh n n (joinLU n M (fun i j => Some (A i j))) p)
+ POST [ tvoid ]
+   EX R: Z -> Z -> ftype the_type,
+    PROP (cholesky_jik_spec n A R)
+    RETURN ()
+    SEP (densematn sh n n (joinLU n M (fun i j => Some (R i j))) p).
+
+Definition densemat_cfactor_spec :=
+ DECLARE _densemat_cfactor
+ WITH sh: share, n: Z, 
+      M: (Z -> Z -> option (ftype the_type)), 
+      A: (Z -> Z -> ftype the_type), p: val
+ PRE [ tptr densemat_t ]
+    PROP (writable_share sh)
+    PARAMS (p)
+    SEP (densemat sh n n (joinLU n M (fun i j => Some (A i j))) p)
+ POST [ tvoid ]
+   EX R: Z -> Z -> ftype Tdouble,
+    PROP (cholesky_jik_spec n A R)
+    RETURN ()
+    SEP (densemat sh n n (joinLU n M (fun i j => Some (R i j))) p).
 
 Definition densemat_lujac_spec : ident*funspec := 
  (_densemat_lujac, vacuous_funspec (Internal f_densemat_lujac)).
@@ -358,10 +392,6 @@ Definition densemat_csolve_spec : ident*funspec :=
  (_densemat_csolve, vacuous_funspec (Internal f_densemat_csolve)).
 Definition densematn_csolve_spec : ident*funspec := 
  (_densematn_csolve, vacuous_funspec (Internal f_densematn_csolve)).
-Definition densematn_cfactor_spec : ident*funspec := 
- (_densematn_cfactor, vacuous_funspec (Internal f_densematn_cfactor)).
-Definition densemat_cfactor_spec : ident*funspec := 
- (_densemat_cfactor, vacuous_funspec (Internal f_densemat_cfactor)).
 Definition densematn_lusolveT_spec : ident*funspec := 
  (_densematn_lusolveT, vacuous_funspec (Internal f_densematn_lusolveT)).
 Definition densemat_lusolveT_spec : ident*funspec := 

@@ -1,5 +1,5 @@
 From VST.floyd Require Import proofauto VSU.
-From CFEM Require Import densemat spec_alloc spec_densemat floatlib.
+From CFEM Require Import densemat spec_alloc spec_densemat floatlib cholesky_model.
 From vcfloat Require Import FPStdCompCert FPStdLib.
 Require Import VSTlib.spec_math VSTlib.spec_malloc.
 Require Import Coq.Classes.RelationClasses.
@@ -784,6 +784,154 @@ rewrite Zlength_column_major by lia.
   cancel.
 Qed.
 
+Lemma body_densematn_cfactor: semax_body Vprog Gprog f_densematn_cfactor densematn_cfactor_spec.
+Proof.
+start_function.
+assert_PROP (0<=n<=Int.max_signed) by entailer!.
+forward_for_simple_bound n 
+  (EX j:Z, EX R: Z->Z->ftype the_type,
+      PROP(cholesky_jik_upto n 0 j A R)
+      LOCAL(temp _n (Vint (Int.repr n)); temp _A p)
+      SEP(densematn sh n n (joinLU n M (fun i j : Z => Some (R i j))) p))%assert.
+-
+Exists A.
+entailer!!.
+intros i j; split; [ | split3]; intros; try lia; auto; red; intros; try lia.
+-
+rename i into j.
+forward_for_simple_bound j 
+  (EX i:Z, EX R: Z->Z->ftype the_type,
+      PROP(cholesky_jik_upto n i j A R)
+      LOCAL(temp _j (Vint (Int.repr j)); temp _n (Vint (Int.repr n)); temp _A p)
+      SEP(densematn sh n n (joinLU n M (fun i j : Z => Some (R i j))) p))%assert.
+ + Exists R.
+   entailer!!.
+ + clear R.  rename R0 into R.
+   forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,i,j,R i j).
+   unfold joinLU; replace (andb _ _) with true by lia; auto.
+   Intros vret.
+   destruct (H2 i j) as [_ [_ [_ ?]]]. rewrite H4 in H3 by lia.
+   subst vret. clear H4.
+   forward_for_simple_bound i
+     (EX k:Z, 
+      PROP(cholesky_jik_upto n i j A R)
+      LOCAL(temp _s (val_of_float (subtract_loop A R i j k) );
+            temp _i (Vint (Int.repr i)); temp _j (Vint (Int.repr j)); 
+            temp _n (Vint (Int.repr n)); temp _A p)
+      SEP(densematn sh n n (joinLU n M (fun i j : Z => Some (R i j))) p))%assert.
+  * entailer!!.
+  * rename i0 into k.
+    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,k,i,R k i).
+    unfold joinLU; replace (andb _ _) with true by lia; auto.
+    Intros vret. subst vret.
+    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,k,j,R k j).
+    unfold joinLU; replace (andb _ _) with true by lia; auto.
+    forward.
+    change (Vfloat
+            (Float.sub (subtract_loop A R i j k)
+               (Float.mul (R k i) (R k j))))
+    with (val_of_float (BMINUS (subtract_loop A R i j k) (BMULT (R k i) (R k j)))).
+    entailer!!.
+     f_equal.
+     unfold subtract_loop.
+     replace (seq.iota 0 (Z.to_nat (k + 1))) with (seq.iota 0 (Z.to_nat k) ++ [Z.to_nat k]).
+     rewrite !map_app, fold_left_app.
+     simpl. f_equal. rewrite Z2Nat.id by lia. auto.
+     replace (Z.to_nat (k + 1)) with (Z.to_nat k + 1)%nat by lia.
+     rewrite iota_plus1. f_equal.
+    *
+    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,i,i,R i i).
+    unfold joinLU; replace (andb _ _) with true by lia; auto.
+    Intros vret. subst vret.
+    forward_call.
+     change (Float.div ?A ?B) with (BDIV A B).
+     set (rij := BDIV _ _).
+     Exists (updij R i j rij).
+     entailer!!.
+     apply update_i_lt_j; auto. lia.
+     apply derives_refl'. f_equal.
+     unfold densemat_upd, updij.
+     extensionality i' j'.
+     subst rij.
+     unfold joinLU.
+     repeat if_tac; try lia; subst; auto.
+     replace (andb _ _) with true by lia; auto.
+  + clear R. Intros R.
+    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,j,j,R j j).
+    unfold joinLU; replace (andb _ _) with true by lia; auto.
+    deadvars!.
+   forward_for_simple_bound j
+     (EX k:Z, 
+      PROP()
+      LOCAL(temp _s (val_of_float (subtract_loop A R j j k) );
+            temp _j (Vint (Int.repr j)); 
+            temp _n (Vint (Int.repr n)); temp _A p)
+      SEP(densematn sh n n (joinLU n M (fun i j : Z => Some (R i j))) p)).
+  * entailer!!. unfold subtract_loop. simpl.
+    f_equal. destruct (H1 j j) as [_ [_ [? ?]]]. symmetry; apply H3; lia.
+  * rename i into k. 
+    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,k,j,R k j).
+    unfold joinLU; replace (andb _ _) with true by lia; auto.
+    forward.
+    change Vfloat with (@val_of_float the_type).
+    change Float.sub with (@BMINUS _ the_type).
+    change Float.mul with (@BMULT _ the_type).
+    entailer!!. f_equal.
+    apply @subtract_another; lia.
+  * forward_call.
+    forward_call.
+    replace (Binary.Bsqrt _ _ _ _ _ _) with (@BSQRT _ the_type).
+2:{ (* Simplify this proof when https://github.com/VeriNum/vcfloat/issues/32
+   is resolved. *)
+ unfold BSQRT, UNOP. f_equal. extensionality x. simpl. f_equal. apply proof_irr.
+   }
+    set (Rx := densemat_upd _ _ _ _).
+    assert (Rx = joinLU n M (fun i' j' => Some (updij R j j (BSQRT (subtract_loop A R j j j)) i' j'))). {
+      extensionality i' j'.
+      subst Rx. unfold densemat_upd, updij.
+      repeat if_tac; try lia; auto.
+      unfold joinLU; replace (andb _ _) with true by lia; auto.
+      subst i'. rewrite !if_true by auto. auto.
+      subst i'.
+      unfold joinLU.
+      destruct (andb _ _) eqn:?H; auto.
+      repeat if_tac; try lia; auto.
+      unfold joinLU.
+      destruct (andb _ _) eqn:?H; auto.
+      repeat if_tac; try lia; auto.   
+    }
+    rewrite H2; clear Rx H2.     
+    set (R' := updij _ _ _ _).
+    Exists R'.
+    entailer!!.
+    apply cholesky_jik_upto_newrow; auto.       
+ - Intros R. Exists R.
+   entailer!!.
+   intros i j.
+   specialize (H0 i j).   
+   destruct (zlt j n);[ | split; intros; lia].
+   destruct H0.
+   apply H0; auto.
+Qed.
+
+
+Lemma body_densemat_cfactor: semax_body Vprog Gprog f_densemat_cfactor densemat_cfactor_spec.
+Proof.
+start_function.
+unfold densemat in POSTCONDITION|-*.
+Intros.
+forward.
+forward.
+forward_if True; [ | contradiction | ].
+forward.
+entailer!!.
+forward.
+forward_call (sh,n,M,A,offset_val densemat_data_offset p).
+Intros R. Exists R.
+entailer!!.
+apply derives_refl.
+Qed.
+
 (* BEGIN workaround for VST issue #814, until we can install VST 2.16 which fixes it. *)
 Ltac new_simpl_fst_snd :=
   match goal with |- context[@fst ident funspec ?A] =>
@@ -828,5 +976,7 @@ Definition densematVSU: @VSU NullExtension.Espec
     - solve_SF_internal body_data_norm2.
     - solve_SF_internal body_densemat_norm.
     - solve_SF_internal body_densemat_norm2.
+    - solve_SF_internal body_densemat_cfactor.
+    - solve_SF_internal body_densematn_cfactor.
   Qed.
 
