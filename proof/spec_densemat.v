@@ -51,13 +51,11 @@ change (unfold_reptype _) with (@nil val).
 rewrite array_pred_len_0; auto.
 Qed.
 
-Definition mklist {T} (n: nat) (f: nat -> T) : list T :=
- map f (seq 0 n).
+Definition mklist {T} (n: Z) (f: Z -> T) : list T :=
+ map f (Zrangelist 0 n).
 
 Definition column_major {T} (rows cols: Z) (f: Z -> Z -> T) :=
- concat (mklist (Z.to_nat cols) (fun j => mklist (Z.to_nat rows) (fun i => f (Z.of_nat i) (Z.of_nat j)))).
-
-
+ concat (mklist cols (fun j => mklist rows (fun i => f i j))).
 
 Definition val_of_float {t} (f: ftype t) : val :=
 match type_eq_dec t Tdouble with
@@ -95,7 +93,9 @@ Defined.
 
 Definition densematn {t: type} (sh: share) (m n: Z) (data: Z -> Z -> option (ftype t)) (p: val) : mpred :=
  !! (0 <= m <= Int.max_signed /\ 0 <= n <= Int.max_signed /\ m*n <= Int.max_signed)
-  && data_at sh (tarray (ctype_of_type t) (m*n)) (reptype_ftype (m*n) (map (@val_of_optfloat t) (column_major m n data))) p.
+  && data_at sh (tarray (ctype_of_type t) (m*n))
+      (reptype_ftype (m*n) (map (@val_of_optfloat t) (column_major m n data)))
+      p.
 
 
 Definition densemat (sh: share) (m n: Z) (data: Z -> Z -> option (ftype the_type)) (p: val) : mpred :=

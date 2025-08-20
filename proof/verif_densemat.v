@@ -37,8 +37,10 @@ Proof.
 intros.
 unfold column_major, Zrepeat.
 rewrite Z2Nat.inj_mul by lia.
+unfold mklist, Zrangelist.
+rewrite !Z.sub_0_r.
 forget (Z.to_nat m) as a.
-forget (Z.to_nat n) as b.
+forget (Z.to_nat n) as b. clear m n H H0.
 clear.
 rewrite Nat.mul_comm.
 symmetry.
@@ -47,8 +49,7 @@ transitivity (concat (repeat (repeat (val_of_optfloat x) a) b)).
  induction b.
   * auto.
   * simpl. rewrite repeat_app. f_equal; auto.
- + unfold mklist.
-   pose (i := O). change (seq 0 b) with (seq i b).
+ + pose (i := O). change (seq.iota (Z.to_nat 0) b) with (seq.iota i b).
    clearbody i.
    revert i; induction b; simpl; intros; auto.
    rewrite map_app.
@@ -284,7 +285,8 @@ Lemma Znth_column_major:
 Proof.
 intros.
 unfold column_major.
-unfold mklist.
+unfold mklist, Zrangelist.
+rewrite !Z.sub_0_r.
 rewrite <- (Z2Nat.id i) in * by lia.
 rewrite <- (Z2Nat.id j) in * by lia.
 forget (Z.to_nat i) as a; clear i; rename a into i.
@@ -297,6 +299,7 @@ assert (i<m)%nat by lia.
 assert (j<n)%nat by lia.
 rewrite Nat2Z.id.
 clear H  H0.
+change (Z.to_nat 0) with O.
 replace (Z.of_nat i + Z.of_nat j * Z.of_nat m)%Z with (Z.of_nat (i+j*m)) by lia.
 rewrite <- nth_Znth.
 2:{
@@ -319,24 +322,38 @@ rewrite length_map.
 rewrite length_seq.
 auto.
 }
+replace (fun x : Z =>
+       Datatypes.length
+         (map (fun i : Z => v i x)
+            (map Z.of_nat (seq.iota 0 m))))
+ with (fun _:Z => m)
+  by (extensionality x; rewrite !length_map, length_seq; auto).
+rewrite map_map.
+apply Nat.eq_le_incl.
 set (k:=O).
-unfold k at 2.
-replace (n*m)%nat with (n*m+k)%nat by lia.
+unfold k at 1. 
+replace O with (k*m)%nat by lia.
+replace (seq.iota k n) with (seq.iota O (n-k)) by (f_equal; lia).
+assert (k<=n)%nat by lia.
 clearbody k.
-revert k; induction n; intro.
-simpl. lia.
-rewrite seq_S.
-rewrite map_app.
+set (j := O). clearbody j.
+replace (n*m)%nat with ((n-k+k)*m)%nat by nia.
+forget (n-k)%nat as i.
+clear H.
+revert k j; induction i; intros.
+simpl. auto.
 simpl.
-rewrite fold_right_app.
-simpl.
-specialize (IHn (m+k)%nat).
-lia.
+f_equal.
+apply IHi.
 }
 rewrite Nat2Z.id.
+simpl.
+change seq.iota with seq.
 pose (n0 := O). change (seq 0 n) with (seq n0 n).
 change (Z.of_nat j) with (Z.of_nat (n0+j)). clearbody n0.
+rewrite !map_map.
 revert n0 j H2; induction n; simpl; intros. lia.
+rewrite !map_map.
 destruct j.
 rewrite app_nth1 by (rewrite length_map, length_seq; lia).
 rewrite nth_map_seq by lia.
@@ -349,6 +366,28 @@ apply IHn.
 lia.
 Qed.
 
+Lemma Zlength_concat_map_Zrangelist: forall {T} (F: Z -> Z -> T) 
+  (k1 k2 m n : Z),
+ k1 <= m -> k2 <= n -> 
+ Zlength
+  (concat
+     (map
+        (fun j : Z => map (fun i => F i j) (Zrangelist k1 m)) (Zrangelist k2 n))) = ((m-k1) * (n-k2))%Z.
+Proof.
+intros.
+unfold Zrangelist.
+rewrite Zlength_concat.
+rewrite map_map.
+replace  (fun _ : Z => Zlength _) with (fun _: Z => m-k1).
+2:{ extensionality x. rewrite !Zlength_map, Zlength_correct, length_seq. lia. }
+rewrite map_map.
+rewrite <- (Z2Nat.id (n-k2)) at 2 by lia.
+forget (Z.to_nat k2) as a.
+revert a; induction (Z.to_nat (n-k2)); intros; simpl.
+nia.
+rewrite IHn0.
+nia.
+Qed.
 
 Lemma Zlength_concat_map_seq: forall {T} (F: nat -> nat -> T) k1 k2 m n,
   Zlength (concat (map (fun j => map (F j) (seq k1 m))
@@ -372,8 +411,7 @@ Proof.
 intros.
 unfold column_major.
 unfold mklist.
-rewrite (Zlength_concat_map_seq (fun j i => v (Z.of_nat i) (Z.of_nat j))
-                 O O (Z.to_nat m) (Z.to_nat n)). lia.
+rewrite (Zlength_concat_map_Zrangelist v); lia.
 Qed.
 
 Lemma firstn_seq: forall k i m, (i<=m)%nat -> firstn i (seq k m) = seq k i.
@@ -386,198 +424,131 @@ apply IHm.
 lia.
 Qed.
 
+Lemma Zrangelist_split: 
+ forall lo mid hi,  
+  0 <= lo -> 
+  lo <= mid <= hi -> Zrangelist lo hi = Zrangelist lo mid ++ Zrangelist mid hi.
+Proof.
+intros.
+unfold Zrangelist.
+rewrite <- map_app.
+f_equal.
+replace (Z.to_nat mid) with (Z.to_nat lo + Z.to_nat (mid-lo))%nat by lia.
+rewrite <- seq_app.
+change seq.iota with seq.
+f_equal.
+lia.
+Qed.
+
+
+Lemma Forall_Zrangelist:
+ forall (P: Z -> Prop) (lo hi: Z), 
+   0 <= lo <= hi -> 
+  (forall i, lo <= i < hi -> P i) ->
+  Forall P (Zrangelist lo hi). 
+Proof.
+intros.
+unfold Zrangelist.
+apply Forall_map.
+apply FPStdLib.Forall_seq.
+intros.
+apply H0.
+lia.
+Qed.
+
+
+Lemma Zlength_Zrangelist:
+  forall lo hi, lo <= hi -> Zlength (Zrangelist lo hi) = (hi-lo).
+Proof.
+intros.
+rewrite Zlength_correct.
+unfold Zrangelist.
+rewrite length_map, length_seq. lia.
+Qed.
+
+Lemma Zrangelist_one: forall i j, 0 <= i -> i+1=j -> 
+  Zrangelist i j = [i].
+Proof.
+intros.
+unfold Zrangelist. replace (j-i) with 1 by lia.
+simpl. f_equal. lia.
+Qed.
+
 Lemma upd_Znth_column_major: forall {T: type} m n i j (x: ftype T) (v: Z -> Z -> option (ftype T)),
   0 <= i < m -> 0 <= j < n -> 
   upd_Znth (i + j * m) (column_major m n v) (Some x) =
   column_major m n (densemat_upd v i j x).
+
 Proof.
 intros.
 unfold column_major.
 unfold mklist.
-set (F (v: Z -> Z -> option (ftype T)) j := 
-  map (fun i => v (Z.of_nat i) (Z.of_nat j)) (seq 0 (Z.to_nat m))).
-change (upd_Znth (i+j*m) (concat (map (F v) (seq 0 (Z.to_nat n)))) (Some x) =
-        concat (map (F (densemat_upd v i j x)) (seq 0 (Z.to_nat n)))).
-rewrite <- (Z2Nat.id i) in * by lia.
-rewrite <- (Z2Nat.id j) in * by lia.
-forget (Z.to_nat i) as a; clear i; rename a into i.
-forget (Z.to_nat j) as b; clear j; rename b into j.
-rewrite <- (Z2Nat.id m) in * by lia.
-forget (Z.to_nat m) as c; clear m; rename c into m.
-rewrite <- (Z2Nat.id n) in H0 by lia.
-forget (Z.to_nat n) as c; clear n; rename c into n.
-assert (i<m)%nat by lia.
-assert (j<n)%nat by lia.
-clear H H0.
-replace (Z.of_nat i + Z.of_nat j * Z.of_nat m)%Z with (Z.of_nat (i+j*m)) by lia.
-unfold upd_Znth.
-unfold Sumbool.sumbool_and.
-destruct (Z_le_gt_dec 0 (Z.of_nat (i + j * m))); [| lia].
-destruct (Z_lt_dec _ _).
-2:{
-exfalso. apply n0; clear n0.
-rewrite Zlength_correct.
-apply inj_lt.
-rewrite length_concat.
-rewrite map_map.
-apply Nat.lt_le_trans with (n*m)%nat.
-nia.
-clear i j l H1 H2 x.
-replace  (fun x : nat => Datatypes.length (F v x))
- with (fun x:nat => m).
-2:{
-extensionality x. subst F; simpl.
-rewrite length_map.
-rewrite length_seq.
-auto.
-}
-set (k:=O).
-simpl.
-unfold k at 2.
-replace (n*m)%nat with (n*m+k)%nat by lia.
-clearbody k.
-revert k; induction n; intro.
-simpl. lia.
-rewrite seq_S.
-rewrite map_app.
-simpl.
-rewrite fold_right_app.
-simpl.
-specialize (IHn (m+k)%nat).
-lia.
-}
-clear l0.
-unfold F at 2; rewrite Zlength_concat_map_seq.
-set (U := densemat_upd _ _ _ _).
-replace (map (F U) (seq 0 n)) with
-   (map (F U) (seq 0 j ++ (seq (0+j) 1) 
-    ++ seq (0+j+1) (n-(j+1)))) 
-  by (f_equal; rewrite <- !seq_app; f_equal; lia).
+rewrite (Zrangelist_split 0 j n) by lia.
+rewrite (Zrangelist_split j (j+1) n) by lia.
 rewrite !map_app.
-change (?A :: ?B) with ([A]++B).
-replace (Some x) with (U (Z.of_nat i) (Z.of_nat j))
- by (unfold U, densemat_upd; rewrite !if_true; auto).
-unfold seq at 4.
-simpl map.
-unfold F at 4.
-replace (seq 0 m) with (seq 0 i ++ seq (0+i) 1 ++ seq (0+i+1) (m-(i+1)))
-  by (rewrite <- !seq_app; f_equal; lia).
 rewrite !concat_app.
-unfold concat at 4.
-rewrite app_nil_r.
-rewrite !map_app.
-simpl map at 5.
-set (Uij := [U _ _]). clearbody Uij.
-set (U' i := U (Z.of_nat i) (Z.of_nat j)).
-transitivity 
- ((concat (map (F U) (seq 0 j)) ++ map U' (seq 0 i))
-  ++ Uij
-  ++ (map U' (seq (0+i+1) (m-(i+1))) ++ concat (map (F U) (seq (j+1) (n-(j+1))))));
- [ | rewrite !app_assoc; auto].
+rewrite upd_Znth_app2
+ by (rewrite Zlength_app, !Zlength_concat_map_Zrangelist; nia).
+rewrite Zlength_concat_map_Zrangelist by lia.
+rewrite upd_Znth_app1
+ by (rewrite !Zlength_concat_map_Zrangelist; lia).
 f_equal; [ | f_equal].
 -
-rewrite (sublist_split 0 (Z.of_nat (j*m)) (Z.of_nat (i+j*m))); try lia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
-f_equal.
-+
-replace (seq 0 n) with (seq 0 j ++ seq (0+j) (n-j))
-  by (rewrite <- seq_app; f_equal ;lia).
-rewrite map_app, concat_app, sublist_app1; try nia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
-rewrite sublist_same; try lia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
 f_equal.
 apply map_ext_Forall.
-apply FPStdLib.Forall_seq.
+apply Forall_Zrangelist.
+lia.
 intros.
-unfold F.
-f_equal.
-rename i0 into j'.
-extensionality i'.
-unfold U, densemat_upd.
-destruct (zeq (Z.of_nat j') (Z.of_nat j)); try lia.
-if_tac; auto.
-+
-replace n with (j+(n-j))%nat by lia.
-rewrite seq_app, map_app, concat_app.
-rewrite sublist_app2; try lia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
-unfold F; rewrite Zlength_concat_map_seq by nia.
-replace (_ - _) with 0 by lia.
-replace (_ - _) with (Z.of_nat i) by lia.
-simpl.
-replace (n-j)%nat with (1+(n-(j+1)))%nat by lia.
-rewrite seq_app, map_app, concat_app, sublist_app1.
-2: lia.
-2: simpl; unfold F; rewrite Zlength_app, Zlength_map, Zlength_nil, Zlength_correct, length_seq; lia.
-simpl. rewrite app_nil_r.
-unfold F.
-rewrite sublist_map.
-unfold sublist. rewrite Nat2Z.id.
-rewrite firstn_seq by lia.
-rewrite map_skipn. simpl.
 apply map_ext_Forall.
-apply FPStdLib.Forall_seq.
+apply Forall_Zrangelist.
+lia.
 intros.
-unfold U', U, densemat_upd.
-if_tac; try lia.
-auto.
+unfold densemat_upd.
+repeat if_tac; try lia; auto.
 -
-rewrite (sublist_split _ (Z.of_nat ((j+1)*m))); try  nia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
-f_equal.
-+
-replace (seq 0 n) with (seq 0 (j+1+(n-(j+1)))) by (f_equal; lia).
-rewrite seq_app, map_app, concat_app.
-rewrite sublist_app1; try nia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
-replace (seq 0 (j+1)) with (seq 0 (j+(j+1-j))) by (f_equal; lia).
-rewrite seq_app.
-rewrite map_app, concat_app.
-rewrite sublist_app2; try nia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
-unfold F at 1 2; rewrite Zlength_concat_map_seq by nia.
-replace (_ - _) with (Z.of_nat i+1) by nia.
-replace (_ - _) with (Z.of_nat m) by nia.
-replace (j+1-j)%nat with 1%nat by lia.
-simpl. rewrite app_nil_r.
-unfold F.
-rewrite sublist_map.
-replace (seq 0 m) with (seq 0 ((i+1)+(m-(i+1)))) by (f_equal; lia).
-rewrite seq_app.
-rewrite sublist_app2 by (rewrite Zlength_correct, length_seq; lia).
-rewrite Zlength_correct, length_seq.
-replace (_ - _) with 0 by lia.
-rewrite sublist_same.
-2: lia.
-2: rewrite  Zlength_correct, length_seq; lia.
+rewrite (Zrangelist_one j) by lia.
 simpl.
+rewrite !app_nil_r.
+replace (_ - _) with i by nia.
+unfold densemat_upd.
+destruct (zeq j j); try lia.
+rewrite (Zrangelist_split 0 i m) by lia.
+rewrite (Zrangelist_split i (i+1) m) by lia.
+rewrite !map_app.
+rewrite upd_Znth_app2.
+2:{ rewrite Zlength_app, !Zlength_map, !Zlength_Zrangelist; lia. }
+rewrite Zlength_map, Zlength_Zrangelist by lia.
+rewrite upd_Znth_app1.
+2:{ rewrite Zlength_map, Zlength_Zrangelist; lia. }
+f_equal; [ | f_equal].
++
 apply map_ext_Forall.
-apply FPStdLib.Forall_seq.
-intros.
-unfold U', U, densemat_upd.
-if_tac; try lia. auto.
+apply Forall_Zrangelist.
+lia.
+intros. if_tac; try lia; auto.
 +
-replace (seq 0 n) with (seq 0 (j+1+(n-(j+1)))) by (f_equal; lia).
-rewrite seq_app, map_app, concat_app.
-rewrite sublist_app2; try nia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
-unfold F at 1 2; rewrite Zlength_concat_map_seq by nia.
-replace (_ - _) with 0 by lia.
-replace (Z.of_nat _ - _) with (Z.of_nat (m * (n-(j+1)))) by nia.
+rewrite Zrangelist_one by lia.
 simpl.
-rewrite sublist_same; try nia.
-2: unfold F; rewrite Zlength_concat_map_seq; nia.
+rewrite if_true by auto.
+replace (i-(i-0)) with 0 by lia.
+reflexivity.
++
+apply map_ext_Forall.
+apply Forall_Zrangelist.
+lia.
+intros. if_tac; try lia; auto.
+-
 f_equal.
 apply map_ext_Forall.
-apply FPStdLib.Forall_seq.
+apply Forall_Zrangelist.
+lia.
 intros.
-unfold F, U', U, densemat_upd.
-if_tac; try lia.
 apply map_ext_Forall.
-apply FPStdLib.Forall_seq.
+apply Forall_Zrangelist.
+lia.
 intros.
-if_tac; try lia; auto.
+unfold densemat_upd.
+repeat if_tac; try lia; auto.
 Qed.
 
 Lemma body_densematn_get: semax_body Vprog Gprog f_densematn_get densematn_get_spec.
