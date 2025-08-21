@@ -212,7 +212,7 @@ Definition densematn_get_spec :=
     PROP(readable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some x ) 
     PARAMS (p ; Vint (Int.repr m); Vint (Int.repr i); Vint (Int.repr j))
     SEP(densematn sh m n v p)
-  POST [ tdouble ]
+  POST [ the_ctype ]
     PROP () 
     RETURN (val_of_float x) 
     SEP(densematn sh m n v p).
@@ -225,7 +225,7 @@ Definition densemat_get_spec :=
     PROP(readable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some x ) 
     PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j))
     SEP(densemat sh m n v p)
-  POST [ tdouble ]
+  POST [ the_ctype ]
     PROP () 
     RETURN (val_of_float x) 
     SEP(densemat sh m n v p).
@@ -251,7 +251,7 @@ Definition densemat_set_spec :=
   DECLARE _densemat_set
   WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
        i: Z, j: Z, x: ftype the_type
-  PRE [ tptr densemat_t, tint, tint, tdouble ]
+  PRE [ tptr densemat_t, tint, tint, the_ctype ]
     PROP(writable_share sh; 0 <= i < m; 0 <= j < n ) 
     PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j); val_of_float x)
     SEP(densemat sh m n v p)
@@ -264,7 +264,7 @@ Definition densematn_addto_spec :=
   DECLARE _densematn_addto
   WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
        i: Z, j: Z, y: ftype the_type, x: ftype the_type
-  PRE [ tptr tdouble, tint, tint, tint, tdouble ]
+  PRE [ tptr the_ctype, tint, tint, tint, the_ctype ]
     PROP(writable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some y ) 
     PARAMS (p ; Vint (Int.repr m); Vint (Int.repr i); Vint (Int.repr j); val_of_float x)
     SEP(densematn sh m n v p)
@@ -276,7 +276,7 @@ Definition densematn_addto_spec :=
 Definition densemat_addto_spec :=
   DECLARE _densemat_addto
   WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
-       i: Z, j: Z, y: ftype Tdouble, x: ftype the_type
+       i: Z, j: Z, y: ftype the_type, x: ftype the_type
   PRE [ tptr densemat_t, tint, tint, the_ctype ]
     PROP(writable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some y ) 
     PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j); val_of_float x)
@@ -304,7 +304,7 @@ Definition data_norm_spec :=
     PROP (readable_share sh; Zlength v <= Int.max_signed)
     PARAMS (p; Vint (Int.repr (Zlength v)))
     SEP(data_at sh (tarray the_ctype (Zlength v)) (map val_of_float v) p)
-  POST [ tdouble ]
+  POST [ the_ctype ]
     PROP() RETURN (Vfloat (FPStdLib.BSQRT(norm2 v))) 
     SEP(data_at sh (tarray the_ctype (Zlength v)) (map val_of_float v) p).
 
@@ -367,7 +367,7 @@ Definition densemat_cfactor_spec :=
     PARAMS (p)
     SEP (densemat sh n n (joinLU n M (fun i j => Some (A i j))) p)
  POST [ tvoid ]
-   EX R: Z -> Z -> ftype Tdouble,
+   EX R: Z -> Z -> ftype the_type,
     PROP (cholesky_jik_spec n A R)
     RETURN ()
     SEP (densemat sh n n (joinLU n M (fun i j => Some (R i j))) p).
@@ -432,6 +432,15 @@ Definition densematn_lusolveT_spec : ident*funspec :=
 Definition densemat_lusolveT_spec : ident*funspec := 
  (_densemat_lusolveT, vacuous_funspec (Internal f_densemat_lusolveT)).
 
+Definition blocksolve_spec : ident*funspec := 
+ (_blocksolve, vacuous_funspec (Internal f_blocksolve)).
+Definition subtractoff_spec : ident*funspec := 
+ (_subtractoff, vacuous_funspec (Internal f_subtractoff)).
+Definition densematn_cfactor_block_spec : ident*funspec := 
+ (_densematn_cfactor_block, vacuous_funspec (Internal f_densematn_cfactor_block)).
+Definition densematn_cfactor_outer_spec : ident*funspec := 
+ (_densematn_cfactor_outer, vacuous_funspec (Internal f_densematn_cfactor_outer)).
+
 
 
 Definition densematASI : funspecs := [ 
@@ -447,7 +456,8 @@ Definition densematASI : funspecs := [
    densemat_lufactor_spec; densematn_lufactor_spec;
    densemat_csolve_spec; densematn_csolve_spec;
    densemat_cfactor_spec; densematn_cfactor_spec;
-   densemat_lusolveT_spec; densematn_lusolveT_spec
+   densemat_lusolveT_spec; densematn_lusolveT_spec;
+   blocksolve_spec; subtractoff_spec; densematn_cfactor_block_spec; densematn_cfactor_outer_spec
     ].
 
 

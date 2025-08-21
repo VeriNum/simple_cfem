@@ -123,8 +123,10 @@ void densematn_cfactor(double* A, int n)
 
 //ldoc off
 
-/* previously: outer-product method 
-void densematn_cfactor(double* A, int n)
+/**
+ * Outer-product Cholesky factorization
+ */
+void densematn_cfactor_outer(double* A, int n)
 { 
     for (int k = 0; k < n; ++k) {
 
@@ -144,10 +146,70 @@ void densematn_cfactor(double* A, int n)
 	      densematn_addto(A,n,i,j, -densematn_get(A,n,k,i)*densematn_get(A,n,k,j));
     }
 }
-*/
 
-void densemat_cfactor(densemat_t A)
-{
+/**
+ * Block Cholesky
+ * WARNING: NOTHING ABOUT BLOCK CHOLESKY HAS BEEN TESTED OR PROVED,
+ * PROBABLY CONTAINS BUGS
+ */
+
+/**
+ * Block solve, for block Cholesky
+ * Let A be an nxn matrix
+ * let R11 be an UT submatrix, dimension cxc, whose top-left corner is at (l,l) in A
+ * let A12 be a general submatrix, dimension b*(b-c), at (l,l+c) in A
+ * Solve for R12 such that A12= R11^T*R12, and place it at (l,l+c) in A, overwriting A12
+ */
+void blocksolve(double *A, int n, int b, int c, int l) {
+    // Forward substitution
+  for (int k=0; k<b-c; ++k)
+    for (int i = 0; i < c; ++i) {
+      double bi = densematn_get(A,n,l+i,l+c+k);
+      for (int j = 0; j < i; ++j)
+	bi -= densematn_get(A,n,l+j,l+i)*densematn_get(A,n,l+j,l+c+k);
+      densematn_set(A,n,l+i,l+c+k, bi/densematn_get(A,n,l+i,l+i));
+    }
+}
+
+/**
+ * Helper function for block Cholesky.
+ * Let A be an nxn matrix
+ * Let R12 be a submatrix, dimension b*(b-c), top-left corner at (l,l+c) in A
+ * Let A22 be a submatrix, dimension (b-c)*(b-c), at (l+c,l+c) in A
+ * Compute A22-R12^T*R12 and store it back over A22, i.e., at (l+c,l+c) in A
+ */
+void subtractoff(double *A, int n, int b, int c, int l) {
+  int i,j,k;
+  // Is this the best loop-nest in for this situation? 
+  for (i=0; i<b-c; i++)
+    for (j=0; j<b-c; j++) {
+      double s = densematn_get(A,n,l+i,l+j);
+      for (k=0; k<b; k++)
+	s -= densematn_get(A,n,l+k,l+c+i)*densematn_get(A,n,l+j,l+c+i);
+      densematn_set(A,n,l+i,l+j,s);
+    }
+}  
+
+/**
+ * Block Cholesky
+ * factor bxb block starting at index l in an nxn matrix
+ * To factor the entire matrix, call densematn_cfactor_block(A,n,n,0)
+ */
+
+void densematn_cfactor_block(double *A, int n, int b, int l) {
+   if (b==1) {
+     densematn_set(A,n,l,l, sqrt(densematn_get(A,n,l,l)));
+   }
+   else {
+     int c = b/2;
+     densematn_cfactor_block(A,n,c,l);
+     blocksolve(A,n,b,c,l);
+     subtractoff(A,n,b,c,l);
+     densematn_cfactor_block(A,n,b-c,l+c);
+   }
+}
+
+void densemat_cfactor(densemat_t A) {
     assert(A->m == A->n);
     densematn_cfactor(A->data, A->m);
 }

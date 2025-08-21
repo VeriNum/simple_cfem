@@ -52,15 +52,10 @@ Context {t : type}.
 
 Definition neg_zero : ftype t := Binary.B754_zero (fprec t) (femax t) true.
 
-Definition sumF := fold_right BPLUS neg_zero.
-
 Definition subtract_loop (A R: Z -> Z -> ftype t) (i j k: Z) :=
   fold_left BMINUS
     (map (fun k' => BMULT (R k' i) (R k' j)) (map Z.of_nat (seq.iota 0 (Z.to_nat k))))
      (A i j).
-
-Definition sum_upto (n: Z) (f: Z -> ftype t) :=
-  sumF (map (fun k => f (Z.of_nat k)) (seq.iota 0 (Z.to_nat n))).     
 
 Definition cholesky_jik_ij (n: Z) (A R: Z -> Z -> ftype t) (i j: Z) : Prop :=
    (0 <= j < n) ->

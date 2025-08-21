@@ -900,7 +900,6 @@ forward.
 forward_call (sh,n,M,A,offset_val densemat_data_offset p).
 Intros R. Exists R.
 entailer!!.
-apply derives_refl.
 Qed.
 
 
