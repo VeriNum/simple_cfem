@@ -15,7 +15,7 @@ Local Instance zerof {t} : Inhabitant (ftype t) := (Zconst t 0).
 
 Definition Zrangelist (lo hi: Z) : list Z := 
   (*   lo <= i < hi *)
-  map Z.of_nat (seq.iota (Z.to_nat lo) (Z.to_nat (hi-lo))).
+  map (fun i => lo+Z.of_nat i) (seq.iota 0 (Z.to_nat (hi-lo))).
 
 Lemma iota_plus1:
   forall lo n, seq.iota lo (n + 1)%nat = seq.iota lo n ++ [(lo+n)%nat].
@@ -33,18 +33,109 @@ Qed.
 Definition updij {T} (R: Z -> Z -> T) i j x :=
   fun i' j' => if zeq i i' then if zeq j j' then x else R i' j' else R i' j'.
 
-Lemma iota_range: forall k n, In k (seq.iota 0 n) -> (k<n)%nat.
+Lemma iota_range: forall k lo n, In k (seq.iota lo n) -> (lo <= k < lo+n)%nat.
 Proof.
 intros.
-replace k with (k-O)%nat by lia.
-forget O as u.
-revert k u H; induction n; intros; try lia.
+revert k lo H; induction n; intros; try lia.
 contradiction H.
 replace (S n) with (n+1)%nat in H by lia.
 rewrite iota_plus1 in H.
 rewrite in_app in H. destruct H.
 apply IHn in H; lia.
 destruct H; try contradiction. lia.
+Qed.
+
+Lemma Zrangelist_range: forall i lo hi, In i (Zrangelist lo hi) -> lo <= i < hi.
+Proof.
+ unfold Zrangelist.
+ intros.
+ destruct (list_in_map_inv _ _ _ H) as [x [? ?]]; clear H; subst.
+ apply iota_range in H1. lia.
+Qed.
+
+Lemma Zrangelist_plus1:
+  forall lo hi, lo <= hi -> Zrangelist lo (hi + 1) = Zrangelist lo hi ++ [hi].
+Proof.
+intros.
+unfold Zrangelist.
+replace [hi] with (map (fun i => lo + Z.of_nat i) [Z.to_nat (hi-lo)])
+ by (simpl; f_equal; lia).
+rewrite <- map_app. f_equal.
+replace (Z.to_nat (hi+1-lo)) with (Z.to_nat (hi-lo)+1)%nat by lia.
+apply iota_plus1.
+Qed.
+
+Lemma Zrangelist_minus1:
+  forall lo hi, lo < hi -> Zrangelist lo hi = [lo] ++ Zrangelist (lo+1) hi.
+Proof.
+intros.
+unfold Zrangelist.
+destruct (Z.to_nat (hi-lo)) eqn:?H.
+lia.
+simpl.
+f_equal.
+lia.
+replace (Z.to_nat (hi-(lo+1))) with n by lia.
+forget O as k.
+clear H0 hi H.
+revert k; induction n; simpl; intros; f_equal; try lia.
+apply IHn.
+Qed.
+
+Lemma Forall_Zrangelist :
+   forall (P : Z -> Prop) (lo hi : Z),
+     (forall i, (lo <= i < hi)%Z -> P i) -> Forall P (Zrangelist lo hi).
+Proof.
+intros.
+unfold Zrangelist.
+apply Forall_map.
+apply Forall_seq.
+intros.
+apply H.
+lia.
+Qed.
+
+Lemma Zrangelist_split: 
+ forall lo mid hi,  
+  lo <= mid <= hi -> Zrangelist lo hi = Zrangelist lo mid ++ Zrangelist mid hi.
+Proof.
+intros.
+unfold Zrangelist.
+replace (Z.to_nat (hi-lo)) with (Z.to_nat (mid-lo) + Z.to_nat (hi-mid))%nat by lia.
+rewrite seq_app, map_app.
+f_equal.
+change seq.iota with seq.
+simpl.
+set (k := Z.to_nat (mid-lo)).
+destruct H.
+set (n := Z.to_nat (hi-mid)). clearbody n; clear hi H0.
+replace mid with (lo+Z.of_nat k) by lia.
+clearbody k; clear mid H.
+revert k; induction n; simpl; intros; auto.
+f_equal. lia.
+rewrite IHn.
+rewrite <- seq_shift.
+rewrite map_map.
+f_equal.
+extensionality z.
+lia.
+Qed.
+
+Lemma Zlength_Zrangelist:
+  forall lo hi, lo <= hi -> Zlength (Zrangelist lo hi) = (hi-lo).
+Proof.
+intros.
+rewrite Zlength_correct.
+unfold Zrangelist.
+rewrite length_map, length_seq. lia.
+Qed.
+
+Lemma Zrangelist_one: forall i j, i+1=j -> 
+  Zrangelist i j = [i].
+Proof.
+intros.
+unfold Zrangelist. replace (j-i) with 1 by lia.
+simpl. f_equal. lia.
 Qed.
 
 Section WithSTD.
@@ -54,8 +145,8 @@ Definition neg_zero : ftype t := Binary.B754_zero (fprec t) (femax t) true.
 
 Definition subtract_loop (A R: Z -> Z -> ftype t) (i j k: Z) :=
   fold_left BMINUS
-    (map (fun k' => BMULT (R k' i) (R k' j)) (map Z.of_nat (seq.iota 0 (Z.to_nat k))))
-     (A i j).
+    (map (fun k' => BMULT (R k' i) (R k' j)) (Zrangelist 0 k))
+    (A i j).
 
 Definition cholesky_jik_ij (n: Z) (A R: Z -> Z -> ftype t) (i j: Z) : Prop :=
    (0 <= j < n) ->
@@ -72,8 +163,6 @@ Definition cholesky_jik_upto (n imax jmax : Z) (A R : Z -> Z -> ftype t) : Prop 
    /\ (j=jmax -> i<imax -> cholesky_jik_ij n A R i j)
    /\ (j>jmax -> R i j = A i j)
    /\ (j=jmax -> i>=imax -> R i j = A i j).
-
-Variable Vflo: ftype t -> val.
 
 (* BEGIN copied from iterative_methods/cholesky/verif_cholesky.v *)
 
@@ -101,17 +190,17 @@ if_tac; try lia.
 * rewrite if_false by lia.
   subst i. rewrite H1. f_equal.
   unfold subtract_loop.
-  f_equal. rewrite !map_map.
+  f_equal.
   apply map_ext_in.
-  intros. apply iota_range in H3.
+  intros. apply Zrangelist_range in H3.
   f_equal.
   if_tac; try lia; auto.
   rewrite if_false by lia. auto.
 * rewrite H1. f_equal.
   unfold subtract_loop.
-  f_equal. rewrite !map_map.
+  f_equal.
   apply map_ext_in.
-  intros. apply iota_range in H5.
+  intros. apply Zrangelist_range in H5.
   f_equal.
   if_tac; try lia; auto.
   rewrite if_false by lia. auto.
@@ -124,18 +213,18 @@ if_tac; try lia.
   specialize (H1 (eq_refl _)).
   rewrite H1. f_equal.
   unfold subtract_loop.
-  f_equal. rewrite !map_map.
+  f_equal.
   apply map_ext_in.
-  intros. apply iota_range in H5.
+  intros. apply Zrangelist_range in H5.
   f_equal.
   if_tac; try lia; auto.
   rewrite if_false by lia. auto.
   *
   rewrite H1 by lia. f_equal.
   unfold subtract_loop.
-  f_equal. rewrite !map_map.
+  f_equal.
   apply map_ext_in.
-  intros. apply iota_range in H5.
+  intros. apply Zrangelist_range in H5.
   f_equal.
   if_tac; try lia; auto.
   rewrite if_false by lia. auto.
@@ -152,18 +241,18 @@ if_tac; try lia.
     f_equal.
   match goal with |- _ = _ _ ?ff _ _ _ => set (f:=ff) end.
   unfold subtract_loop.
-  f_equal. rewrite !map_map.
+  f_equal.
   apply map_ext_in.
-  intros. apply iota_range in H0.
+  intros. apply Zrangelist_range in H0.
   subst f. simpl. if_tac; try lia; auto.
   * assert (i'<i) by lia. clear H5 H3 n0.
    specialize (H1 i' j). destruct H1 as [_ [H1 _]].
    destruct H1 as [H1 _]; try lia. rewrite H1 by auto.
    f_equal.
   unfold subtract_loop.
-  f_equal. rewrite !map_map.
+  f_equal.
   apply map_ext_in.
-  intros. apply iota_range in H3.
+  intros. apply Zrangelist_range in H3.
   f_equal.
   if_tac; try lia; auto.
   rewrite if_false by lia. auto.
@@ -185,15 +274,14 @@ Proof.
 intros.
 unfold subtract_loop at 1.
 replace (Z.to_nat (k+1)) with (Z.to_nat k + 1)%nat by lia.
-rewrite iota_plus1.
+rewrite Zrangelist_plus1.
 simpl.
 rewrite !map_app.
 simpl map.
 rewrite fold_left_app.
 simpl.
 f_equal.
-rewrite Z2Nat.id by lia.
-f_equal.
+lia.
 Qed.
 
 (* END copied from iterative_methods/cholesky/verif_cholesky.v *)
@@ -215,9 +303,8 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
  + destruct (H1 l H5); clear H1 H7. specialize (H4 ltac:(lia)). clear H2 H3 H0.
    unfold updij at 1. if_tac; try lia. rewrite H4. f_equal.
    * unfold subtract_loop. f_equal.
-     rewrite !map_map.
      apply map_ext_Forall.
-     apply FPStdLib.Forall_seq.
+     apply Forall_Zrangelist.
      intros. unfold updij. repeat if_tac; try lia; auto.
    * unfold updij. rewrite if_false by lia. auto.
  + assert (j'=j) by lia. subst j'. clear H1 H3.
@@ -225,26 +312,23 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
    specialize (H2 eq_refl ltac:(lia)). destruct H2; auto.
    rewrite H2 by auto. f_equal.
    * unfold subtract_loop. f_equal.
-     rewrite !map_map.
      apply map_ext_Forall.
-     apply FPStdLib.Forall_seq.
+     apply Forall_Zrangelist.
      intros. unfold updij. repeat if_tac; try lia; auto.
    * unfold updij. if_tac; try lia; auto.
 - subst j'.
   destruct (zeq i' j).
  + subst. unfold updij. rewrite !if_true by auto. f_equal.
    unfold subtract_loop. f_equal.
-   rewrite !map_map.
    apply map_ext_Forall.
-   apply FPStdLib.Forall_seq.
+   apply Forall_Zrangelist.
    intros. repeat if_tac; try lia; auto.
  + unfold updij at 1. rewrite !if_false by lia.
    destruct (H1 ltac:(lia) H5). rewrite H7; auto.
    f_equal.
    unfold subtract_loop. f_equal.
-   rewrite !map_map.
    apply map_ext_Forall.
-   apply FPStdLib.Forall_seq.
+   apply Forall_Zrangelist.
    intros. unfold updij; repeat if_tac; try lia; auto.
 - unfold updij. repeat if_tac; try lia. subst i'.
   apply H3; lia.

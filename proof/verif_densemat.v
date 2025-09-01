@@ -49,15 +49,8 @@ transitivity (concat (repeat (repeat (val_of_optfloat x) a) b)).
  induction b.
   * auto.
   * simpl. rewrite repeat_app. f_equal; auto.
- + pose (i := O). change (seq.iota (Z.to_nat 0) b) with (seq.iota i b).
-   clearbody i.
-   revert i; induction b; simpl; intros; auto.
-   rewrite map_app.
-   f_equal; auto.
-   clear.
-   set (i := O). clearbody i.
-   revert i; induction a; simpl; intros; auto.
-   f_equal; auto.
+ + rewrite concat_map, !map_map.
+   rewrite !map_const, !length_seq; auto.
 Qed.
 
 Lemma body_densemat_malloc: semax_body Vprog Gprog f_densemat_malloc densemat_malloc_spec.
@@ -344,6 +337,7 @@ revert k j; induction i; intros.
 simpl. auto.
 simpl.
 f_equal.
+rewrite !length_map, length_seq; auto.
 apply IHi.
 }
 rewrite Nat2Z.id.
@@ -382,7 +376,7 @@ replace  (fun _ : Z => Zlength _) with (fun _: Z => m-k1).
 2:{ extensionality x. rewrite !Zlength_map, Zlength_correct, length_seq. lia. }
 rewrite map_map.
 rewrite <- (Z2Nat.id (n-k2)) at 2 by lia.
-forget (Z.to_nat k2) as a.
+set (a:=O). clearbody a.
 revert a; induction (Z.to_nat (n-k2)); intros; simpl.
 nia.
 rewrite IHn0.
@@ -424,56 +418,6 @@ apply IHm.
 lia.
 Qed.
 
-Lemma Zrangelist_split: 
- forall lo mid hi,  
-  0 <= lo -> 
-  lo <= mid <= hi -> Zrangelist lo hi = Zrangelist lo mid ++ Zrangelist mid hi.
-Proof.
-intros.
-unfold Zrangelist.
-rewrite <- map_app.
-f_equal.
-replace (Z.to_nat mid) with (Z.to_nat lo + Z.to_nat (mid-lo))%nat by lia.
-rewrite <- seq_app.
-change seq.iota with seq.
-f_equal.
-lia.
-Qed.
-
-
-Lemma Forall_Zrangelist:
- forall (P: Z -> Prop) (lo hi: Z), 
-   0 <= lo <= hi -> 
-  (forall i, lo <= i < hi -> P i) ->
-  Forall P (Zrangelist lo hi). 
-Proof.
-intros.
-unfold Zrangelist.
-apply Forall_map.
-apply FPStdLib.Forall_seq.
-intros.
-apply H0.
-lia.
-Qed.
-
-
-Lemma Zlength_Zrangelist:
-  forall lo hi, lo <= hi -> Zlength (Zrangelist lo hi) = (hi-lo).
-Proof.
-intros.
-rewrite Zlength_correct.
-unfold Zrangelist.
-rewrite length_map, length_seq. lia.
-Qed.
-
-Lemma Zrangelist_one: forall i j, 0 <= i -> i+1=j -> 
-  Zrangelist i j = [i].
-Proof.
-intros.
-unfold Zrangelist. replace (j-i) with 1 by lia.
-simpl. f_equal. lia.
-Qed.
-
 Lemma upd_Znth_column_major: forall {T: type} m n i j (x: ftype T) (v: Z -> Z -> option (ftype T)),
   0 <= i < m -> 0 <= j < n -> 
   upd_Znth (i + j * m) (column_major m n v) (Some x) =
@@ -497,11 +441,9 @@ f_equal; [ | f_equal].
 f_equal.
 apply map_ext_Forall.
 apply Forall_Zrangelist.
-lia.
 intros.
 apply map_ext_Forall.
 apply Forall_Zrangelist.
-lia.
 intros.
 unfold densemat_upd.
 repeat if_tac; try lia; auto.
@@ -524,7 +466,6 @@ f_equal; [ | f_equal].
 +
 apply map_ext_Forall.
 apply Forall_Zrangelist.
-lia.
 intros. if_tac; try lia; auto.
 +
 rewrite Zrangelist_one by lia.
@@ -535,17 +476,14 @@ reflexivity.
 +
 apply map_ext_Forall.
 apply Forall_Zrangelist.
-lia.
 intros. if_tac; try lia; auto.
 -
 f_equal.
 apply map_ext_Forall.
 apply Forall_Zrangelist.
-lia.
 intros.
 apply map_ext_Forall.
 apply Forall_Zrangelist.
-lia.
 intros.
 unfold densemat_upd.
 repeat if_tac; try lia; auto.
@@ -805,11 +743,9 @@ forward_for_simple_bound j
     entailer!!.
      f_equal.
      unfold subtract_loop.
-     replace (seq.iota 0 (Z.to_nat (k + 1))) with (seq.iota 0 (Z.to_nat k) ++ [Z.to_nat k]).
+     rewrite Zrangelist_plus1 by lia.
      rewrite !map_app, fold_left_app.
-     simpl. f_equal. rewrite Z2Nat.id by lia. auto.
-     replace (Z.to_nat (k + 1)) with (Z.to_nat k + 1)%nat by lia.
-     rewrite iota_plus1. f_equal.
+     simpl. f_equal. 
     *
     forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,i,i,R i i).
     unfold joinLU; replace (andb _ _) with true by lia; auto.
@@ -929,29 +865,6 @@ Proof.
 intros.
 revert x; induction bl; simpl; intros; auto.
 rewrite IHbl; auto.
-Qed.
-
-Lemma Zrangelist_plus1:
-  forall lo hi, 0 <= lo <= hi -> Zrangelist lo (hi + 1) = Zrangelist lo hi ++ [hi].
-Proof.
-intros.
-unfold Zrangelist.
-replace [hi] with (map Z.of_nat [Z.to_nat hi]) by (simpl; f_equal; lia).
-rewrite <- map_app. f_equal.
-replace (Z.to_nat (hi+1-lo)) with (Z.to_nat (hi-lo)+1)%nat by lia.
-rewrite iota_plus1.
-f_equal. f_equal. lia.
-Qed.
-
-Lemma Zrangelist_minus1:
-  forall lo hi, 0 <= lo < hi -> Zrangelist lo hi = [lo] ++ Zrangelist (lo+1) hi.
-Proof.
-intros.
-unfold Zrangelist.
-replace [lo] with (map Z.of_nat [Z.to_nat lo]) by (simpl; f_equal; lia).
-rewrite <- map_app. f_equal.
-replace (Z.to_nat (hi-lo)) with (S (Z.to_nat (hi-(lo+1))))%nat by lia.
-simpl. f_equal. f_equal. lia.
 Qed.
 
 Lemma body_densematn_csolve: semax_body Vprog Gprog f_densematn_csolve densematn_csolve_spec.
