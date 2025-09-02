@@ -1,6 +1,6 @@
 ---
 title: Simple 1D FEM in C
-author: David Bindel
+author: David Bindel (with contributions from Andrew Appel)
 format:
   html:
     toc: true
@@ -16,7 +16,8 @@ at <https://github.com/bindel-group/simple_cfem>.  The code is written
 as a pedagogical example, and is coded in C to make it a reasonable
 target for verification with the Verified Software Toolchain.
 
-{{< include vecmat.qmd >}}
+{{< include alloc.qmd >}}
+{{< include densemat.qmd >}}
 {{< include bandmat.qmd >}}
 {{< include shapes.qmd >}}
 {{< include mesh.qmd >}}
