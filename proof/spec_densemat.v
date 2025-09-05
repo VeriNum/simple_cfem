@@ -4,12 +4,25 @@ From VSTlib Require Import spec_math spec_malloc.
 From CFEM Require Import densemat spec_alloc floatlib cholesky_model.
 Require Import Coq.Classes.RelationClasses.
 
+From mathcomp Require (*Import*) ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
+From mathcomp Require (*Import*) fintype finfun bigop finset fingroup perm order.
+From mathcomp Require (*Import*) div ssralg countalg finalg zmodp matrix.
+From mathcomp.zify Require Import ssrZ zify.
+Unset Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+Set Bullet Behavior "Strict Subproofs".
+
+Import fintype matrix.
+
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 
-Set Bullet Behavior "Strict Subproofs".
 
 Open Scope logic.
+
+(* Coercion Z_of_ord [n] (i: 'I_n)  := Z.of_nat (nat_of_ord i). *)
+Coercion Z.of_nat : nat >-> Z.
 
 Definition densemat_t := Tstruct _densemat_t noattr.
 
@@ -51,11 +64,11 @@ change (unfold_reptype _) with (@nil val).
 rewrite array_pred_len_0; auto.
 Qed.
 
-Definition mklist {T} (n: Z) (f: Z -> T) : list T :=
- map f (Zrangelist 0 n).
+Definition mklist {T} [n] (f: 'I_n -> T) : list T :=
+ map f (ord_enum n).
 
-Definition column_major {T} (rows cols: Z) (f: Z -> Z -> T) :=
- concat (mklist cols (fun j => mklist rows (fun i => f i j))).
+Definition column_major {T} [rows cols: nat] (f: 'M[T]_(rows,cols)) :=
+ concat (mklist (fun j => mklist (fun i => f i j))).
 
 Definition val_of_float {t} (f: ftype t) : val :=
 match type_eq_dec t Tdouble with
@@ -91,22 +104,23 @@ apply vl.
 apply (Zrepeat tt n).
 Defined.
 
-Definition densematn {t: type} (sh: share) (m n: Z) (data: Z -> Z -> option (ftype t)) (p: val) : mpred :=
- !! (0 <= m <= Int.max_signed /\ 0 <= n <= Int.max_signed /\ m*n <= Int.max_signed)
-  && data_at sh (tarray (ctype_of_type t) (m*n))
-      (reptype_ftype (m*n) (map (@val_of_optfloat t) (column_major m n data)))
+Definition densematn {t: type} (sh: share) [m n] (M: 'M[option (ftype t)]_(m,n)) (p: val) : mpred :=
+ !! (0 < m <= Int.max_signed /\ 0 < n <= Int.max_signed /\ m * n <= Int.max_signed)
+ && data_at sh (tarray (ctype_of_type t) (m*n))
+      (reptype_ftype (m*n) (map (@val_of_optfloat t) (column_major M)))
       p.
 
-
-Definition densemat (sh: share) (m n: Z) (data: Z -> Z -> option (ftype the_type)) (p: val) : mpred :=
+Definition densemat (sh: share) [m n] (M: 'M[option (ftype the_type)]_(m,n))
+     (p: val) : mpred :=
      field_at sh (Tstruct _densemat_t noattr) (DOT _m) (Vint (Int.repr m)) p
    * field_at sh (Tstruct _densemat_t noattr) (DOT _n) (Vint (Int.repr n)) p
-   * densematn sh m n data (offset_val densemat_data_offset p)
-   * malloc_token' sh (densemat_data_offset + sizeof (tarray the_ctype (m*n))) p.
+   * densematn sh M (offset_val densemat_data_offset p)
+   * malloc_token' sh (densemat_data_offset + sizeof (tarray the_ctype (Z.of_nat m * Z.of_nat n))) p.
 
-Definition densematn_local_facts: forall {t} sh m n data p,
-  @densematn t sh m n data p |-- 
-      !! (0 <= m <= Int.max_signed /\ 0 <= n <= Int.max_signed
+Definition densematn_local_facts: forall {t} sh m n M p,
+  @densematn t sh m n M p |-- 
+      !! (0 < m <= Int.max_signed 
+          /\ 0 < n <= Int.max_signed
           /\ m*n <= Int.max_signed
           /\ field_compatible (tarray (ctype_of_type t) (m*n)) [] p).
 Proof.
@@ -115,25 +129,24 @@ unfold densematn.
 entailer!.
 Qed.
 
-Definition densemat_local_facts: forall sh m n data p,
-  densemat sh m n data p |-- 
-      !! (0 <= m <= Int.max_signed /\ 0 <= n <= Int.max_signed
-          /\ m*n <= Int.max_signed /\ 
-           malloc_compatible (densemat_data_offset + sizeof (tarray the_ctype (m * n))) p).
+Definition densemat_local_facts: forall sh m n M p,
+  @densemat sh m n M p |-- 
+      !! (0 < m <= Int.max_signed 
+          /\ 0 < n <= Int.max_signed
+          /\ m*n <= Int.max_signed
+          /\ malloc_compatible (densemat_data_offset + sizeof (tarray the_ctype (m*n))) p).
 Proof.
 intros.
 unfold densemat, densematn.
 entailer!.
 Qed.
 
-#[export] Hint Resolve densematn_local_facts 
-densemat_local_facts : saturate_local.
+#[export] Hint Resolve densematn_local_facts densemat_local_facts : saturate_local.
 
 Lemma densematn_valid_pointer:
-  forall t sh m n data p,
-   m*n > 0 ->
+  forall t sh m n M p,
    sepalg.nonidentity sh ->
-   @densematn t sh m n data p |-- valid_pointer p.
+   @densematn t sh m n M p |-- valid_pointer p.
 Proof.
  intros.
  unfold densematn.
@@ -144,8 +157,8 @@ Proof.
 Qed.
 
 Lemma densemat_valid_pointer:
-  forall sh m n data p,
-   densemat sh m n data p |-- valid_pointer p.
+  forall sh m n M p,
+   @densemat sh m n M p |-- valid_pointer p.
 Proof.
  intros.
  unfold densemat. entailer!.
@@ -156,135 +169,135 @@ Qed.
 
 Definition densemat_malloc_spec :=
   DECLARE _densemat_malloc
-  WITH m: Z, n: Z, gv: globals
+  WITH m: nat, n: nat, gv: globals
   PRE [ tint, tint ]
-    PROP(0 <= m <= Int.max_signed; 0 <= n <= Int.max_signed; m*n <= Int.max_signed)
+    PROP(0 < m <= Int.max_signed;
+         0 < n <= Int.max_signed;
+         m*n <= Int.max_signed)
     PARAMS (Vint (Int.repr m); Vint (Int.repr n) ) GLOBALS (gv)
     SEP( mem_mgr gv )
   POST [ tptr densemat_t ]
    EX p: val,
     PROP () 
     RETURN (p) 
-    SEP(densemat Ews m n (fun _ _ => None) p; mem_mgr gv).
-
+    SEP(densemat Ews (@const_mx (option(ftype the_type)) m n None) p; mem_mgr gv).
 
 Definition densemat_free_spec :=
   DECLARE _densemat_free
-  WITH m: Z, n: Z, v: Z -> Z -> option float, p: val, gv: globals
+  WITH M: {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}, p: val, gv: globals
   PRE [ tptr densemat_t ]
     PROP() 
     PARAMS ( p ) GLOBALS (gv)
-    SEP(densemat Ews m n v p; mem_mgr gv)
+    SEP(densemat Ews (projT2 M) p; mem_mgr gv)
   POST [ tvoid ]
     PROP () 
     RETURN () 
     SEP( mem_mgr gv ).
 
+
 Definition densematn_clear_spec :=
   DECLARE _densematn_clear
-  WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share
-  PRE [ tptr the_ctype, tint, tint ]
+  WITH X: {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}, p: val, sh: share
+  PRE [ tptr the_ctype, tint, tint ] let '(existT _ (m,n) M) := X in
     PROP(writable_share sh) 
-    PARAMS (p; Vint (Int.repr m); Vint (Int.repr n) )
-    SEP(densematn sh m n v p)
-  POST [ tvoid ]
+    PARAMS (p; Vint (Int.repr m); Vint (Int.repr n))
+    SEP(densematn sh M p)
+  POST [ tvoid ] let '(existT _ (m,n) M) := X in
     PROP () 
     RETURN () 
-    SEP(densematn sh m n (fun _ _ => Some (Zconst the_type 0)) p).
+    SEP(densematn sh (@const_mx _ m n (Some (Zconst the_type 0))) p).
 
 Definition densemat_clear_spec :=
   DECLARE _densemat_clear
-  WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share
-  PRE [ tptr densemat_t ]
-    PROP(writable_share sh) 
+  WITH X: {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}, p: val, sh: share
+  PRE [ tptr densemat_t ] let '(existT _ (m,n) M) := X in 
+    (PROP(writable_share sh) 
     PARAMS (p)
-    SEP(densemat sh m n v p)
-  POST [ tvoid ]
+    SEP(densemat sh M p))
+   POST [ tvoid ] let '(existT _ (m,n) M) := X in 
     PROP () 
     RETURN () 
-    SEP(densemat sh m n (fun _ _ => Some (Zconst the_type 0)) p).
+    SEP(densemat sh (@const_mx _ m n (Some (Zconst the_type 0))) p).
 
 Definition densematn_get_spec :=
   DECLARE _densematn_get
-  WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
-       i: Z, j: Z, x: ftype the_type
-  PRE [ tptr the_ctype , tint, tint, tint ]
-    PROP(readable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some x ) 
+  WITH X: {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type,
+        p: val, sh: share, x: ftype the_type
+  PRE [ tptr the_ctype , tint, tint, tint ] let '(existT _ (m,n) (M,(i,j))) := X in
+    PROP(readable_share sh; M i j = Some x)
     PARAMS (p ; Vint (Int.repr m); Vint (Int.repr i); Vint (Int.repr j))
-    SEP(densematn sh m n v p)
-  POST [ the_ctype ]
+    SEP(densematn sh M p)
+  POST [ the_ctype ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN (val_of_float x) 
-    SEP(densematn sh m n v p).
+    SEP(densematn sh M p).
 
 Definition densemat_get_spec :=
   DECLARE _densemat_get
-  WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
-       i: Z, j: Z, x: ftype the_type
-  PRE [ tptr densemat_t , tint, tint ]
-    PROP(readable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some x ) 
+  WITH X: {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type,
+        p: val, sh: share, x: ftype the_type
+  PRE [ tptr densemat_t , tint, tint ] let '(existT _ (m,n) (M,(i,j))) := X in
+    PROP(readable_share sh; M i j = Some x)
     PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j))
-    SEP(densemat sh m n v p)
-  POST [ the_ctype ]
+    SEP(densemat sh M p)
+  POST [ the_ctype ]  let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN (val_of_float x) 
-    SEP(densemat sh m n v p).
-
-Definition densemat_upd {T: type} (v: Z -> Z -> option (ftype T)) (i j: Z) (x: ftype T) : 
-   Z -> Z -> option (ftype T) :=
- fun i' j' => if zeq i' i then if zeq j' j then Some x else v i' j' else v i' j'.
+    SEP(densemat sh M p).
 
 Definition densematn_set_spec :=
   DECLARE _densematn_set
-  WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
-       i: Z, j: Z, x: ftype the_type
-  PRE [ tptr the_ctype, tint, tint, tint, the_ctype ]
-    PROP(writable_share sh; 0 <= i < m; 0 <= j < n ) 
+  WITH X: {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type,
+       p: val, sh: share, x: ftype the_type
+  PRE [ tptr the_ctype, tint, tint, tint, the_ctype ] let '(existT _ (m,n) (M,(i,j))) := X in
+    PROP(writable_share sh) 
     PARAMS (p ; Vint (Int.repr m); Vint (Int.repr i); Vint (Int.repr j); val_of_float x)
-    SEP(densematn sh m n v p)
-  POST [ tvoid ]
+    SEP(densematn sh M p)
+  POST [ tvoid ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN () 
-    SEP(densematn sh m n (densemat_upd v i j x) p).
+    SEP(densematn sh (matrix_upd M i j (Some x)) p).
 
 Definition densemat_set_spec :=
   DECLARE _densemat_set
-  WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
-       i: Z, j: Z, x: ftype the_type
-  PRE [ tptr densemat_t, tint, tint, the_ctype ]
-    PROP(writable_share sh; 0 <= i < m; 0 <= j < n ) 
+  WITH X: {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type,
+       p: val, sh: share, x: ftype the_type
+  PRE [ tptr densemat_t, tint, tint, the_ctype ] let '(existT _ (m,n) (M,(i,j))) := X in
+    PROP(writable_share sh) 
     PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j); val_of_float x)
-    SEP(densemat sh m n v p)
-  POST [ tvoid ]
+    SEP(densemat sh M p)
+  POST [ tvoid ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN () 
-    SEP(densemat sh m n (densemat_upd v i j x) p).
+    SEP(densemat sh (matrix_upd M i j (Some x)) p).
 
 Definition densematn_addto_spec :=
   DECLARE _densematn_addto
-  WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
-       i: Z, j: Z, y: ftype the_type, x: ftype the_type
-  PRE [ tptr the_ctype, tint, tint, tint, the_ctype ]
-    PROP(writable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some y ) 
+  WITH X: {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type,
+       p: val, sh: share, y: ftype the_type, x: ftype the_type
+  PRE [ tptr the_ctype, tint, tint, tint, the_ctype ] let '(existT _ (m,n) (M,(i,j))) := X in
+    PROP(writable_share sh; M i j = Some y) 
     PARAMS (p ; Vint (Int.repr m); Vint (Int.repr i); Vint (Int.repr j); val_of_float x)
-    SEP(densematn sh m n v p)
-  POST [ tvoid ]
+    SEP(densematn sh M p)
+  POST [ tvoid ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN () 
-    SEP(densematn sh m n (densemat_upd v i j (BPLUS y x)) p).
+    SEP(densematn sh (matrix_upd M i j (Some (BPLUS y x))) p).
 
 Definition densemat_addto_spec :=
   DECLARE _densemat_addto
-  WITH m: Z, n: Z, v: Z -> Z -> option (ftype the_type), p: val, sh: share,
-       i: Z, j: Z, y: ftype the_type, x: ftype the_type
-  PRE [ tptr densemat_t, tint, tint, the_ctype ]
-    PROP(writable_share sh; 0 <= i < m; 0 <= j < n; v i j = Some y ) 
-    PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j); val_of_float x)
-    SEP(densemat sh m n v p)
-  POST [ tvoid ]
+  WITH X: {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type,
+       p: val, sh: share, y: ftype the_type, x: ftype the_type
+  PRE [ tptr densemat_t, tint, tint, the_ctype ] let '(existT _ (m,n) (M,(i,j))) := X in
+    PROP(writable_share sh; M i j = Some y) 
+    PARAMS (p ; Vint (Int.repr i); Vint (Int.repr j);
+            val_of_float x)
+    SEP(densemat sh M p)
+  POST [ tvoid ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN () 
-    SEP(densemat sh m n (densemat_upd v i j (BPLUS y x)) p).
+    SEP(densemat sh (matrix_upd M i j (Some (BPLUS y x))) p).
+
 
 Definition data_norm2_spec :=
   DECLARE _data_norm2
@@ -308,108 +321,114 @@ Definition data_norm_spec :=
     PROP() RETURN (Vfloat (FPStdLib.BSQRT(norm2 v))) 
     SEP(data_at sh (tarray the_ctype (Zlength v)) (map val_of_float v) p).
 
-Definition frobenius_norm2 {t: type} (m n: Z) (v: Z -> Z -> ftype t) :=
-  norm2 (column_major m n v).
+Definition frobenius_norm2 {t: type} [m n: nat] (M: matrix.matrix (ftype t) m n) :=
+  norm2 (column_major M).
 
-Definition frobenius_norm {t: type} (m n: Z) (v: Z -> Z -> ftype t) :=
-  BSQRT (norm2 (column_major m n v)).
+Definition frobenius_norm {t: type} [m n: nat] (M: matrix.matrix (ftype t) m n)  :=
+  BSQRT (frobenius_norm2 M).
 
+Lemma nan_pl_1: forall t, eq (Binary.nan_pl (fprec t) 1) true.
+Proof.
+intros.
+unfold Binary.nan_pl, fprec.
+simpl.
+pose proof fprecp_not_one t.
+lia.
+Qed.
+
+Definition nan1 (t: type) := Binary.B754_nan (fprec t) (femax t) false _ (nan_pl_1 t).
+
+Definition optfloat_to_float {t: type} (x: option (ftype t)) := 
+  match x with
+  | Some y => y
+  | None => nan1 t
+  end.
 
 Definition densemat_norm2_spec :=
   DECLARE _densemat_norm2
-  WITH sh: share, m: Z, n: Z, v: Z -> Z -> ftype the_type, p: val
-  PRE [ tptr densemat_t ]
+  WITH sh: share, X: {mn & 'M[ftype the_type]_(fst mn, snd mn)}, p: val
+  PRE [ tptr densemat_t ] let '(existT _ (m,n) M) := X in
     PROP (readable_share sh)
     PARAMS (p)
-    SEP(densemat sh m n (fun i j => Some (v i j)) p)
-  POST [ the_ctype ]
-    PROP() RETURN (val_of_float (frobenius_norm2 m n v)) 
-    SEP(densemat sh m n (fun i j => Some (v i j)) p).
+    SEP(densemat sh (map_mx Some M) p)
+  POST [ the_ctype ] let '(existT _ (m,n) M) := X in
+    PROP() RETURN (val_of_float (frobenius_norm2 M))
+    SEP(densemat sh (map_mx Some M) p).
 
 Definition densemat_norm_spec :=
   DECLARE _densemat_norm
-  WITH sh: share, m: Z, n: Z, v: Z -> Z -> ftype the_type, p: val
-  PRE [ tptr densemat_t ]
+  WITH sh: share, X: {mn & 'M[ftype the_type]_(fst mn, snd mn)}, p: val
+  PRE [ tptr densemat_t ] let '(existT _ (m,n) M) := X in
     PROP (readable_share sh)
     PARAMS (p)
-    SEP(densemat sh m n (fun i j => Some (v i j)) p)
-  POST [ the_ctype ]
-    PROP() RETURN (val_of_float (frobenius_norm m n v)) 
-    SEP(densemat sh m n (fun i j => Some (v i j)) p).
-
-(* joinLU n L U    produces a matrix whose upper-triangle (including diagonal) matches U,
-         and whose lower_triangle (excluding diagonal) matches L *)
-Definition joinLU {T} n (L: Z -> Z -> T) (U: Z -> Z -> T) : Z -> Z -> T :=
- fun i j => if ((0 <=? i) && (i <=? j) && (j <? n))%bool then U i j else L i j.
+    SEP(densemat sh (map_mx Some M) p)
+  POST [ the_ctype ] let '(existT _ (m,n) M) := X in
+    PROP() RETURN (val_of_float (frobenius_norm M))
+    SEP(densemat sh (map_mx Some M) p).
 
 Definition densematn_cfactor_spec :=
  DECLARE _densematn_cfactor
- WITH sh: share, n: Z, 
-      M: (Z -> Z -> option (ftype the_type)), 
-      A: (Z -> Z -> ftype the_type), p: val
- PRE [ tptr the_ctype, tint ]
-    PROP (writable_share sh)
+ WITH sh: share, X: {n & 'M[option (ftype the_type)]_n}, p: val
+ PRE [ tptr the_ctype, tint ] let '(existT _ n M) := X in
+    PROP (writable_share sh;
+          forall i j, isSome (mirror_UT M i j))
     PARAMS (p; Vint (Int.repr n))
-    SEP (densematn sh n n (joinLU n M (fun i j => Some (A i j))) p)
- POST [ tvoid ]
-   EX R: Z -> Z -> ftype the_type,
-    PROP (cholesky_jik_spec n A R)
+    SEP (densematn sh M p)
+ POST [ tvoid ] let '(existT _ n M) := X in
+   EX R: 'M_n,
+    PROP (cholesky_jik_spec (map_mx optfloat_to_float (mirror_UT M)) R)
     RETURN ()
-    SEP (densematn sh n n (joinLU n M (fun i j => Some (R i j))) p).
+    SEP (densematn sh (joinLU M (map_mx Some R)) p).
 
 Definition densemat_cfactor_spec :=
  DECLARE _densemat_cfactor
- WITH sh: share, n: Z, 
-      M: (Z -> Z -> option (ftype the_type)), 
-      A: (Z -> Z -> ftype the_type), p: val
- PRE [ tptr densemat_t ]
-    PROP (writable_share sh)
+ WITH sh: share, X: {n & 'M[option (ftype the_type)]_n}, p: val
+ PRE [ tptr densemat_t ] let '(existT _ n M) := X in
+    PROP (writable_share sh;
+          forall i j, isSome (mirror_UT M i j))
     PARAMS (p)
-    SEP (densemat sh n n (joinLU n M (fun i j => Some (A i j))) p)
- POST [ tvoid ]
-   EX R: Z -> Z -> ftype the_type,
-    PROP (cholesky_jik_spec n A R)
+    SEP (densemat sh M p)
+ POST [ tvoid ] let '(existT _ n M) := X in
+   EX R: 'M_n,
+    PROP (cholesky_jik_spec (map_mx optfloat_to_float (mirror_UT M)) R)
     RETURN ()
-    SEP (densemat sh n n (joinLU n M (fun i j => Some (R i j))) p).
+    SEP (densemat sh (joinLU M (map_mx Some R)) p).
 
 Definition densematn_csolve_spec :=
  DECLARE _densematn_csolve
- WITH rsh: share, sh: share, n: Z, 
-      M: (Z -> Z -> option (ftype the_type)), 
-      R: (Z -> Z -> ftype the_type),
-      x: list (ftype the_type), p: val, xp: val
- PRE [ tptr the_ctype, tptr the_ctype, tint ]
-    PROP (readable_share rsh; writable_share sh)
+ WITH rsh: share, sh: share, X: {n & 'M[option (ftype the_type)]_n * 'cV[ftype the_type]_n}%type,
+      p: val, xp: val
+ PRE [ tptr the_ctype, tptr the_ctype, tint ] let '(existT _ n (M,x)) := X in
+    PROP (readable_share rsh; writable_share sh;
+          forall i j, isSome (mirror_UT M i j))
     PARAMS (p; xp; Vint (Int.repr n))
-    SEP (densematn rsh n n (joinLU n M (fun i j => Some (R i j))) p;
-         data_at sh (tarray the_ctype n) (map val_of_float x) xp)
- POST [ tvoid ]
+    SEP (densematn rsh M p; densematn sh (map_mx Some x) xp)
+ POST [ tvoid ] let '(existT _ n (M,x)) := X in
     PROP ()
     RETURN ()
-    SEP (densematn rsh n n (joinLU n M (fun i j => Some (R i j))) p;
-         data_at sh (tarray the_ctype n) 
-          (map val_of_float (backward_subst n R (forward_subst n (transpose R) x)))
+    SEP (densematn rsh M p;
+         densematn sh (map_mx Some 
+                       (backward_subst (map_mx optfloat_to_float M)
+                          (forward_subst (trmx (map_mx optfloat_to_float M)) x)))
            xp).
 
 Definition densemat_csolve_spec :=
  DECLARE _densemat_csolve
- WITH rsh: share, sh: share, n: Z, 
-      M: (Z -> Z -> option (ftype the_type)), 
-      R: (Z -> Z -> ftype the_type),
-      x: list (ftype the_type), p: val, xp: val
- PRE [ tptr densemat_t, tptr the_ctype ]
-    PROP (readable_share rsh; writable_share sh)
+ WITH rsh: share, sh: share, X: {n & 'M[option (ftype the_type)]_n * 'cV[ftype the_type]_n}%type,
+      p: val, xp: val
+ PRE [ tptr the_ctype, tptr the_ctype ] let '(existT _ n (M,x)) := X in
+    PROP (readable_share rsh; writable_share sh;
+          forall i j, isSome (mirror_UT M i j))
     PARAMS (p; xp)
-    SEP (densemat rsh n n (joinLU n M (fun i j => Some (R i j))) p;
-         data_at sh (tarray the_ctype n) (map val_of_float x) xp)
- POST [ tvoid ]
+    SEP (densemat rsh M p; densematn sh (map_mx Some x) xp)
+ POST [ tvoid ] let '(existT _ n (M,x)) := X in
     PROP ()
     RETURN ()
-    SEP (densemat rsh n n (joinLU n M (fun i j => Some (R i j))) p;
-         data_at sh (tarray the_ctype n) 
-          (map val_of_float (backward_subst n R (forward_subst n (transpose R) x)))
+    SEP (densemat rsh M p;
+         densematn sh (map_mx Some 
+                       (backward_subst (map_mx optfloat_to_float M)
+                          (forward_subst (trmx (map_mx optfloat_to_float M)) x)))
            xp).
-
 
 Definition densemat_lujac_spec : ident*funspec := 
  (_densemat_lujac, vacuous_funspec (Internal f_densemat_lujac)).
