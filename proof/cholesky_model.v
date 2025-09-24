@@ -535,8 +535,10 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
   repeat destruct (Nat.eq_dec _ _); try lia; apply H3; lia.
 Qed.
 
+Locate matrix_upd.
 Definition upd_cV [T][n] (v: 'cV[T]_n) (i: 'I_n) (x: T) : 'cV[T]_n :=
-  \col_i' if (i'==i)%N then x else v i 0.
+   matrix_upd v i ord0 x.
+(*  \col_i' if (i'==i)%N then x else v i' 0. *)
 
 Definition forward_subst_step {t: type} [n: nat] 
          (L: 'M[ftype t]_n) (x: 'cV[ftype t]_n) (i: 'I_n) 

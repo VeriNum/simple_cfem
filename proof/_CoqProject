@@ -1,4 +1,5 @@
 -Q . CFEM
+-arg "-async-proofs-j 8"
 alloc.v
 assemble.v
 bandmat.v

@@ -416,7 +416,7 @@ Definition densemat_csolve_spec :=
  DECLARE _densemat_csolve
  WITH rsh: share, sh: share, X: {n & 'M[option (ftype the_type)]_n * 'cV[ftype the_type]_n}%type,
       p: val, xp: val
- PRE [ tptr the_ctype, tptr the_ctype ] let '(existT _ n (M,x)) := X in
+ PRE [ tptr densemat_t, tptr the_ctype ] let '(existT _ n (M,x)) := X in
     PROP (readable_share rsh; writable_share sh;
           forall i j, isSome (mirror_UT M i j))
     PARAMS (p; xp)
