@@ -1,25 +1,95 @@
-(* Copied from iterative_methods/cholesky/cholesky_model.v, 
+(** * CFEM.matrix_model: Functional models of matrix operations *)
+
+(** * Prologue: typical imports for MathComp floating-point matrix functional models *)
+
+(* BEGIN This part copied from iterative_methods/cholesky/cholesky_model.v, 
    modified a bit, should really unify these libraries somehow *)
-Require Import VST.floyd.proofauto.
+
+(** Don't import all of VST, since we have no separation-logic reasoning here;
+  import only the part of VST for reasoning about functional models. *) 
+Require Import VST.floyd.functional_base.
+
+(** Other useful imported libraries. *)
+Import ListNotations.
+Require Import Permutation.
 Require Import vcfloat.FPStdLib.
 Require Import vcfloat.FPStdCompCert.
 
-
+(** In contrast to certain other modules (e.g., [CFEM.spec_densemat]
+  where we [Require] mathcomp but carefully don't [Import] most of it), 
+  here we intend to do lots of mathcomp reasoning, so we [Require Import]. *)
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
 From mathcomp Require Import fintype finfun bigop finset fingroup perm order.
 From mathcomp Require Import div ssralg countalg finalg zmodp matrix.
 From mathcomp.zify Require Import ssrZ zify.
+
+(** Now we adjust all the settings that mathcomp has modified *)
+(* begin show *)
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Set Bullet Behavior "Strict Subproofs".
+(* end show *)
 
+(** * MathComp matrices over a nonring *)
 
-(*Require Import VSTlib.spec_math.*)
-(*Import FPCore FPCompCert. *)
-(*Require Import Cholesky.cholesky.*)
-(*From libValidSDP Require cholesky_infnan.*)
+(** Most MathComp matrix operations, such as matrix multiplication, are parameterized
+  over a Ring or Field structure.  When you do the dot-products in a matrix multiply, it
+  doesn't matter what order you add up the element products, because addition in a Ring
+  is associative-commutative.  But our functional models of matrix algorithms are in floating point,
+  which is not a Ring or Field because (for example) addition is not associative.
 
+  MathComp handles this by having some matrix operations (such as transpose [tr_mx]
+  and the very definition of a  [@matrix _ _ _] (notated as ['M[_]_(_,_)]) be parameterized
+  only over a [Type] when they don't need a Ring structure; it is only the operators whose
+  natural mathematics need additional properties, that require a Ring or Field.
+
+  That means we can use natural MathComp operations such as blocking and transpose
+  on floating-point matrices ['M[ftype t]_(m,n)] but we cannot use MathComp's matrix multiply
+   [mulmx].   Instead, if we multiply floating-point matrices, we must define it ourselves in
+  a way that specifies exactly what order of operations is done, or (if a relation instead of a
+  function) what order(s) are permitted.
+
+  The definition [update_mx] is an example of an operation that naturally does not require
+  a Ring structure.  The definition [subtract_loop], below, is an example of the other kind; 
+  we can't use MathComp's dot-product to define it, so we write a definition that explicitly
+  specifies the order of additions. 
+ *)
+
+Definition update_mx {T} [m n] (M: 'M[T]_(m,n)) (i: 'I_m) (j: 'I_n) (x: T) : 'M[T]_(m,n) :=
+    \matrix_(i',j') if  andb (Nat.eq_dec i' i) (Nat.eq_dec j' j) then x else M i' j'.
+
+Definition neg_zero {t}: ftype t := Binary.B754_zero (fprec t) (femax t) true.
+
+(** * Functional model of Cholesky decomposition (jik algorithm) *)
+(** The next three definitions, up to [cholesky_jik_spec], are adapted from
+  similar definitions in coq-libvalidsdp by P. Roux et al. *)
+Definition subtract_loop {t} [n] (A R: 'M[ftype t]_n) (i j k: 'I_n) : ftype t :=
+  fold_left BMINUS
+    (map (fun k' => BMULT (R k' i) (R k' j))
+         (map (widen_ord (ltnW (ltn_ord _))) (ord_enum k)))
+    (A i j).
+
+Definition cholesky_jik_ij {t} [n: nat] (A R: 'M[ftype t]_n) (i j: 'I_n) : Prop :=
+     (forall Hij: (i<j)%N, R i j = BDIV (subtract_loop A R i j i) (R i i))  
+   /\ (forall Hij: i=j, R i j = BSQRT (subtract_loop A R i j i)).
+
+Definition cholesky_jik_spec {t} [n: nat] (A R: 'M[ftype t]_n) : Prop :=
+  forall i j, cholesky_jik_ij A R i j.
+
+(** When we have run the "Cholesky jik algorithm" only up to iteration (i,j),
+   the matrix is only initialized above row i, and in row i up to column j, so we
+  need this subrelation in our loop invariant. *)
+Definition cholesky_jik_upto {t} [n] (imax: 'I_n) (jmax : 'I_n.+1) (A R : 'M[ftype t]_n) : Prop :=
+  forall (i j: 'I_n),
+      ((j<jmax)%N -> cholesky_jik_ij A R i j)
+   /\ (nat_of_ord j = nat_of_ord jmax -> (i<imax)%N -> cholesky_jik_ij A R i j)
+   /\ ((j>jmax)%N -> R i j = A i j)
+   /\ (nat_of_ord j= nat_of_ord jmax -> (i>=imax)%N -> R i j = A i j).
+
+(** The functional model above assumes that we compute every dot-product in left-to-right order.
+  But the algorithm should work equally accurately no matter what the order, so we
+ have this alternate presentation that permits any order of summation. *)
 
 (* BEGIN adapted from iterative_methods/sparse/sparse_model.v *)
 Inductive sum_any {t}: forall (v: list (ftype t)) (s: ftype t), Prop :=
@@ -27,193 +97,20 @@ Inductive sum_any {t}: forall (v: list (ftype t)) (s: ftype t), Prop :=
 | Sum_Any_1: forall x y, feq x y -> sum_any [x] y
 | Sum_Any_split: forall al bl a b c, sum_any al a -> sum_any bl b -> feq (BPLUS a b) c -> sum_any (al++bl) c
 | Sum_Any_perm: forall al bl s, Permutation al bl -> sum_any al s -> sum_any bl s.
-
-(*
-Lemma sum_any_accuracy{t}: forall (v: list (ftype t)) (s: ftype t), 
-  let mag := fold_left Rmax (map FT2R v) R0 in
-  sum_any v s ->
-  (Rabs (fold_left Rplus (map FT2R v) R0 - FT2R s) <= common.g t (length v) * (INR (length v) * mag))%R.
-(* see Theorem fSUM in LAProof/accuracy_proofs/sum_acc.v *)
-Admitted.
-*)
 (* END copied form iterative_methods/sparse/sparse_model.v *)
 
-(* duplicates floatlib.zerof, so at least keep it local *)
-Local Instance zerof {t} : Inhabitant (ftype t) := (Zconst t 0).
-
-(*
-Definition Zrangelist (lo hi: Z) : list Z := 
-  (*   lo <= i < hi *)
-  map (fun i => lo+Z.of_nat i) (seq.iota 0 (Z.to_nat (hi-lo))).
-
-Lemma iota_plus1:
-  forall lo n, seq.iota lo (n + 1)%nat = seq.iota lo n ++ [(lo+n)%nat].
-Proof.
-intros.
-revert lo; induction n; simpl; intros; auto.
-f_equal; lia.
-f_equal.
-rewrite IHn.
-f_equal.
-f_equal.
-lia.
-Qed.
-
-Definition updij {T} (R: Z -> Z -> T) i j x :=
-  fun i' j' => if zeq i i' then if zeq j j' then x else R i' j' else R i' j'.
-
-Lemma iota_range: forall k lo n, In k (seq.iota lo n) -> (lo <= k < lo+n)%nat.
-Proof.
-intros.
-revert k lo H; induction n; intros; try lia.
-contradiction H.
-replace (S n) with (n+1)%nat in H by lia.
-rewrite iota_plus1 in H.
-rewrite in_app in H. destruct H.
-apply IHn in H; lia.
-destruct H; try contradiction. lia.
-Qed.
-
-Lemma Zrangelist_range: forall i lo hi, In i (Zrangelist lo hi) -> lo <= i < hi.
-Proof.
- unfold Zrangelist.
- intros.
- destruct (list_in_map_inv _ _ _ H) as [x [? ?]]; clear H; subst.
- apply iota_range in H1. lia.
-Qed.
-
-Lemma Zrangelist_plus1:
-  forall lo hi, lo <= hi -> Zrangelist lo (hi + 1) = Zrangelist lo hi ++ [hi].
-Proof.
-intros.
-unfold Zrangelist.
-replace [hi] with (map (fun i => lo + Z.of_nat i) [Z.to_nat (hi-lo)])
- by (simpl; f_equal; lia).
-rewrite <- map_app. f_equal.
-replace (Z.to_nat (hi+1-lo)) with (Z.to_nat (hi-lo)+1)%nat by lia.
-apply iota_plus1.
-Qed.
-
-Lemma Zrangelist_minus1:
-  forall lo hi, lo < hi -> Zrangelist lo hi = [lo] ++ Zrangelist (lo+1) hi.
-Proof.
-intros.
-unfold Zrangelist.
-destruct (Z.to_nat (hi-lo)) eqn:?H.
-lia.
-simpl.
-f_equal.
-lia.
-replace (Z.to_nat (hi-(lo+1))) with n by lia.
-forget O as k.
-clear H0 hi H.
-revert k; induction n; simpl; intros; f_equal; try lia.
-apply IHn.
-Qed.
-
-Lemma Forall_Zrangelist :
-   forall (P : Z -> Prop) (lo hi : Z),
-     (forall i, (lo <= i < hi)%Z -> P i) -> Forall P (Zrangelist lo hi).
-Proof.
-intros.
-unfold Zrangelist.
-apply Forall_map.
-apply Forall_seq.
-intros.
-apply H.
-lia.
-Qed.
-
-Lemma Zrangelist_split: 
- forall lo mid hi,  
-  lo <= mid <= hi -> Zrangelist lo hi = Zrangelist lo mid ++ Zrangelist mid hi.
-Proof.
-intros.
-unfold Zrangelist.
-replace (Z.to_nat (hi-lo)) with (Z.to_nat (mid-lo) + Z.to_nat (hi-mid))%nat by lia.
-rewrite seq_app, map_app.
-f_equal.
-change seq.iota with seq.
-simpl.
-set (k := Z.to_nat (mid-lo)).
-destruct H.
-set (n := Z.to_nat (hi-mid)). clearbody n; clear hi H0.
-replace mid with (lo+Z.of_nat k) by lia.
-clearbody k; clear mid H.
-revert k; induction n; simpl; intros; auto.
-f_equal. lia.
-rewrite IHn.
-rewrite <- seq_shift.
-rewrite map_map.
-f_equal.
-extensionality z.
-lia.
-Qed.
-
-Lemma Zlength_Zrangelist:
-  forall lo hi, lo <= hi -> Zlength (Zrangelist lo hi) = (hi-lo).
-Proof.
-intros.
-rewrite Zlength_correct.
-unfold Zrangelist.
-rewrite length_map, length_seq. lia.
-Qed.
-
-Lemma Zrangelist_one: forall i j, i+1=j -> 
-  Zrangelist i j = [i].
-Proof.
-intros.
-unfold Zrangelist. replace (j-i) with 1 by lia.
-simpl. f_equal. lia.
-Qed.
-*)
-
-Open Scope ring_scope.
-
-
-Definition matrix_upd {T} [m n] (M: 'M[T]_(m,n)) (i: 'I_m) (j: 'I_n) (x: T) : 'M[T]_(m,n) :=
-    \matrix_(i',j') if  andb (Nat.eq_dec i' i) (Nat.eq_dec j' j) then x else M i' j'.
-
-(*
-Definition updij [T] [n] (R: 'M[T]_n) (i j: 'I_n) (x: T) : 'M[T]_n :=
- \matrix_(i', j') if Nat.eq_dec i i' then if Nat.eq_dec j j' then x else R i' j' else R i' j'.
-*)
-
-
-Section WithSTD.
-Context {t : type}.
-
-Definition neg_zero : ftype t := Binary.B754_zero (fprec t) (femax t) true.
-
-Definition subtract_loop' [n] (A R: 'M[ftype t]_n) (i j k: 'I_n) : ftype t -> Prop :=
+Definition subtract_loop' {t} [n] (A R: 'M[ftype t]_n) (i j k: 'I_n) : ftype t -> Prop :=
   sum_any (A i j :: map (fun k' => BOPP (BMULT (R k' i) (R k' j))) 
         (map (widen_ord (ltnW (ltn_ord _))) (ord_enum k))).
 
-Definition cholesky_jik_ij' [n: nat] (A R: 'M[ftype t]_n) (i j: 'I_n) : Prop :=
+Definition cholesky_jik_ij' {t} [n: nat] (A R: 'M[ftype t]_n) (i j: 'I_n) : Prop :=
      ((i < j)%N -> exists x, subtract_loop' A R i j i x /\ R i j = BDIV x (R i i))
    /\ (i=j -> exists x, subtract_loop' A R i j i x /\ R i j = BSQRT x).
 
+(** Supporting lemmas for proving steps of the Cholesky "jik" algorithm *)
 
-Definition subtract_loop [n] (A R: 'M[ftype t]_n) (i j k: 'I_n) : ftype t :=
-  fold_left BMINUS
-    (map (fun k' => BMULT (R k' i) (R k' j))
-         (map (widen_ord (ltnW (ltn_ord _))) (ord_enum k)))
-    (A i j).
-
-
-Definition cholesky_jik_ij [n: nat] (A R: 'M[ftype t]_n) (i j: 'I_n) : Prop :=
-     (forall Hij: (i<j)%N, R i j = BDIV (subtract_loop A R i j i) (R i i))  
-   /\ (forall Hij: i=j, R i j = BSQRT (subtract_loop A R i j i)).
-
-Definition cholesky_jik_spec [n: nat] (A R: 'M[ftype t]_n) : Prop :=
-  forall i j, cholesky_jik_ij A R i j.
-
-Definition cholesky_jik_upto [n] (imax: 'I_n) (jmax : 'I_n.+1) (A R : 'M[ftype t]_n) : Prop :=
-  forall (i j: 'I_n),
-      ((j<jmax)%N -> cholesky_jik_ij A R i j)
-   /\ (nat_of_ord j = nat_of_ord jmax -> (i<imax)%N -> cholesky_jik_ij A R i j)
-   /\ ((j>jmax)%N -> R i j = A i j)
-   /\ (nat_of_ord j= nat_of_ord jmax -> (i>=imax)%N -> R i j = A i j).
+(* duplicates floatlib.zerof, so at least keep it local *)
+Local Instance zerof {t} : Inhabitant (ftype t) := (Zconst t 0).
 
 (* BEGIN copied from iterative_methods/cholesky/verif_cholesky.v *)
 
@@ -223,7 +120,6 @@ Proof.
  pose proof (ltn_ord j).
  lia.
 Qed.
-
 
 Lemma eq_in_subrange: 
   forall n T (i: 'I_n) (f f': 'I_n -> T),
@@ -240,19 +136,18 @@ simpl.
 apply ltn_ord.
 Qed.
 
-
 Definition lshift1 [n: nat] (k: ordinal n) : ordinal (S n) 
  := Ordinal (ltn_trans (ltn_ord k) (leqnn (S n))).
 
 
 Lemma update_i_lt_j:
-  forall n (i j: 'I_n) (A R: 'M[ftype t]_n)
+  forall {t} n (i j: 'I_n) (A R: 'M[ftype t]_n)
    (Hij: (i < j)%N)
    (i1: 'I_n)
    (Hi1: nat_of_ord i1 = S i),
    cholesky_jik_upto i (lshift1 j) A R ->
    let rij := BDIV (subtract_loop A R i j i) (R i i) in
-    @cholesky_jik_upto n i1 (lshift1 j) A (matrix_upd R i j rij).
+    @cholesky_jik_upto t n i1 (lshift1 j) A (update_mx R i j rij).
 Proof.
 intros * Hij i1 Hi1 H1 rij i' j'.
 subst rij.
@@ -264,7 +159,7 @@ destruct H1 as [H1 _]. specialize (H1 H2).
 split; intros * H4.
 +
 destruct H1 as [H1 _]. specialize (H1 H4). 
-unfold matrix_upd.
+unfold update_mx.
 rewrite !mxE.
 destruct (Nat.eq_dec j j'); [lia |].
 destruct (Nat.eq_dec _ _); simpl.
@@ -286,7 +181,7 @@ destruct (Nat.eq_dec _ _); simpl.
   rewrite !mxE.
   repeat destruct (Nat.eq_dec _ _); try lia; auto.
 + destruct H1 as [_ H1].
-  unfold matrix_upd. subst i'.
+  unfold update_mx. subst i'.
   rewrite !mxE.
   destruct (Nat.eq_dec _ _); try lia.
   *
@@ -314,7 +209,7 @@ destruct (Nat.eq_dec _ _); simpl.
   simpl in *.
   intro H3.
   split; intros; [ | subst; lia].
-  unfold matrix_upd. 
+  unfold update_mx. 
   rewrite !mxE.
   destruct (Nat.eq_dec j j); [simpl; clear e | lia].
   destruct (Nat.eq_dec j i'); try lia. simpl.
@@ -344,7 +239,7 @@ destruct (Nat.eq_dec _ _); simpl.
   rewrite !mxE.
   f_equal;
   repeat (destruct (Nat.eq_dec _ _)); try lia; auto.
-- unfold matrix_upd. rewrite !mxE.
+- unfold update_mx. rewrite !mxE.
   specialize (H1 i' j').
   destruct H1 as [_ [_ [H1 _]]].
   repeat (destruct (Nat.eq_dec _ _)); try lia; auto.
@@ -352,14 +247,14 @@ destruct (Nat.eq_dec _ _); simpl.
   specialize (H1 i' j'). destruct H1 as [_ [_ [_ H1]]].
   assert (j'=j) by (apply ord_inj; auto).
   subst. clear H2.
-  unfold matrix_upd. rewrite !mxE.  
+  unfold update_mx. rewrite !mxE.  
   repeat (destruct (Nat.eq_dec _ _)); try lia; auto.
   simpl. apply H1; auto. lia.
 Qed.
 
 Lemma ord_enum_snoc:
   forall n, ord_enum (addn n 1) = 
-   map (lshift 1) (ord_enum n) ++ [Ordinal (eq_leq (addnC 1 n))].
+   map (lshift 1) (ord_enum n) ++ [Ordinal (eq_leq (addnC 1%nat n))].
 Proof.
 intros.
 set (a := ord_enum _).
@@ -409,7 +304,7 @@ induction (ord_enum n); simpl; auto.
 Qed.
 
 Lemma subtract_another':
-  forall n (i j k: 'I_n) (A R: 'M[ftype t]_n)
+  forall {t} n (i j k: 'I_n) (A R: 'M[ftype t]_n)
     (Hij: (i <= j)%N) 
     (Hkj: (k < j)%N),
     subtract_loop A R i j (Ordinal (update_i_lt_j_aux Hkj))%N = 
@@ -434,7 +329,7 @@ f_equal; f_equal; apply ord_inj; auto.
 Qed.
 
 Lemma subtract_another:
-  forall n (i j k: 'I_n) (A R: 'M[ftype t]_n)
+  forall {t} n (i j k: 'I_n) (A R: 'M[ftype t]_n)
     (Hij: (i <= j)%N) 
     (Hkj: (k < j)%N)
     (k1: 'I_n)
@@ -462,7 +357,6 @@ f_equal; f_equal; apply ord_inj; auto.
 Qed.
 
 (* END copied from iterative_methods/cholesky/verif_cholesky.v *)
-End WithSTD.
 
 Lemma cholesky_jik_upto_zero:
   forall t n (A: 'M[ftype t]_n) (zero: 'I_n), nat_of_ord zero=O -> cholesky_jik_upto zero (lshift1 zero) A A.
@@ -474,7 +368,7 @@ Lemma cholesky_jik_upto_newrow:
  forall t n (j: 'I_n) (A R: 'M[ftype t]_n),
   cholesky_jik_upto j (lshift1 j) A R ->
   cholesky_jik_upto (@Ordinal n 0 (leq_ltn_trans (leq0n j) (ltn_ord j)))
-     (@Ordinal n.+1 (j.+1)%N (ltn_ord j)) A (matrix_upd R j j (BSQRT (subtract_loop A R j j j))).
+     (@Ordinal n.+1 (j.+1)%N (ltn_ord j)) A (update_mx R j j (BSQRT (subtract_loop A R j j j))).
 Proof.
 pose proof I.
 intros.
@@ -485,31 +379,31 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
  clear H4. simpl in H0.
  destruct (Nat.eq_dec j' j).
  + apply ord_inj in e. subst j'. clear H1 H3. specialize (H2 (Logic.eq_refl _) Hij).
-   unfold matrix_upd at 1. rewrite mxE.
+   unfold update_mx at 1. rewrite mxE.
    destruct (Nat.eq_dec _ _); [lia  |]. simpl.
    destruct H2.
    rewrite H1; [ |apply Hij]. f_equal.
    * unfold subtract_loop. f_equal.
      rewrite <- !map_comp.
      apply eq_in_subrange.
-     intros. unfold matrix_upd. rewrite !mxE.
+     intros. unfold update_mx. rewrite !mxE.
      repeat (destruct (Nat.eq_dec _ _)); try lia. auto.
-   * unfold matrix_upd. rewrite !mxE.
+   * unfold update_mx. rewrite !mxE.
      repeat (destruct (Nat.eq_dec _ _)); try lia. auto.
  + simpl in *. destruct (H1 ltac:(lia)); clear H1 H5. specialize (H4 ltac:(lia)). clear H2 H3.
-   unfold matrix_upd at 1. rewrite mxE.
+   unfold update_mx at 1. rewrite mxE.
    repeat destruct (Nat.eq_dec _ _); try lia. simpl.
    rewrite H4. f_equal.
    * unfold subtract_loop. f_equal.
      rewrite <- !map_comp.
      apply eq_in_subrange.
-     intros. unfold matrix_upd. rewrite !mxE.
+     intros. unfold update_mx. rewrite !mxE.
      repeat destruct (Nat.eq_dec _ _); try lia; auto.
-   * unfold matrix_upd. rewrite mxE.
+   * unfold update_mx. rewrite mxE.
      repeat destruct (Nat.eq_dec _ _); try lia; auto.
 - subst j'. simpl in *.
   destruct (Nat.eq_dec i' j).
- + apply ord_inj in e. subst. unfold matrix_upd. rewrite !mxE.
+ + apply ord_inj in e. subst. unfold update_mx. rewrite !mxE.
    repeat destruct (Nat.eq_dec _ _); try lia; auto. simpl.
    f_equal.
    unfold subtract_loop. f_equal.
@@ -517,7 +411,7 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
    apply eq_in_subrange.
    intros. rewrite !mxE.
    repeat destruct (Nat.eq_dec _ _); try lia; auto. 
- + unfold matrix_upd at 1. rewrite mxE.
+ + unfold update_mx at 1. rewrite mxE.
    repeat destruct (Nat.eq_dec _ _); try lia; auto. 
    simpl.
    destruct (H1 ltac:(lia)). rewrite H6; auto.
@@ -525,30 +419,26 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
    unfold subtract_loop. f_equal.
    rewrite <- !map_comp.
    apply eq_in_subrange.
-   intros. unfold matrix_upd. rewrite !mxE.
+   intros. unfold update_mx. rewrite !mxE.
    repeat destruct (Nat.eq_dec _ _); try lia; auto.
 - simpl in *; lia. 
 - simpl in *. lia.
-- unfold matrix_upd. rewrite !mxE. simpl in *.
+- unfold update_mx. rewrite !mxE. simpl in *.
    repeat destruct (Nat.eq_dec _ _); try lia; auto.
-- unfold matrix_upd. rewrite !mxE. simpl in *. clear H5.
+- unfold update_mx. rewrite !mxE. simpl in *. clear H5.
   repeat destruct (Nat.eq_dec _ _); try lia; apply H3; lia.
 Qed.
 
-Locate matrix_upd.
-Definition upd_cV [T][n] (v: 'cV[T]_n) (i: 'I_n) (x: T) : 'cV[T]_n :=
-   matrix_upd v i ord0 x.
-(*  \col_i' if (i'==i)%N then x else v i' 0. *)
+(** Functional models of forward substitution and back substitution *)
 
 Definition forward_subst_step {t: type} [n: nat] 
          (L: 'M[ftype t]_n) (x: 'cV[ftype t]_n) (i: 'I_n) 
      : 'cV_n  :=
-   upd_cV x i
+   update_mx x i ord0
     (BDIV (fold_left BMINUS
-           (map (fun j => BMULT (L i j) (x j 0)) (take i (ord_enum n)))
-           (x i 0))
+           (map (fun j => BMULT (L i j) (x j ord0)) (take i (ord_enum n)))
+           (x i ord0))
           (L i i)).
-
 
 Definition forward_subst [t: type] [n]
          (L: 'M[ftype t]_n) (x: 'cV[ftype t]_n) : 'cV_n :=
@@ -556,17 +446,19 @@ Definition forward_subst [t: type] [n]
 
 Definition backward_subst_step {t: type} [n: nat]
          (U: 'M[ftype t]_n) (x: 'cV[ftype t]_n) (i: 'I_n) : 'cV_n :=
-    upd_cV x i
+    update_mx x i ord0
       (BDIV (fold_left BMINUS 
-              (map (fun j => BMULT (U i j) (x j 0)) (drop (i+1) (ord_enum n)))
-              (x i 0))
+              (map (fun j => BMULT (U i j) (x j ord0)) (drop (i+1) (ord_enum n)))
+              (x i ord0))
          (U i i)).
 
 Definition backward_subst {t: type} [n: nat]
          (U: 'M[ftype t]_n) (x: 'cV[ftype t]_n) : 'cV[ftype t]_n :=
      fold_left (backward_subst_step U) (rev (ord_enum n)) x.
 
-(* joinLU n L U    produces a matrix whose upper-triangle (including diagonal) matches U,
+(** * Definitions for manipulating triangular matrices *)
+
+(** [joinLU n L U]   produces a matrix whose upper-triangle (including diagonal) matches U,
          and whose lower_triangle (excluding diagonal) matches L *)
 Definition joinLU {T} [n] (L U : 'M[T]_n) : 'M[T]_n :=
  \matrix_(i,j) if (i<=j)%N then U i j else L i j.

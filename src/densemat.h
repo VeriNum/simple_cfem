@@ -52,7 +52,24 @@ double data_norm(double* data, int n);
 double densemat_norm2(densemat_t dm);
 double densemat_norm(densemat_t dm);
 
-// Accessor/setter functions for column-major indexing
+/**
+ * # Accessor/setter functions for column-major indexing
+ * To subscript a matrix, that is, to fetch and store individual
+ * matrix entries, we don't use C array indexing directly.
+ * Instead, we use these functions, which implement column-major indexing
+ * within a 1-dimensional array.
+ *   Even to access a column vector, where you'd think C array indexing
+ * would be very natural, we use these 2-d functions.
+ *   The reason is to simplify the proof.  That is, we can specify
+ * and prove, once and for all, correctness of column-major indexing
+ * (and the connection to the matrix abstraction of the Rocq Mathematical
+ * components library), and then reason about the abstraction in C (that is,
+ * function call) using the abstraction in VST/MathComp/Rocq.
+ *    You might worry that using a function call instead of directly
+ * subscripting the array would make the program slower, but it doesn't,
+ * since the C compiler can inline the function.
+ */
+
 double densematn_get(double *data, int rows, int i, int j);
 void densematn_set(double *data, int rows, int i, int j, double x);
 void densematn_addto(double *data, int rows, int i, int j, double x);

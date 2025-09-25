@@ -1,28 +1,64 @@
+(**  * CFEM.spec_densemat: VST specifications of functions on dense matrices. *)
+(** ** Corresponds to C program [densemat.h] and [densemat.c] *)
+(** Among other things, this .v file serves as a demonstration of how to write VST specifications
+  of functions with respect to a functional model expressed using the MathComp matrix library.
+  To do that, we start by importing the usual things that one would import into a VST funspecs
+ file, including in this case [densemat.v] which is the result of using [clightgen] to translate
+ [densemat.c] into a Clight abstract syntax tree.
+*)
 Require Import VST.floyd.proofauto.
 From vcfloat Require Import FPStdCompCert FPStdLib.
 From VSTlib Require Import spec_math spec_malloc.
-From CFEM Require Import densemat spec_alloc floatlib cholesky_model.
+From CFEM Require Import densemat spec_alloc floatlib matrix_model.
 Require Import Coq.Classes.RelationClasses.
 
+(** We [Require] the [mathcomp] files, but without [Import] because we don't want
+   to use [ssreflect] tactics in VST proofs, and we don't want the namespace polluted with
+   all that mathcomp stuff.
+*) 
 From mathcomp Require (*Import*) ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
 From mathcomp Require (*Import*) fintype finfun bigop finset fingroup perm order.
 From mathcomp Require (*Import*) div ssralg countalg finalg zmodp matrix.
 From mathcomp.zify Require Import ssrZ zify.
+(** Among all the mathcomp stuff, these are the files that we *do* want to Import: *)
+Import fintype matrix.
+
+(** Now we undo all the settings that mathcomp has modified *)
 Unset Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Set Bullet Behavior "Strict Subproofs".
 
-Import fintype matrix.
-
+(** The next lines are usual in VST specification files *)
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 
-
 Open Scope logic.
 
-(* Coercion Z_of_ord [n] (i: 'I_n)  := Z.of_nat (nat_of_ord i). *)
+(** In a typical VST proof, many variables and operators have type [Z] and few have type [nat],
+  so there are not many coercions between [Z] and [nat].  In a MathComp proof, there are many
+  uses of ordinals ['I_n], which coerce naturally to [nat]; but the VST operators still prefer [Z].
+  So there is more motivation (than usual in VST) to implicitly coerce [nat] to [Z]. 
+*) 
 Coercion Z.of_nat : nat >-> Z.
+
+(** ** Abstracting the floating-point precision *)
+(** C programs may use single precision or double precision.
+  This chart covers different wa7ys to talk about these types.
+<<
+Ctypes.floatsize      F64        F32
+Ctypes.type           tdouble    tsingle   (= Tfloat Fxx noattr, where Fxx=F64 or F32)
+CompCert Type         float      float32
+Values.val            Vfloat     Vsingle
+vcfloat.FPStdLib.type Tdouble    Tsingle
+>>
+[ftype Tdouble] is convertible to [float], and [ftype Tsingle] is convertible to [float32].
+*)
+
+(** To make our specifications (mostly) portable to C programs that use F64 or F32,
+  we define [the_ctype] as either [tdouble] or [tsingle], depending on what type
+  the program uses for the [data] field of dense matrices.  The [nested_field_type]
+  computation in the definition of [the_ctype] goes looking for that. *) 
 
 Definition densemat_t := Tstruct _densemat_t noattr.
 
@@ -30,45 +66,49 @@ Definition the_ctype := ltac:(
     let d := constr:(nested_field_type densemat_t (DOT _data SUB 0))
      in let d := eval compute in d 
      in first [ unify d tdouble; exact tdouble
-              | unify d tsingle; exact tsingle
+              | unify d tfloat; exact tfloat
               ]).
+
+(** Corresponding to [the_ctype] is [the_type], which is the description of that
+ type's exponent size and mantissa size, per VCFloat. *)
 
 Definition the_type := 
   ltac:(first [ unify the_ctype tdouble; exact Tdouble
               | unify the_ctype tsingle; exact Tsingle
               ]).
 
-Definition densemat_data_offset := 
-  ltac:(let x := constr:(nested_field_offset densemat_t (DOT _data))
-        in let y := eval compute in x in exact y).
+(** There is a correspondence between a [Ctypes.type] and a [vcfloat.FPStdLib.type] *)
 
-Local Lemma check_densemat_layout:
-  forall sh m n (x: list val) p, 
-    data_at sh (Tstruct _densemat_t noattr) (Vint m,(Vint n,x)) p 
-  |-- field_at sh (Tstruct _densemat_t noattr) (DOT _m) (Vint m) p *
-    field_at sh (Tstruct _densemat_t noattr) (DOT _n) (Vint n) p.
-(* This lemma could fail if there's padding between the fields. *)
-Proof.
-intros.
-unfold_data_at (data_at _ _ _ _).
-cancel.
-entailer!.
-rewrite value_fits_eq in H0. simpl in H0. destruct H0 as [? _].
-change (unfold_reptype _) with x in H0.
-destruct x; [ | list_solve].
-unfold field_at. simpl.
-entailer!!.
-unfold data_at_rec. simpl.
-unfold at_offset.
-change (unfold_reptype _) with (@nil val).
-rewrite array_pred_len_0; auto.
-Qed.
+Definition ctype_of_type (t: type) : Ctypes.type :=
+ if type_eq_dec t Tdouble then tdouble
+ else if type_eq_dec t Tsingle then tfloat
+ else tvoid.
 
-Definition mklist {T} [n] (f: 'I_n -> T) : list T :=
- map f (ord_enum n).
 
-Definition column_major {T} [rows cols: nat] (f: 'M[T]_(rows,cols)) :=
- concat (mklist (fun j => mklist (fun i => f i j))).
+Local Remark about_the_ctype: the_ctype=tdouble \/ the_ctype=tfloat.
+Proof. auto. Qed.
+
+Local Remark ctype_of_the_type: ctype_of_type the_type = the_ctype.
+Proof. reflexivity. Qed.
+
+(** ** Conversions between floats, float-options, and [val] *)
+(* We use [ftype t] as the type of floating-point values in format [t].
+  However, some arrays and matrices may be partially initialized, so we also
+ need [option (ftype t)] as the type of maybe-intialized floats.
+
+  CompCert's [val] type allows injecting double- and single-precision floats, and has
+  a separate constructor for uninitialized values of any type:
+<<
+Inductive val : Type :=
+    Vundef : val
+  | Vint : int -> val
+  | Vlong : int64 -> val
+  | Vfloat : float -> val     (*  recall that   float = ftype Tdouble *)
+  | Vsingle : float32 -> val   (* recall that float32 = ftype Tsingle *)
+  | Vptr : block -> ptrofs -> val.
+>>
+So therefore we need several functions that can convert between [ftype t], [option (ftype t)], and [val]
+*)
 
 Definition val_of_float {t} (f: ftype t) : val :=
 match type_eq_dec t Tdouble with
@@ -90,13 +130,27 @@ match x with
 | None => Vundef
 end.
 
-Definition ctype_of_type (t: type) : Ctypes.type :=
- if type_eq_dec t Tdouble then tdouble
- else if type_eq_dec t Tsingle then tfloat
- else tvoid.
+(** An arbitrary NaN value with the least informative payload *)
+Lemma nan_pl_1: forall t, eq (Binary.nan_pl (fprec t) 1) true.
+Proof.
+intros.
+unfold Binary.nan_pl, fprec.
+simpl.
+pose proof fprecp_not_one t.
+lia.
+Qed.
 
+Definition nan1 (t: type) := Binary.B754_nan (fprec t) (femax t) false _ (nan_pl_1 t).
 
-Definition reptype_ftype {t: type} (n: Z) (vl: list val) : reptype (tarray (ctype_of_type t) n).
+Definition optfloat_to_float {t: type} (x: option (ftype t)) := 
+  match x with
+  | Some y => y
+  | None => nan1 t
+  end.
+
+(** [reptype_ftype] is a convertible (transparent) coercion, useful in [data_at] *) 
+Definition reptype_ftype {t: type} (n: Z): list val -> reptype (tarray (ctype_of_type t) n).
+intro vl.
 unfold ctype_of_type.
 repeat if_tac.
 apply vl.
@@ -104,12 +158,62 @@ apply vl.
 apply (Zrepeat tt n).
 Defined.
 
+(** Here's a proof that it really is a convertible equality *)
+Local Remark about_reptype_ftype: forall vl, @reptype_ftype the_type (Zlength vl) vl = vl.
+Proof. reflexivity. Qed.
+
+
+(** ** Representation predicates for dense matrices *)
+(** Let [A: 'M_(m,n)] be a matrix of floats, and [p: val] be an address.
+  We want a _Verifiable C_ representation predicate [densemat] saying that [A] is
+  represented in memory at address [p] using the C type [densemat_t],
+  in column-major order, perhaps only partially initialized, with access permission [sh].
+
+  Furthermore, for those functions whose name begins with [densematn], which
+  don't pass the address of the [struct densemat_t] but pass only the address of
+  an array (such as the [data] field of a [densemat_t], we want a representation
+  predicate [densematn].
+
+  This section develops these predicates, step by step.
+*)
+
+Definition densemat_data_offset := 
+  ltac:(let x := constr:(nested_field_offset densemat_t (DOT _data))
+        in let y := eval compute in x in exact y).
+
+Local Remark check_densemat_layout:
+  forall sh m n (x: list val) p, 
+    data_at sh (Tstruct _densemat_t noattr) (Vint m,(Vint n,x)) p 
+  |-- field_at sh (Tstruct _densemat_t noattr) (DOT _m) (Vint m) p *
+    field_at sh (Tstruct _densemat_t noattr) (DOT _n) (Vint n) p.
+(** This lemma could fail if there's padding between the fields. *)
+Proof.
+intros.
+unfold_data_at (data_at _ _ _ _).
+cancel.
+entailer!.
+rewrite value_fits_eq in H0. simpl in H0. destruct H0 as [? _].
+change (unfold_reptype _) with x in H0.
+destruct x; [ | list_solve].
+unfold field_at. simpl.
+entailer!!.
+unfold data_at_rec. simpl.
+unfold at_offset.
+change (unfold_reptype _) with (@nil val).
+rewrite array_pred_len_0; auto.
+Qed.
+
+Definition column_major {T} [rows cols: nat] (f: 'M[T]_(rows,cols)) :=
+ concat (map (fun j => map (fun i => f i j) (ord_enum rows)) (ord_enum cols)).
+
+(** Spatial predicate (mpred) to represent the [data] field of a [struct densemat_t] *)
 Definition densematn {t: type} (sh: share) [m n] (M: 'M[option (ftype t)]_(m,n)) (p: val) : mpred :=
  !! (0 < m <= Int.max_signed /\ 0 < n <= Int.max_signed /\ m * n <= Int.max_signed)
  && data_at sh (tarray (ctype_of_type t) (m*n))
       (reptype_ftype (m*n) (map (@val_of_optfloat t) (column_major M)))
       p.
 
+(** Spatial predicate (mpred) to represent an entire [struct densemat_t] *)
 Definition densemat (sh: share) [m n] (M: 'M[option (ftype the_type)]_(m,n))
      (p: val) : mpred :=
      field_at sh (Tstruct _densemat_t noattr) (DOT _m) (Vint (Int.repr m)) p
@@ -117,6 +221,7 @@ Definition densemat (sh: share) [m n] (M: 'M[option (ftype the_type)]_(m,n))
    * densematn sh M (offset_val densemat_data_offset p)
    * malloc_token' sh (densemat_data_offset + sizeof (tarray the_ctype (Z.of_nat m * Z.of_nat n))) p.
 
+(** As usual with new spatial predicates, populate the Hint databases [saturate_local] and [valid_pointer] *)
 Definition densematn_local_facts: forall {t} sh m n M p,
   @densematn t sh m n M p |-- 
       !! (0 < m <= Int.max_signed 
@@ -166,7 +271,11 @@ Qed.
 
 #[export] Hint Resolve densematn_valid_pointer densemat_valid_pointer : valid_pointer.
 
+(** * Function specifications (funspecs) *)
+(** Compare these to the function headers in [densemat.h] *)
 
+(** [densemat_malloc] takes [m] and [n] such that [m*n] is representable as a signed integer, 
+    and returns an uninitialized [m*n] matrix. *)
 Definition densemat_malloc_spec :=
   DECLARE _densemat_malloc
   WITH m: nat, n: nat, gv: globals
@@ -182,19 +291,32 @@ Definition densemat_malloc_spec :=
     RETURN (p) 
     SEP(densemat Ews (@const_mx (option(ftype the_type)) m n None) p; mem_mgr gv).
 
+(** [densemat_free] takes an m*n matrix and returns nothing.
+
+    This funspec illustrates how we must handle dependently typed WITH clauses.
+    That is, the bound variables of this specification include a dimension (m,n) and
+    a matrix of type ['M_(m,n)].  Because VST's [WITH] clauses cannot handle dependent
+    typing among the separate bound variables, we package this up as a [sigT] named [X].
+    Then, to extract the bounds from [X] part we use [projT1], and to extract the matrix
+    we use [projT2]. *)
 Definition densemat_free_spec :=
   DECLARE _densemat_free
-  WITH M: {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}, p: val, gv: globals
+  WITH X: {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}, p: val, gv: globals
   PRE [ tptr densemat_t ]
     PROP() 
     PARAMS ( p ) GLOBALS (gv)
-    SEP(densemat Ews (projT2 M) p; mem_mgr gv)
+    SEP(densemat Ews (projT2 X) p; mem_mgr gv)
   POST [ tvoid ]
     PROP () 
     RETURN () 
     SEP( mem_mgr gv ).
 
+(** [densematn_clear] takes just the [data] part of an m*n matrix and 
+   sets all its elements to floating-point zero.  Therefore, as with all [densematn] operations,
+   we need to pass bounds information as function parameters.   
 
+   The [let '(existT _ ...)] unpacks the components of [X].  Due to a limitation in VST's notation system,
+  We have to repeat this unpacking separately in the PRE and POST clauses. *)
 Definition densematn_clear_spec :=
   DECLARE _densematn_clear
   WITH X: {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}, p: val, sh: share
@@ -207,6 +329,8 @@ Definition densematn_clear_spec :=
     RETURN () 
     SEP(densematn sh (@const_mx _ m n (Some (Zconst the_type 0))) p).
 
+(** [densemat_clear] takes just the struct (with bounds information) of an m*n matrix and 
+   sets all its elements to floating-point zero. *)
 Definition densemat_clear_spec :=
   DECLARE _densemat_clear
   WITH X: {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}, p: val, sh: share
@@ -219,6 +343,14 @@ Definition densemat_clear_spec :=
     RETURN () 
     SEP(densemat sh (@const_mx _ m n (Some (Zconst the_type 0))) p).
 
+(** [densematn_get] fetches the (i,j) component of a matrix.  Since the matrix is in column-major
+    order, we must also pass the number of rows [m].  Since this function does not do bounds-checking,
+    there is no need to also pass the number of columns [n].  In principle, since we are proving the 
+   program correct, there's no need for dynamic bounds checking.  
+
+  The precondition of the function enforces that [0 <= i < m] and [0 <= j < n].  It does so by construction
+   of the dependently typed value [X], where the last component is a pair [(i: 'I_[m], j: 'I[n]).
+    *)
 Definition densematn_get_spec :=
   DECLARE _densematn_get
   WITH X: {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type,
@@ -256,7 +388,7 @@ Definition densematn_set_spec :=
   POST [ tvoid ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN () 
-    SEP(densematn sh (matrix_upd M i j (Some x)) p).
+    SEP(densematn sh (update_mx M i j (Some x)) p).
 
 Definition densemat_set_spec :=
   DECLARE _densemat_set
@@ -269,7 +401,7 @@ Definition densemat_set_spec :=
   POST [ tvoid ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN () 
-    SEP(densemat sh (matrix_upd M i j (Some x)) p).
+    SEP(densemat sh (update_mx M i j (Some x)) p).
 
 Definition densematn_addto_spec :=
   DECLARE _densematn_addto
@@ -282,7 +414,7 @@ Definition densematn_addto_spec :=
   POST [ tvoid ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN () 
-    SEP(densematn sh (matrix_upd M i j (Some (BPLUS y x))) p).
+    SEP(densematn sh (update_mx M i j (Some (BPLUS y x))) p).
 
 Definition densemat_addto_spec :=
   DECLARE _densemat_addto
@@ -296,8 +428,7 @@ Definition densemat_addto_spec :=
   POST [ tvoid ] let '(existT _ (m,n) (M,(i,j))) := X in
     PROP () 
     RETURN () 
-    SEP(densemat sh (matrix_upd M i j (Some (BPLUS y x))) p).
-
+    SEP(densemat sh (update_mx M i j (Some (BPLUS y x))) p).
 
 Definition data_norm2_spec :=
   DECLARE _data_norm2
@@ -326,23 +457,6 @@ Definition frobenius_norm2 {t: type} [m n: nat] (M: matrix.matrix (ftype t) m n)
 
 Definition frobenius_norm {t: type} [m n: nat] (M: matrix.matrix (ftype t) m n)  :=
   BSQRT (frobenius_norm2 M).
-
-Lemma nan_pl_1: forall t, eq (Binary.nan_pl (fprec t) 1) true.
-Proof.
-intros.
-unfold Binary.nan_pl, fprec.
-simpl.
-pose proof fprecp_not_one t.
-lia.
-Qed.
-
-Definition nan1 (t: type) := Binary.B754_nan (fprec t) (femax t) false _ (nan_pl_1 t).
-
-Definition optfloat_to_float {t: type} (x: option (ftype t)) := 
-  match x with
-  | Some y => y
-  | None => nan1 t
-  end.
 
 Definition densemat_norm2_spec :=
   DECLARE _densemat_norm2
@@ -430,6 +544,8 @@ Definition densemat_csolve_spec :=
                           (forward_subst (trmx (map_mx optfloat_to_float M)) x)))
            xp).
 
+(** * Not-yet-specified functions *)
+
 Definition densemat_lujac_spec : ident*funspec := 
  (_densemat_lujac, vacuous_funspec (Internal f_densemat_lujac)).
 Definition densematn_lujac_spec : ident*funspec := 
@@ -450,7 +566,6 @@ Definition densematn_lusolveT_spec : ident*funspec :=
  (_densematn_lusolveT, vacuous_funspec (Internal f_densematn_lusolveT)).
 Definition densemat_lusolveT_spec : ident*funspec := 
  (_densemat_lusolveT, vacuous_funspec (Internal f_densemat_lusolveT)).
-
 Definition blocksolve_spec : ident*funspec := 
  (_blocksolve, vacuous_funspec (Internal f_blocksolve)).
 Definition subtractoff_spec : ident*funspec := 
@@ -460,7 +575,7 @@ Definition densematn_cfactor_block_spec : ident*funspec :=
 Definition densematn_cfactor_outer_spec : ident*funspec := 
  (_densematn_cfactor_outer, vacuous_funspec (Internal f_densematn_cfactor_outer)).
 
-
+(** * Building the "Abstract Specification Interface", the list of funspecs for this module *)
 
 Definition densematASI : funspecs := [ 
    densemat_malloc_spec; densemat_free_spec; densematn_clear_spec; densemat_clear_spec;
