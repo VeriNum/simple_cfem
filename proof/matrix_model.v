@@ -64,11 +64,10 @@ Definition neg_zero {t}: ftype t := Binary.B754_zero (fprec t) (femax t) true.
 (** * Functional model of Cholesky decomposition (jik algorithm) *)
 (** The next three definitions, up to [cholesky_jik_spec], are adapted from
   similar definitions in coq-libvalidsdp by P. Roux et al. *)
+
+
 Definition subtract_loop {t} [n] (A R: 'M[ftype t]_n) (i j k: 'I_n) : ftype t :=
-  fold_left BMINUS
-    (map (fun k' => BMULT (R k' i) (R k' j))
-         (map (widen_ord (ltnW (ltn_ord _))) (ord_enum k)))
-    (A i j).
+  fold_left BMINUS  (map (fun k' => BMULT (R k' i) (R k' j)) (take k (ord_enum n)))  (A i j).
 
 Definition cholesky_jik_ij {t} [n: nat] (A R: 'M[ftype t]_n) (i j: 'I_n) : Prop :=
      (forall Hij: (i<j)%N, R i j = BDIV (subtract_loop A R i j i) (R i i))  
@@ -100,8 +99,7 @@ Inductive sum_any {t}: forall (v: list (ftype t)) (s: ftype t), Prop :=
 (* END copied form iterative_methods/sparse/sparse_model.v *)
 
 Definition subtract_loop' {t} [n] (A R: 'M[ftype t]_n) (i j k: 'I_n) : ftype t -> Prop :=
-  sum_any (A i j :: map (fun k' => BOPP (BMULT (R k' i) (R k' j))) 
-        (map (widen_ord (ltnW (ltn_ord _))) (ord_enum k))).
+  sum_any (A i j :: map (fun k' => BOPP (BMULT (R k' i) (R k' j))) (take k (ord_enum n))).
 
 Definition cholesky_jik_ij' {t} [n: nat] (A R: 'M[ftype t]_n) (i j: 'I_n) : Prop :=
      ((i < j)%N -> exists x, subtract_loop' A R i j i x /\ R i j = BDIV x (R i i))
@@ -121,19 +119,28 @@ Proof.
  lia.
 Qed.
 
+
+Lemma in_take_ord_enum: forall [n] (i x: 'I_n), x \in (take i (ord_enum n)) -> (x<i)%N.
+Proof.
+intros.
+assert (nat_of_ord x \in map (@nat_of_ord n) (take i (ord_enum n))).
+apply map_f; auto.
+rewrite map_take in H0.
+rewrite val_ord_enum in H0.
+rewrite take_iota in H0.
+rewrite mem_iota in H0. lia.
+Qed.
+
 Lemma eq_in_subrange: 
   forall n T (i: 'I_n) (f f': 'I_n -> T),
     (forall (a: 'I_n), (a<i)%N -> f a = f' a) ->
-     map (comp f (widen_ord (ltnW (ltn_ord i)))) (ord_enum (nat_of_ord i))
-   = map (comp f'(widen_ord (ltnW (ltn_ord i)))) (ord_enum (nat_of_ord i)).
+      map f (take i (ord_enum n)) = map f' (take i (ord_enum n)).
 Proof.
 intros.
 apply eq_in_map.
 intros ? ?; auto.
-simpl.
 apply H.
-simpl.
-apply ltn_ord.
+apply in_take_ord_enum; auto.
 Qed.
 
 Definition lshift1 [n: nat] (k: ordinal n) : ordinal (S n) 
@@ -168,7 +175,6 @@ destruct (Nat.eq_dec _ _); simpl.
   rewrite H1. f_equal.
   unfold subtract_loop.
   f_equal.
-  rewrite <- !map_comp.
   apply eq_in_subrange; intros a H3; simpl.
   rewrite !mxE; simpl. 
   destruct (Nat.eq_dec _ _); auto; lia.
@@ -176,7 +182,6 @@ destruct (Nat.eq_dec _ _); simpl.
 * rewrite H1. f_equal.
   unfold subtract_loop.
   f_equal.
-  rewrite <- !map_comp.
   apply eq_in_subrange; intros a H3; simpl.
   rewrite !mxE.
   repeat destruct (Nat.eq_dec _ _); try lia; auto.
@@ -190,7 +195,6 @@ destruct (Nat.eq_dec _ _); simpl.
   rewrite H1. simpl. f_equal.
   unfold subtract_loop.
   f_equal.
-  rewrite <- !map_comp.
   apply eq_in_subrange; intros a H3; simpl.
   rewrite !mxE.
   f_equal; repeat (destruct (Nat.eq_dec _ _); try lia); auto.
@@ -199,7 +203,6 @@ destruct (Nat.eq_dec _ _); simpl.
   rewrite H1. simpl. f_equal.
   unfold subtract_loop.
   f_equal.
-  rewrite <- !map_comp.
   apply eq_in_subrange; intros a H3; simpl.
   rewrite !mxE. simpl in H2.
   f_equal; repeat (destruct (Nat.eq_dec _ _); try lia); auto.
@@ -222,7 +225,6 @@ destruct (Nat.eq_dec _ _); simpl.
   match goal with |- _ = _ _ ?ff _ _ _ => set (f:=ff) end.
   unfold subtract_loop.
   f_equal.
-  rewrite <- !map_comp.
   apply eq_in_subrange; intros a H3; simpl.
   subst f. rewrite !mxE.
   destruct (Nat.eq_dec _ _); try lia; auto.
@@ -234,7 +236,6 @@ destruct (Nat.eq_dec _ _); simpl.
    f_equal.
   unfold subtract_loop.
   f_equal.
-  rewrite <- !map_comp.
   apply eq_in_subrange; intros a H3; simpl.
   rewrite !mxE.
   f_equal;
@@ -252,80 +253,42 @@ destruct (Nat.eq_dec _ _); simpl.
   simpl. apply H1; auto. lia.
 Qed.
 
-Lemma ord_enum_snoc:
-  forall n, ord_enum (addn n 1) = 
-   map (lshift 1) (ord_enum n) ++ [Ordinal (eq_leq (addnC 1%nat n))].
+Lemma length_ord_enum: forall n, length (ord_enum n) = n.
 Proof.
 intros.
-set (a := ord_enum _).
-set (b := cat _ _).
-assert (map (@nat_of_ord _) a = map (@nat_of_ord _) b).
-2: clearbody a; clearbody b;
-   revert b H; induction a; destruct b; simpl; intros; inv H; auto;
-   try f_equal; auto;
-    apply ord_inj; auto.
-subst a b; rewrite val_ord_enum.
-rewrite iotaD.
-rewrite map_cat.
-f_equal.
-rewrite <- val_ord_enum.
-simpl.
-induction (ord_enum n); simpl; auto.
-f_equal. auto.
+pose proof val_ord_enum n.
+simpl in H.
+transitivity (length (iota 0 n)).
+transitivity (length (map (nat_of_ord (n:=n)) (ord_enum n))).
+rewrite length_map; auto.
+f_equal; auto.
+apply size_iota.
 Qed.
 
-Lemma ord_enum_snoc':
-  forall n, ord_enum (S n) = 
-   map (@lshift1 n) (ord_enum n) ++ [@Ordinal (S n) n (leqnn _)].
+Lemma size_ord_enum: forall n, size (ord_enum n) = n.
+Proof. exact length_ord_enum. Qed.
+
+Lemma nth_ord_enum': forall n (d i: 'I_n), nth d (ord_enum n) i = i.
 Proof.
 intros.
-set (a := ord_enum _).
-set (b := cat _ _).
-assert (map (@nat_of_ord _) a = map (@nat_of_ord _) b).
-2: clearbody a; clearbody b;
-   revert b H; induction a; destruct b; simpl; intros; inv H; auto;
-   try f_equal; auto;
-    apply ord_inj; auto.
-subst a b; rewrite val_ord_enum.
-change (S n) with (addn 1 n).
-rewrite {1} addnC. 
-rewrite iotaD.
-rewrite map_cat.
-f_equal.
-rewrite <- val_ord_enum.
-simpl.
-rewrite <- map_comp.
-unfold comp.
-apply eq_in_map.
-intros ? ?.
-simpl in *.
-hnf. simpl.
-induction (ord_enum n); simpl; auto.
+pose proof (val_ord_enum n).
+simpl in H.
+apply ord_inj.
+pose proof ltn_ord i.
+rewrite <- nth_map with (x2:=nat_of_ord d).
+rewrite H. rewrite nth_iota. lia. lia.
+rewrite size_ord_enum.
+auto.
 Qed.
 
-Lemma subtract_another':
-  forall {t} n (i j k: 'I_n) (A R: 'M[ftype t]_n)
-    (Hij: (i <= j)%N) 
-    (Hkj: (k < j)%N),
-    subtract_loop A R i j (Ordinal (update_i_lt_j_aux Hkj))%N = 
-     BMINUS (subtract_loop A R i j k) (BMULT (R k i) (R k j)).
+Lemma take_snoc: forall {T} (d: T) (k: nat) (al: seq T), 
+       (k<size al)%N -> 
+       take k.+1 al = take k al ++ [nth d al k].
 Proof.
 intros.
-unfold subtract_loop at 1.
-simpl.
-rewrite <- map_comp.
-rewrite ord_enum_snoc'.
-rewrite map_comp.
-rewrite !map_cat.
-simpl map.
-rewrite fold_left_app; simpl; f_equal.
-unfold subtract_loop.
-f_equal. f_equal.
-rewrite <- map_comp.
-apply eq_in_map.
-hnf; intros; simpl in *.
-apply ord_inj; auto.
-f_equal; f_equal; apply ord_inj; auto.
+revert k H; induction al; destruct k; simpl; intros; try lia.
+rewrite take0. auto.
+f_equal; auto.
 Qed.
 
 Lemma subtract_another:
@@ -343,17 +306,12 @@ assert (Datatypes.is_true (leq (S (S (nat_of_ord k))) n)).
 assert (k1 = @Ordinal n (S k) H). apply ord_inj; auto.
 subst k1.
 unfold subtract_loop at 1.
-rewrite ord_enum_snoc'.
+rewrite (take_snoc i).
+  2: (rewrite  size_ord_enum; pose proof ltn_ord k;  lia).
 rewrite !map_cat.
 simpl map.
 rewrite fold_left_app; simpl; f_equal.
-unfold subtract_loop.
-f_equal. f_equal.
-rewrite <- map_comp.
-apply eq_in_map.
-hnf; intros; simpl in *.
-apply ord_inj; auto.
-f_equal; f_equal; apply ord_inj; auto.
+rewrite nth_ord_enum'. auto.
 Qed.
 
 (* END copied from iterative_methods/cholesky/verif_cholesky.v *)
@@ -384,7 +342,6 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
    destruct H2.
    rewrite H1; [ |apply Hij]. f_equal.
    * unfold subtract_loop. f_equal.
-     rewrite <- !map_comp.
      apply eq_in_subrange.
      intros. unfold update_mx. rewrite !mxE.
      repeat (destruct (Nat.eq_dec _ _)); try lia. auto.
@@ -395,7 +352,6 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
    repeat destruct (Nat.eq_dec _ _); try lia. simpl.
    rewrite H4. f_equal.
    * unfold subtract_loop. f_equal.
-     rewrite <- !map_comp.
      apply eq_in_subrange.
      intros. unfold update_mx. rewrite !mxE.
      repeat destruct (Nat.eq_dec _ _); try lia; auto.
@@ -407,7 +363,6 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
    repeat destruct (Nat.eq_dec _ _); try lia; auto. simpl.
    f_equal.
    unfold subtract_loop. f_equal.
-   rewrite <- !map_comp.
    apply eq_in_subrange.
    intros. rewrite !mxE.
    repeat destruct (Nat.eq_dec _ _); try lia; auto. 
@@ -417,7 +372,6 @@ split; [ | split3]; intros; try split; hnf; intros; try lia.
    destruct (H1 ltac:(lia)). rewrite H6; auto.
    f_equal.
    unfold subtract_loop. f_equal.
-   rewrite <- !map_comp.
    apply eq_in_subrange.
    intros. unfold update_mx. rewrite !mxE.
    repeat destruct (Nat.eq_dec _ _); try lia; auto.

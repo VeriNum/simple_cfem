@@ -138,31 +138,28 @@ lia.
 - split; simpl; auto. lia.
 Qed.
 
-Lemma length_ord_enum: forall n, length (ord_enum n) = n.
+
+Lemma Zlength_ord_enum: forall n, Zlength (ord_enum n) = Z.of_nat n.
 Proof.
 intros.
-transitivity (length (repeat tt n)).
-rewrite <- (@map_const_ord_enum unit).
-rewrite length_map; auto.
-rewrite repeat_length; auto.
+rewrite Zlength_correct, length_ord_enum; auto.
 Qed.
 
-Lemma nth_ord_enum: forall n d (i: 'I_n), nth (nat_of_ord i) (ord_enum n) d = i.
+Lemma nth_seq_nth: forall T al (d: T) i,  nth i al d = seq.nth d al i.
 Proof.
-intros.
-pose proof (val_ord_enum n).
-set (F := eqtype.isSub.val_subdef _) in H.
-simpl in F.
-change (@seq.map) with @map in H.
-change @seq.iota with @seq in H.
-pose proof (ltn_ord i).
-subst F.
-simpl in *.
-assert (nth (nat_of_ord i) (map (nat_of_ord(n:=n)) (ord_enum n)) (nat_of_ord d) = nat_of_ord i).
-intros. rewrite H. rewrite seq_nth; try lia.
-rewrite map_nth in H1.
-apply ord_inj in H1.
-auto.
+induction al; destruct i; simpl; intros; auto.
+Qed.
+
+Lemma Znth_ord_enum: forall n `{IHn: Inhabitant 'I_n} (i: 'I_n), 
+  Znth i (ord_enum n) = i.
+Proof.
+  intros.
+  pose proof (ltn_ord i).
+  pose proof Zlength_ord_enum n.
+  rewrite <- nth_Znth by lia.
+   rewrite Nat2Z.id.
+   rewrite nth_seq_nth; 
+  apply nth_ord_enum'.
 Qed.
 
 Lemma Znth_column_major:
@@ -214,24 +211,8 @@ rewrite (@sublist_one _ j); try lia.
 simpl.
 rewrite app_nil_r.
 rewrite (@Znth_map _ i); try lia.
-rewrite <- !nth_Znth'.
-rewrite !nth_ord_enum.
+rewrite !Znth_ord_enum.
 auto.
-Qed.
-
-Lemma Zlength_concat_map_seq: forall {T} (F: nat -> nat -> T) k1 k2 m n,
-  Zlength (concat (map (fun j => map (F j) (seq k1 m))
-                     (seq k2 n))) = Z.of_nat (m*n).
-Proof.
-intros.
-rewrite Zlength_concat.
-revert k1 k2; induction n; intros.
-simpl; lia.
-simpl.
-autorewrite with sublist.
-transitivity (Z.of_nat m + Z.of_nat (m*n)); [ | lia].
-f_equal.
-apply IHn.
 Qed.
 
 Lemma Zlength_column_major: forall {T} m n (M: 'M[T]_(m,n)),
@@ -348,8 +329,7 @@ autorewrite with sublist.
 rewrite (sublist_one _ (Z.of_nat i + 1)); try lia.
 simpl map.
 unfold upd_Znth. simpl.
-rewrite <- !nth_Znth'.
-rewrite !nth_ord_enum.
+rewrite !Znth_ord_enum.
 unfold update_mx at 2.
 rewrite mxE.
 repeat (destruct (Nat.eq_dec _ _); [ | lia]).
@@ -393,23 +373,6 @@ Proof.
 intros.
 revert x; induction bl; simpl; intros; auto.
 rewrite IHbl; auto.
-Qed.
-
-Lemma Zlength_ord_enum: forall n, Zlength (ord_enum n) = Z.of_nat n.
-Proof.
-intros.
-rewrite Zlength_correct, length_ord_enum; auto.
-Qed.
-
-Lemma Znth_ord_enum: forall n `{IHn: Inhabitant 'I_n} (i: 'I_n), 
-  Znth i (ord_enum n) = i.
-Proof.
-  intros.
-  pose proof (ltn_ord i).
-  pose proof Zlength_ord_enum n.
-  rewrite <- nth_Znth by lia.
-   rewrite Nat2Z.id.
-  apply nth_ord_enum.
 Qed.
 
 Lemma take_sublist: forall {T} (al: list T) i,
@@ -1009,7 +972,7 @@ forward_for_simple_bound (Z.of_nat j)
             temp _n (Vint (Int.repr n)); temp _A p)
       SEP(densematn sh (joinLU M (map_mx Some R)) p))%assert.
     pose proof (ltn_ord i); lia.
-  * Exists zero. entailer!!. f_equal. unfold subtract_loop. simpl.
+  * Exists zero. entailer!!. f_equal. unfold subtract_loop. simpl. rewrite seq.take0.
     destruct (H5 i j) as [_ [_ [_ H8]]]. rewrite H8; auto.
   * Intros. subst i0.
     assert (Hi := ltn_ord i).
@@ -1028,13 +991,9 @@ forward_for_simple_bound (Z.of_nat j)
     entailer!!. split. simpl; lia.
      f_equal.
      unfold subtract_loop.
-     simpl ord_enum.
-     rewrite ord_enum_snoc'.
+     simpl nat_of_ord. rewrite (take_snoc k) by (rewrite size_ord_enum; lia). 
      rewrite !map_app, fold_left_app.
-     simpl. f_equal. f_equal. change @seq.map  with map. f_equal.
-     rewrite map_map. f_equal.
-     extensionality x. apply ord_inj. auto.
-     f_equal. f_equal. apply ord_inj; auto. f_equal. apply ord_inj; auto.
+     simpl. rewrite !nth_ord_enum'.  f_equal.
     *
     Intros k'.
     assert (i=k')%nat by (apply ord_inj; lia). subst k'.
@@ -1068,7 +1027,7 @@ forward_for_simple_bound (Z.of_nat j)
             temp _j (Vint (Int.repr i)); 
             temp _n (Vint (Int.repr n)); temp _A p)
       SEP(densematn sh (joinLU M (map_mx Some R)) p)).
-  * Exists zero. entailer!!. unfold subtract_loop. simpl.
+  * Exists zero. entailer!!. unfold subtract_loop. simpl. rewrite seq.take0.
     f_equal. destruct (H4 i i) as [_ [_ [? ?]]]. symmetry; apply H6; lia.
   * Intros. subst i0.
     forward_densematn_get  (joinLU M (map_mx Some R)) k i p sh (R k i).
