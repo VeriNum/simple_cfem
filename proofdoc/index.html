@@ -18,16 +18,38 @@
 
 <p>
 
-These pages describe the correctness proof
-of the <a href=../index.html>C program (browse those sources too!)</a>.
-
+<big>
+The goal of this project is build a Rocq proof of the correctness and accuracy of the <a href=../index.html>Simple FEM in C</a> program.
+The C sources are documented <a href=../index.html>there</a>.
+<p>
+At present just a few modules are specified and proved, as described below.
+</big>
 
 <div id="main">
 <h2>Rocq modules</h2>
 <dl>
-<dt><a href="CFEM.matrix_model.html">matrix_model</a><dd>Functional models of matrix operations</li>
-<dt><a href="CFEM.spec_densemat.html">spec_densemat</a><dd>VST specifications of functions on dense matrices</li>
-<dt><a href="CFEM.verif_densemat.html">verif_densemat</a><dd>VST proofs of functions on dense matrices</li>
+  <dt><a href="CFEM.matrix_model.html">matrix_model</a>
+<dd>Functional models of matrix operations.  We describe floating-point matrices using the
+      <a href=https://math-comp.github.io/>Mathematical Components</a> library,
+and present functional models of operations such as access to
+matrix elements, 
+Cholesky decomposition (inner-product algorithm),
+Cholesky solve by forward substitution and back substitution, etc.
+<p>
+  These functional models are agnostic about whether the matrix representation
+  is dense, banded, sparse, or otherwise; mapping the matrix values to their
+  representations in C programs is done in (for example)
+  <a href="CFEM.spec_densemat.html">spec_densemat</a>,
+  <a href="CFEM.spec_densemat.html">spec_bandmat</a>, etc.
+  Of course, there is no guarantee that you'd want to use exactly the same
+  algorithm (e.g., for Cholesky) on band matrices that you'd use on dense
+  matrices.
+</li>
+<dt><a href="CFEM.spec_densemat.html">spec_densemat</a><dd>VST specifications of functions on dense matrices, with some explanation of how to
+    specify the connection of C programs to MathComp functional models.
+    <br>&nbsp;
+</li>
+<dt><a href="CFEM.verif_densemat.html">verif_densemat</a><dd>VST proofs of functions on dense matrices.</li>
 </dl>
 
 Many other pages in the <a href=toc.html>Table of Contents</a> are just placeholders right now.
