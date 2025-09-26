@@ -1,6 +1,17 @@
 #
 COQDOCEXTRAFLAGS= -g --no-lib-name --index genindex --lib-subtitles --interpolate -utf8
 
+publish: html
+	git submodule update ../gh-pages
+	cp html/* ../gh-pages/proofdoc
+	$(HIDE)for i in ../gh-pages/proofdoc/*; do \
+	 if [ ! -f html/`basename $$i` ]; then \
+	   echo git rm --force $$i; git rm --force $$i; \
+	   fi; done
+#	cd ../gh-pages; git add proofdoc
+#	cd ../gh-pages; git commit -m "Publishing proof docs" proofdoc
+#	cd ../gh-pages; git push
+
 # CONVERTING .c FILES TO .v FILES USING clightgen
 
 %.v: ../src/%.c
