@@ -225,20 +225,20 @@ void densematn_csolve(double* R, double* x, int n)
 {
     // Forward substitution
     for (int i = 0; i < n; ++i) {
-        double bi = x[i];
+      double bi = densematn_get(x,n,i,0);
         for (int j = 0; j < i; ++j)
-	  bi -= densematn_get(R,n,j,i)*x[j];
-        x[i] = bi/densematn_get(R,n,i,i);
+	  bi -= densematn_get(R,n,j,i)*densematn_get(x,n,j,0);
+	densematn_set(x,n,i,0, bi/densematn_get(R,n,i,i));
     }
 
     // Backward substitution
     for (int i = n; i > 0; --i) {
       // start loop at n to avoid negative indexes, in case we ever
       // want to use unsigned integers to increase the indexing range
-        double yi = x[i-1];
+      double yi = densematn_get(x,n,i-1,0);
         for (int j = i; j < n; ++j)
-	  yi -= densematn_get(R,n,i-1,j)*x[j];
-        x[i-1] = yi/densematn_get(R,n,i-1,i-1);
+	  yi -= densematn_get(R,n,i-1,j)*densematn_get(x,n,j,0);
+	densematn_set(x,n,i-1,0, yi/densematn_get(R,n,i-1,i-1));
     }
 }
 

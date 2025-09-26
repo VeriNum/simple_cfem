@@ -1,3 +1,8 @@
+#
+COQDOCEXTRAFLAGS= -g --no-lib-name --index genindex --lib-subtitles --interpolate -utf8
+
+# CONVERTING .c FILES TO .v FILES USING clightgen
+
 %.v: ../src/%.c
 	clightgen -normalize $< -o $@
 

@@ -1,13 +1,36 @@
+(**  * CFEM.verif_densemat: VST proofs of functions on dense matrices. *)
+(** ** Corresponds to C program [densemat.c] *)
+
+(** * Prologue. 
+
+ For explanation see the prologue of [CFEM.spec_densemat] *)
 From VST.floyd Require Import proofauto VSU.
-From CFEM Require Import densemat spec_alloc spec_densemat floatlib cholesky_model.
+From CFEM Require Import densemat spec_alloc spec_densemat floatlib matrix_model.
 From vcfloat Require Import FPStdCompCert FPStdLib.
 Require Import VSTlib.spec_math VSTlib.spec_malloc.
 Require Import Coq.Classes.RelationClasses.
 
+From mathcomp Require (*Import*) ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
+From mathcomp Require (*Import*) fintype finfun bigop finset fingroup perm order.
+From mathcomp Require (*Import*) div ssralg countalg finalg zmodp matrix.
+From mathcomp.zify Require Import ssrZ zify.
+Import fintype matrix.
+
+Unset Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
 Set Bullet Behavior "Strict Subproofs".
 
 Open Scope logic.
 
+(** * VSU definitions *)
+(** VSU, "Verified Software Units" is VST's system for modular proofs about modular programs. 
+ Here, we want to import a subset of the malloc/free interface ([MallocASI]),
+ a subset of our own custom wrapper for malloc ([AllocASI]),
+ and a subset of VSTlib's math library describing functions from C's standard [math.h] ([MathASI]).
+ Finally, we construct [Gprog] which lists all the funspecs of the functions that might be called
+ from a function in the [densemat] module.
+*)
 Definition densemat_E : funspecs := [].
 Definition densemat_imported_specs : funspecs := 
    [free_spec'] (* subset of MallocASI *)
@@ -16,51 +39,397 @@ Definition densemat_imported_specs : funspecs :=
 Definition densemat_internal_specs : funspecs := densematASI.
 Definition Gprog :=  densemat_imported_specs ++ densemat_internal_specs.
 
+(**  These [change_composite_env] definitions are a kind of standard boilerplate;
+    this mechanism ought to be documented in the VST reference manual, but it isn't. *)
 Instance change_composite_env_alloc :
   change_composite_env spec_alloc.CompSpecs CompSpecs.
 Proof.
    make_cs_preserve spec_alloc.CompSpecs CompSpecs.
 Qed.
-
+ 
 Instance change_composite_env_alloc' :
   change_composite_env CompSpecs spec_alloc.CompSpecs.
 Proof.
    make_cs_preserve CompSpecs spec_alloc.CompSpecs.
 Qed.
 
+(** * Many useful supporting lemmas about [column_major], [ordinal], [ord_enum], etc. *)
+
+(** [column_major : forall {T : Type} [rows cols : nat], 'M_(rows, cols) -> list T]
+    is a function from a matrix to the list of all its elements in column-major order.
+ *)
+
+Lemma map_const_ord_enum: forall {T} n (x: T), map (fun _ => x) (ord_enum n) = repeat x n.
+Proof.
+ intros.
+ pose proof @val_ord_enum n.
+ set (F := eqtype.isSub.val_subdef _ ) in H.
+ transitivity (map (fun _: nat => x) (map F (ord_enum n))).
+rewrite map_map. f_equal.
+change @seq.map with @map in H.
+rewrite H.
+clear.
+forget O as k.
+revert k.
+induction n; simpl; intros; f_equal; auto.
+Qed.
+
 Lemma column_major_const:
  forall {t: type} m n (x: option (ftype t)), 
-  0 <= m -> 0 <= n -> 
-  map val_of_optfloat (column_major m n (fun _ _ => x)) =
-  Zrepeat (val_of_optfloat x) (m*n).
+  map val_of_optfloat (@column_major _ m n (const_mx x)) =
+  Zrepeat (val_of_optfloat x) (Z.of_nat m * Z.of_nat n).
 Proof.
 intros.
 unfold column_major, Zrepeat.
 rewrite Z2Nat.inj_mul by lia.
-unfold mklist, Zrangelist.
-rewrite !Z.sub_0_r.
-forget (Z.to_nat m) as a.
-forget (Z.to_nat n) as b. clear m n H H0.
-clear.
-rewrite Nat.mul_comm.
+rewrite !Nat2Z.id.
+rewrite <- map_repeat.
+f_equal.
 symmetry.
-transitivity (concat (repeat (repeat (val_of_optfloat x) a) b)).
- +
- induction b.
-  * auto.
-  * simpl. rewrite repeat_app. f_equal; auto.
- + rewrite concat_map, !map_map.
-   rewrite !map_const, !length_seq; auto.
+transitivity (concat (repeat (repeat x m) n)).
+-
+ rewrite Nat.mul_comm. induction n; simpl; auto.
+ rewrite repeat_app. f_equal; auto.
+- f_equal.
+ replace (fun j : 'I_n => map (fun i : 'I_m => fun_of_matrix (const_mx x) i j) (ord_enum m))
+  with (fun _: 'I_n => repeat x m).
+ rewrite map_const_ord_enum; auto.
+ extensionality j.
+ replace (fun i : 'I_m => fun_of_matrix (const_mx x) i j) with (fun _: 'I_m => x).
+ rewrite map_const_ord_enum; auto.
+ extensionality i.
+ unfold const_mx; rewrite mxE; auto.
 Qed.
 
+Lemma densemat_field_compat0: 
+ forall m n p, 
+  0 <= m -> 0 <= n -> m*n <= Int.max_unsigned ->
+  malloc_compatible
+    (densemat_data_offset + sizeof (tarray tdouble (m * n))) p ->
+  field_compatible0 (tarray tdouble (m*n)) (SUB (n * m)) 
+        (offset_val densemat_data_offset p).
+Proof.
+intros.
+destruct p; try contradiction.
+destruct H2.
+split3; [ | | split3]; auto.
+- simpl; auto.
+- simpl. rewrite Z.max_r by rep_lia.
+unfold densemat_data_offset in *.
+rewrite <- (Ptrofs.repr_unsigned i).
+rewrite ptrofs_add_repr.
+simpl in H3. rewrite Z.max_r in H3 by rep_lia.
+rewrite Ptrofs.unsigned_repr by rep_lia.
+lia.
+- red. unfold offset_val, densemat_data_offset in *.
+  apply align_compatible_rec_Tarray. 
+  intros.
+  eapply align_compatible_rec_by_value; try reflexivity.
+  simpl in *.
+  rewrite <- (Ptrofs.repr_unsigned i).
+  rewrite ptrofs_add_repr.
+  rewrite Ptrofs.unsigned_repr by rep_lia.
+  unfold natural_alignment in H2.
+  repeat apply Z.divide_add_r.
+  destruct H2 as [x ?]. rewrite H2. 
+  exists (2*x)%Z. lia.
+  exists 2; lia.
+  apply Z.divide_mul_l. exists 2; lia.
+- split; simpl; auto. lia.
+Qed.
+
+
+Lemma Zlength_ord_enum: forall n, Zlength (ord_enum n) = Z.of_nat n.
+Proof.
+intros.
+rewrite Zlength_correct, length_ord_enum; auto.
+Qed.
+
+Lemma nth_seq_nth: forall T al (d: T) i,  nth i al d = seq.nth d al i.
+Proof.
+induction al; destruct i; simpl; intros; auto.
+Qed.
+
+Lemma Znth_ord_enum: forall n `{IHn: Inhabitant 'I_n} (i: 'I_n), 
+  Znth i (ord_enum n) = i.
+Proof.
+  intros.
+  pose proof (ltn_ord i).
+  pose proof Zlength_ord_enum n.
+  rewrite <- nth_Znth by lia.
+   rewrite Nat2Z.id.
+   rewrite nth_seq_nth; 
+  apply nth_ord_enum'.
+Qed.
+
+Lemma Znth_column_major:
+  forall {T} {INH: Inhabitant T} m n i j (M: 'M[T]_(m,n)), 
+  Znth (Z.of_nat (nat_of_ord i+nat_of_ord j * m))%nat (column_major M) = M i j.
+Proof.
+intros.
+unfold column_major.
+assert (Zlength (ord_enum n) = Z.of_nat n). rewrite Zlength_correct, length_ord_enum; auto.
+pose proof (ltn_ord i). pose proof (ltn_ord j).
+assert (Zlength (ord_enum m) = Z.of_nat m). rewrite Zlength_correct, length_ord_enum; auto.
+assert (Zlength (ord_enum n) = Z.of_nat n). rewrite Zlength_correct, length_ord_enum; auto.
+replace (ord_enum n) with 
+ (sublist 0 (Z.of_nat j) (ord_enum n) ++ 
+  sublist (Z.of_nat j) (Z.of_nat j+1) (ord_enum n) ++ 
+  sublist (Z.of_nat j+1) (Z.of_nat n) (ord_enum n))
+ by (rewrite !sublist_rejoin; try lia; apply sublist_same; lia).
+rewrite !map_app.
+rewrite !concat_app.
+rewrite Znth_app2.
+2:{
+rewrite (Zlength_concat' (Z.of_nat j) (Z.of_nat m)). lia.
+rewrite Zlength_map. rewrite Zlength_sublist; try lia.
+apply Forall_map.
+apply Forall_sublist.
+apply Forall_forall.
+intros.
+simpl.
+list_solve.
+}
+rewrite (Zlength_concat' (Z.of_nat j) (Z.of_nat m)).
+2: list_solve.
+2:{ 
+apply Forall_map.
+apply Forall_sublist.
+apply Forall_forall.
+intros.
+simpl.
+list_solve.
+}
+replace (_ - _) with (Z.of_nat i) by lia.
+rewrite Znth_app1.
+2:{
+rewrite (@sublist_one _ j); try lia.
+simpl.
+list_solve.
+}
+rewrite (@sublist_one _ j); try lia.
+simpl.
+rewrite app_nil_r.
+rewrite (@Znth_map _ i); try lia.
+rewrite !Znth_ord_enum.
+auto.
+Qed.
+
+Lemma Zlength_column_major: forall {T} m n (M: 'M[T]_(m,n)),
+  Zlength (column_major M) = (Z.of_nat m*Z.of_nat n)%Z.
+Proof.
+intros.
+unfold column_major.
+rewrite (@Zlength_concat' _ (Z.of_nat n) (Z.of_nat m)).
+lia.
+rewrite Zlength_map, Zlength_correct, length_ord_enum; auto.
+apply Forall_map.
+apply Forall_forall; intros.
+simpl.
+rewrite Zlength_map, Zlength_correct, length_ord_enum; auto.
+Qed.
+
+
+Lemma firstn_seq: forall k i m, (i<=m)%nat -> firstn i (seq k m) = seq k i.
+intros.
+revert k i H; induction m; simpl; intros.
+destruct i; try lia. auto.
+destruct i; simpl; auto.
+f_equal.
+apply IHm.
+lia.
+Qed.
+
+Lemma in_sublist_ord_enum: forall n (a: 'I_n) (lo hi: Z),
+  0 <= lo <= hi -> hi <= Z.of_nat n ->
+  In a (sublist lo hi (ord_enum n)) -> (lo <= Z.of_nat a < hi)%Z.
+Proof.
+intros.
+pose proof (val_ord_enum n). simpl in H2.
+assert (In (nat_of_ord a) (sublist lo hi (map (nat_of_ord(n:=n)) (ord_enum n)))).
+rewrite sublist_map. apply in_map. auto.
+change @seq.map with @map in H2.
+rewrite H2 in H3.
+change seq.iota with seq in H3.
+forget (nat_of_ord a) as i.
+apply In_Znth in H3.
+destruct H3 as [j [? ?]].
+assert (Zlength (seq 0 n) = Z.of_nat n).
+rewrite Zlength_correct, length_seq; auto.
+rewrite Zlength_sublist in H3; try lia.
+rewrite Znth_sublist in H4 by list_solve.
+subst.
+rewrite <- nth_Znth by lia.
+rewrite seq_nth by lia.
+lia.
+Qed.
+
+Lemma upd_Znth_column_major: forall {T} [m n] (M:'M[T]_(m,n)) (i: 'I_m) (j: 'I_n) (x:T),
+   upd_Znth (Z.of_nat (i + j * m)) (column_major M) x = column_major (update_mx M i j x).
+Proof.
+intros.
+unfold column_major.
+assert (Zlength (ord_enum n) = Z.of_nat n). rewrite Zlength_correct, length_ord_enum; auto.
+pose proof (ltn_ord i). pose proof (ltn_ord j).
+assert (Hm: Inhabitant 'I_m). apply i.
+assert (Hn: Inhabitant 'I_n). apply j.
+assert (Zlength (ord_enum m) = Z.of_nat m). rewrite Zlength_correct, length_ord_enum; auto.
+assert (Zlength (ord_enum n) = Z.of_nat n). rewrite Zlength_correct, length_ord_enum; auto.
+replace (ord_enum n) with 
+ (sublist 0 (Z.of_nat j) (ord_enum n) ++ 
+  sublist (Z.of_nat j) (Z.of_nat j+1) (ord_enum n) ++ 
+  sublist (Z.of_nat j+1) (Z.of_nat n) (ord_enum n))
+ by (rewrite !sublist_rejoin; try lia; apply sublist_same; lia).
+rewrite !map_app.
+rewrite !concat_app.
+rewrite upd_Znth_app2.
+2:{
+rewrite (Zlength_concat' (Z.of_nat j) (Z.of_nat m)); try list_solve.
+rewrite sublist_one; simpl concat; list_solve.
+}
+f_equal.
+f_equal.
+apply map_ext_in.
+intros.
+assert (nat_of_ord a < nat_of_ord j)%nat
+ by (apply in_sublist_ord_enum in H4; lia).
+f_equal.
+extensionality i'.
+unfold update_mx.
+rewrite mxE.
+destruct (Nat.eq_dec (nat_of_ord a) _); try lia. simpl.
+rewrite andb_false_r. auto.
+rewrite (Zlength_concat' (Z.of_nat j) (Z.of_nat m)); try list_solve.
+rewrite sublist_one by list_solve.
+simpl concat. rewrite !app_nil_r.
+rewrite upd_Znth_app1 by list_solve.
+f_equal.
+2:{
+f_equal.
+apply map_ext_in.
+intros.
+assert (nat_of_ord j < nat_of_ord a)%nat
+ by (apply in_sublist_ord_enum in H4; lia).
+f_equal.
+extensionality i'.
+unfold update_mx.
+rewrite mxE.
+destruct (Nat.eq_dec (nat_of_ord a) _); try lia. simpl.
+rewrite andb_false_r. auto.
+}
+replace (_ - _) with (Z.of_nat i) by nia.
+replace (ord_enum m) with 
+ (sublist 0 (Z.of_nat i) (ord_enum m) ++ 
+  sublist (Z.of_nat i) (Z.of_nat i+1) (ord_enum m) ++ 
+  sublist (Z.of_nat i+1) (Z.of_nat m) (ord_enum m))
+ by (rewrite !sublist_rejoin; try lia; apply sublist_same; lia).
+rewrite !map_app.
+rewrite upd_Znth_app2 by list_solve.
+autorewrite with sublist.
+rewrite (sublist_one _ (Z.of_nat i + 1)); try lia.
+simpl map.
+unfold upd_Znth. simpl.
+rewrite !Znth_ord_enum.
+unfold update_mx at 2.
+rewrite mxE.
+repeat (destruct (Nat.eq_dec _ _); [ | lia]).
+simpl.
+f_equal; [ | f_equal].
+apply map_ext_in.
+intros.
+assert (nat_of_ord a < nat_of_ord i)%nat
+ by (apply in_sublist_ord_enum in H4; lia).
+unfold update_mx; rewrite mxE.
+destruct (Nat.eq_dec _ _); [lia | ]. auto.
+apply map_ext_in.
+intros.
+assert (nat_of_ord i < nat_of_ord a)%nat
+ by (apply in_sublist_ord_enum in H4; lia).
+unfold update_mx; rewrite mxE.
+destruct (Nat.eq_dec _ _); [lia | ]. auto.
+Qed.
+
+Lemma val_of_optfloat_column_major:
+  forall t m n (M: 'M[ftype t]_(m,n)),
+  map val_of_optfloat (column_major (map_mx Some M))
+  = map val_of_float (column_major M).
+Proof.
+intros.
+unfold column_major.
+rewrite !concat_map.
+f_equal.
+rewrite !map_map.
+f_equal. extensionality j. rewrite !map_map. f_equal.
+extensionality i.
+unfold map_mx.
+rewrite mxE. reflexivity.
+Qed.
+
+
+Lemma fold_left_preserves: forall [A C: Type] (g: A -> C) [B: Type] (f: A -> B -> A) (bl: list B),
+  (forall x y, g (f x y) = g x) -> 
+  (forall x, g (fold_left f bl x) = g x).
+Proof.
+intros.
+revert x; induction bl; simpl; intros; auto.
+rewrite IHbl; auto.
+Qed.
+
+Lemma take_sublist: forall {T} (al: list T) i,
+  seq.take i al = sublist 0 (Z.of_nat i) al.
+Proof.
+ intros. unfold sublist. simpl. rewrite  Nat2Z.id.
+ revert i; induction al; simpl; intros. rewrite firstn_nil; auto.
+ destruct i; simpl; auto. f_equal; auto.
+Qed.
+
+Lemma drop_sublist: forall {T} (al: list T) i,
+   seq.drop i al = sublist (Z.of_nat i) (Zlength al) al.
+Proof.
+ intros. unfold sublist. simpl. rewrite  Nat2Z.id.
+ revert al; induction i; simpl; intros.
+ rewrite seq.drop0. rewrite Zlength_correct. rewrite Nat2Z.id.
+ rewrite firstn_same by lia. auto.
+ destruct al; simpl; auto.
+ rewrite IHi.
+ rewrite !Zlength_correct. simpl length.
+  rewrite !Nat2Z.id. simpl. auto.
+Qed.
+
+Lemma seq_rev_rev: @seq.rev = @rev.
+Proof.
+extensionality T al.
+symmetry.
+apply rev_alt.
+Qed.
+
+(** * Tactics for ordinals *)
+(** Given a variable [i] of type [Z], replace it everywhere with a variable [i] of type ['I_n],
+    appropriately coerced. *)
+Ltac ordify n i :=
+  let Hi := fresh "H" i in
+  let Hj := fresh "H" i in 
+  let j := fresh "i" in 
+  assert (Hi: Datatypes.is_true (ssrnat.leq (S (Z.to_nat i)) n)) by lia;
+  set (j := @Ordinal n (Z.to_nat i) Hi);
+  assert (Hj : i = Z.of_nat (nat_of_ord j)) by (simpl; lia);
+  clearbody j; clear Hi;
+  subst i;
+  rename j into i.
+
+(** Given a variable (j: 'I_1), substitute ord0  everywhere *)
+Ltac ord1_eliminate j :=
+  let H := fresh in assert (H:= ord1 j); simpl in H; subst j.
+
+(** * [densemat_malloc] verification *)
 Lemma body_densemat_malloc: semax_body Vprog Gprog f_densemat_malloc densemat_malloc_spec.
 Proof.
 start_function.
-forward_call (densemat_data_offset+m*n*sizeof(tdouble), gv);
+forward_call (densemat_data_offset+Z.of_nat m*Z.of_nat n*sizeof(tdouble), gv);
 unfold densemat_data_offset.
 simpl; rep_lia.
 Intros p.
-assert_PROP (isptr p /\ malloc_compatible (8 + m * n * sizeof tdouble) p) by entailer!.
+assert_PROP (isptr p /\ malloc_compatible (8 + Z.of_nat m * Z.of_nat n * sizeof tdouble) p) by entailer!.
 destruct H2.
 destruct p; try contradiction. clear H2.
 destruct H3.
@@ -107,7 +476,7 @@ unfold densemat, densematn.
 simpl sizeof.
 unfold densemat_data_offset.
 rewrite Z.max_r by lia.
-rewrite (Z.mul_comm (m*n)).
+rewrite (Z.mul_comm (Z.of_nat m * Z.of_nat n)).
 entailer!.
 unfold_data_at (data_at _ _ _ _).
 cancel.
@@ -117,7 +486,7 @@ sep_apply data_at_zero_array_inv.
 rewrite emp_sepcon.
 unfold Ptrofs.add.
 rewrite Ptrofs.unsigned_repr by rep_lia.
-replace (8 * (m*n))%Z with (sizeof (tarray tdouble (m*n)))%Z
+replace (8 * (Z.of_nat m*Z.of_nat n))%Z with (sizeof (tarray tdouble (Z.of_nat m*Z.of_nat n)))%Z
  by (simpl; lia).
 sep_apply memory_block_data_at_.
 -
@@ -160,19 +529,21 @@ change Vundef with (@val_of_optfloat Tdouble None).
 apply (@column_major_const Tdouble); lia.
 Qed.
 
-
+(** * [densemat_free] verification *)
 Lemma body_densemat_free: semax_body Vprog Gprog f_densemat_free densemat_free_spec.
 Proof.
 start_function.
 unfold densemat, densematn.
+destruct X as [[m n] M].
+simpl in M|-*.
 Intros.
 assert_PROP (isptr p
       /\ malloc_compatible (densemat_data_offset +
-      sizeof (tarray tdouble (m * n))) p) by entailer!.
+      sizeof (tarray tdouble (Z.of_nat m * Z.of_nat n))) p) by entailer!.
 destruct H2 as [H2 COMPAT].
 simpl in COMPAT. rewrite Z.max_r in COMPAT by lia.
 red in COMPAT.
-forward_call (densemat_data_offset+m*n*sizeof(tdouble), p, gv).
+forward_call (densemat_data_offset+Z.of_nat m*Z.of_nat n*sizeof(tdouble), p, gv).
 -
 revert Frame.
 instantiate (1:=nil). intro.
@@ -180,7 +551,7 @@ subst Frame.
 rewrite if_false by (intro; subst; contradiction).
 simpl.
 rewrite Z.max_r by lia.
-rewrite (Z.mul_comm (m*n)).
+rewrite (Z.mul_comm (Z.of_nat m*Z.of_nat n)).
 cancel.
 destruct p; try contradiction; clear H2.
 rewrite <- (Ptrofs.repr_unsigned i).
@@ -200,20 +571,56 @@ rewrite ptrofs_add_repr.
 apply data_at_memory_block.
 simpl.
 rewrite ptrofs_add_repr.
-pose (x:= sizeof (tarray tdouble (m*n))).
+pose (x:= sizeof (tarray tdouble (Z.of_nat m*Z.of_nat n))).
 simpl in x.
-replace (8 * (m*n))%Z with (8 * (Z.max 0 (m*n)))%Z by rep_lia.
+replace (8 * (Z.of_nat m*Z.of_nat n))%Z with (8 * (Z.max 0 (Z.of_nat m*Z.of_nat n)))%Z by rep_lia.
 apply data_at_memory_block.
 -
 entailer!.
 Qed.
 
+(** * Unpacking dependently typed WITH components *)
+
+(** When a funspec has a dependently typed package such as 
+   [WITH X: {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}], 
+  the funspec may destruct it by a let-definition immediately after PRE or POST,
+  such as [let '(existT _ (m,n) M) := X in].  Standard VST 2.15's [start_function] tactic
+  cannot process such funspects.  Here we add a new feature to [start_function].
+  See also: https://github.com/PrincetonUniversity/VST/issues/839
+ *)
+
+
+(*  The following destructs any let-definitions immediately after PRE or POST *)
+Ltac destruct_it B :=
+ match B with 
+ | ?C _ => destruct_it C
+ | let '(x,y) := ?A in _ => destruct A as [x y]
+ | match ?A with _ => _ end =>
+     match type of A with
+     | @sigT _ (fun x => _) => destruct A as [x A] 
+     end
+ end.
+
+Ltac destruct_PRE_POST_lets :=
+repeat lazymatch goal with 
+| |- semax _ (sepcon (close_precondition _ ?B) _) _ _ => destruct_it B
+| |- semax _ _ _ (frame_ret_assert (function_body_ret_assert _ ?B) _) => destruct_it B
+end;
+repeat change (fst (?A,?B)) with A in *;
+repeat change (snd (?A,?B)) with B in *.
+
+Ltac start_function ::= start_function1; destruct_PRE_POST_lets; start_function2; start_function3.
+
+
+(** * [densemat_clear] verification *)
+
 Lemma body_densematn_clear: semax_body Vprog Gprog f_densematn_clear densematn_clear_spec.
 Proof.
 start_function.
+rename X into M.
 unfold densematn.
 Intros.
-forward_call (p,m*n,sh)%Z.
+forward_call (p,Z.of_nat m* Z.of_nat n,sh)%Z.
 unfold densematn.
 entailer!.
 change_compspecs CompSpecs.
@@ -223,291 +630,52 @@ symmetry.
 apply (@column_major_const Tdouble); lia.
 Qed.
 
+(** This proof demonstrates a good way to prove a function call to a function whose
+  funspec contains a dependently typed package.  Before doing the [forward_call],
+  build the package using [existT].  There will be no use for [X] after the [forward_call],
+  so it can be cleared immediately. *)
+
 Lemma body_densemat_clear: semax_body Vprog Gprog f_densemat_clear densemat_clear_spec.
+(* begin details *)
 Proof.
 start_function.
+rename X into M.
 unfold densemat in POSTCONDITION|-*.
 Intros.
 forward.
 forward.
-forward_call (m,n,v,(offset_val densemat_data_offset p),sh).
+pose (X := existT _ (m,n) M : {mn & 'M[option (ftype the_type)]_(fst mn, snd mn)}).
+forward_call (X, offset_val densemat_data_offset p, sh); clear X.
 entailer!.
 Qed.
+(* end details *)
 
-Lemma densemat_field_compat0: 
- forall m n p, 
-  0 <= m -> 0 <= n -> m*n <= Int.max_unsigned ->
-  malloc_compatible
-    (densemat_data_offset + sizeof (tarray tdouble (m * n))) p ->
-  field_compatible0 (tarray tdouble (m*n)) (SUB (n*m)) 
-        (offset_val densemat_data_offset p).
-Proof.
-intros.
-destruct p; try contradiction.
-destruct H2.
-split3; [ | | split3]; auto.
-- simpl; auto.
-- simpl. rewrite Z.max_r by rep_lia.
-unfold densemat_data_offset in *.
-rewrite <- (Ptrofs.repr_unsigned i).
-rewrite ptrofs_add_repr.
-simpl in H3. rewrite Z.max_r in H3 by rep_lia.
-rewrite Ptrofs.unsigned_repr by rep_lia.
-lia.
-- red. unfold offset_val, densemat_data_offset in *.
-  apply align_compatible_rec_Tarray. 
-  intros.
-  eapply align_compatible_rec_by_value; try reflexivity.
-  simpl in *.
-  rewrite <- (Ptrofs.repr_unsigned i).
-  rewrite ptrofs_add_repr.
-  rewrite Ptrofs.unsigned_repr by rep_lia.
-  unfold natural_alignment in H2.
-  repeat apply Z.divide_add_r.
-  destruct H2 as [x ?]. rewrite H2. 
-  exists (2*x)%Z. lia.
-  exists 2; lia.
-  apply Z.divide_mul_l. exists 2; lia.
-- split; simpl; auto. lia.
-Qed.
-
-Lemma Znth_column_major:
-  forall {T: type} m n i j (v: Z -> Z -> option (ftype T)), 
-  0 <= i < m -> 0 <= j < n ->
-  Znth (i+j*m) (column_major m n v) = v i j.
-Proof.
-intros.
-unfold column_major.
-unfold mklist, Zrangelist.
-rewrite !Z.sub_0_r.
-rewrite <- (Z2Nat.id i) in * by lia.
-rewrite <- (Z2Nat.id j) in * by lia.
-forget (Z.to_nat i) as a; clear i; rename a into i.
-forget (Z.to_nat j) as b; clear j; rename b into j.
-rewrite <- (Z2Nat.id m) in * by lia.
-forget (Z.to_nat m) as c; clear m; rename c into m.
-rewrite <- (Z2Nat.id n) in H0 by lia.
-forget (Z.to_nat n) as c; clear n; rename c into n.
-assert (i<m)%nat by lia.
-assert (j<n)%nat by lia.
-rewrite Nat2Z.id.
-clear H  H0.
-change (Z.to_nat 0) with O.
-replace (Z.of_nat i + Z.of_nat j * Z.of_nat m)%Z with (Z.of_nat (i+j*m)) by lia.
-rewrite <- nth_Znth.
-2:{
-rewrite Zlength_correct.
-split. lia.
-apply inj_lt.
-rewrite length_concat.
-rewrite map_map.
-apply Nat.lt_le_trans with (n*m)%nat.
-nia.
-clear i j H1 H2.
-replace  (fun x : nat =>
-       Datatypes.length
-         (map (fun i : nat => v (Z.of_nat i) (Z.of_nat x))
-            (seq 0 m)))
- with (fun x:nat => m).
-2:{
-extensionality x.
-rewrite length_map.
-rewrite length_seq.
-auto.
-}
-replace (fun x : Z =>
-       Datatypes.length
-         (map (fun i : Z => v i x)
-            (map Z.of_nat (seq.iota 0 m))))
- with (fun _:Z => m)
-  by (extensionality x; rewrite !length_map, length_seq; auto).
-rewrite map_map.
-apply Nat.eq_le_incl.
-set (k:=O).
-unfold k at 1. 
-replace O with (k*m)%nat by lia.
-replace (seq.iota k n) with (seq.iota O (n-k)) by (f_equal; lia).
-assert (k<=n)%nat by lia.
-clearbody k.
-set (j := O). clearbody j.
-replace (n*m)%nat with ((n-k+k)*m)%nat by nia.
-forget (n-k)%nat as i.
-clear H.
-revert k j; induction i; intros.
-simpl. auto.
-simpl.
-f_equal.
-rewrite !length_map, length_seq; auto.
-apply IHi.
-}
-rewrite Nat2Z.id.
-simpl.
-change seq.iota with seq.
-pose (n0 := O). change (seq 0 n) with (seq n0 n).
-change (Z.of_nat j) with (Z.of_nat (n0+j)). clearbody n0.
-rewrite !map_map.
-revert n0 j H2; induction n; simpl; intros. lia.
-rewrite !map_map.
-destruct j.
-rewrite app_nth1 by (rewrite length_map, length_seq; lia).
-rewrite nth_map_seq by lia.
-f_equal; lia.
-rewrite app_nth2 by (rewrite length_map, length_seq; lia).
-rewrite length_map, length_seq.
-replace (i + S j * m - m)%nat with (i + j*m)%nat by nia.
-replace (n0 + S j)%nat with (S n0 + j)%nat by lia.
-apply IHn.
-lia.
-Qed.
-
-Lemma Zlength_concat_map_Zrangelist: forall {T} (F: Z -> Z -> T) 
-  (k1 k2 m n : Z),
- k1 <= m -> k2 <= n -> 
- Zlength
-  (concat
-     (map
-        (fun j : Z => map (fun i => F i j) (Zrangelist k1 m)) (Zrangelist k2 n))) = ((m-k1) * (n-k2))%Z.
-Proof.
-intros.
-unfold Zrangelist.
-rewrite Zlength_concat.
-rewrite map_map.
-replace  (fun _ : Z => Zlength _) with (fun _: Z => m-k1).
-2:{ extensionality x. rewrite !Zlength_map, Zlength_correct, length_seq. lia. }
-rewrite map_map.
-rewrite <- (Z2Nat.id (n-k2)) at 2 by lia.
-set (a:=O). clearbody a.
-revert a; induction (Z.to_nat (n-k2)); intros; simpl.
-nia.
-rewrite IHn0.
-nia.
-Qed.
-
-Lemma Zlength_concat_map_seq: forall {T} (F: nat -> nat -> T) k1 k2 m n,
-  Zlength (concat (map (fun j => map (F j) (seq k1 m))
-                     (seq k2 n))) = Z.of_nat (m*n).
-Proof.
-intros.
-rewrite Zlength_concat.
-revert k1 k2; induction n; intros.
-simpl; lia.
-simpl.
-autorewrite with sublist.
-transitivity (Z.of_nat m + Z.of_nat (m*n)); [ | lia].
-f_equal.
-apply IHn.
-Qed.
-
-Lemma Zlength_column_major: forall {T} m n (v: Z -> Z -> T),
-  0 <= m -> 0 <= n -> 
-  Zlength (column_major m n v) = (m*n)%Z.
-Proof.
-intros.
-unfold column_major.
-unfold mklist.
-rewrite (Zlength_concat_map_Zrangelist v); lia.
-Qed.
-
-Lemma firstn_seq: forall k i m, (i<=m)%nat -> firstn i (seq k m) = seq k i.
-intros.
-revert k i H; induction m; simpl; intros.
-destruct i; try lia. auto.
-destruct i; simpl; auto.
-f_equal.
-apply IHm.
-lia.
-Qed.
-
-Lemma upd_Znth_column_major: forall {T: type} m n i j (x: ftype T) (v: Z -> Z -> option (ftype T)),
-  0 <= i < m -> 0 <= j < n -> 
-  upd_Znth (i + j * m) (column_major m n v) (Some x) =
-  column_major m n (densemat_upd v i j x).
-
-Proof.
-intros.
-unfold column_major.
-unfold mklist.
-rewrite (Zrangelist_split 0 j n) by lia.
-rewrite (Zrangelist_split j (j+1) n) by lia.
-rewrite !map_app.
-rewrite !concat_app.
-rewrite upd_Znth_app2
- by (rewrite Zlength_app, !Zlength_concat_map_Zrangelist; nia).
-rewrite Zlength_concat_map_Zrangelist by lia.
-rewrite upd_Znth_app1
- by (rewrite !Zlength_concat_map_Zrangelist; lia).
-f_equal; [ | f_equal].
--
-f_equal.
-apply map_ext_Forall.
-apply Forall_Zrangelist.
-intros.
-apply map_ext_Forall.
-apply Forall_Zrangelist.
-intros.
-unfold densemat_upd.
-repeat if_tac; try lia; auto.
--
-rewrite (Zrangelist_one j) by lia.
-simpl.
-rewrite !app_nil_r.
-replace (_ - _) with i by nia.
-unfold densemat_upd.
-destruct (zeq j j); try lia.
-rewrite (Zrangelist_split 0 i m) by lia.
-rewrite (Zrangelist_split i (i+1) m) by lia.
-rewrite !map_app.
-rewrite upd_Znth_app2.
-2:{ rewrite Zlength_app, !Zlength_map, !Zlength_Zrangelist; lia. }
-rewrite Zlength_map, Zlength_Zrangelist by lia.
-rewrite upd_Znth_app1.
-2:{ rewrite Zlength_map, Zlength_Zrangelist; lia. }
-f_equal; [ | f_equal].
-+
-apply map_ext_Forall.
-apply Forall_Zrangelist.
-intros. if_tac; try lia; auto.
-+
-rewrite Zrangelist_one by lia.
-simpl.
-rewrite if_true by auto.
-replace (i-(i-0)) with 0 by lia.
-reflexivity.
-+
-apply map_ext_Forall.
-apply Forall_Zrangelist.
-intros. if_tac; try lia; auto.
--
-f_equal.
-apply map_ext_Forall.
-apply Forall_Zrangelist.
-intros.
-apply map_ext_Forall.
-apply Forall_Zrangelist.
-intros.
-unfold densemat_upd.
-repeat if_tac; try lia; auto.
-Qed.
+(** * [densemat_get] verification *)
 
 Lemma body_densematn_get: semax_body Vprog Gprog f_densematn_get densematn_get_spec.
 Proof.
 start_function.
 unfold densematn in POSTCONDITION|-*.
 Intros.
-pose proof (Zlength_column_major m n v ltac:(lia) ltac:(lia)).
-assert (0 <= i + j * m < Zlength (column_major m n v)) by nia.
-forward.
+pose proof (Zlength_column_major _ _ M).
+assert (Hi := ltn_ord i).
+assert (Hj := ltn_ord j).
+assert (0 <= Z.of_nat (i + j * m) < Zlength (column_major M)) by nia.
+forward;
+replace (Z.of_nat (nat_of_ord i) + Z.of_nat (nat_of_ord j) * Z.of_nat m)
+  with (Z.of_nat (i+j * m)) by lia.
 entailer!.
 change (reptype_ftype _ ?A) with A.
-rewrite Znth_map by auto.
-rewrite (@Znth_column_major Tdouble) by lia.
-rewrite H1; simpl; auto.
-forward.
-entailer!!.
+rewrite Znth_map by lia.
+rewrite Znth_column_major by lia.
+rewrite H; simpl; auto.
 change (reptype_ftype _ ?A) with A.
-rewrite Znth_map by auto.
-rewrite (@Znth_column_major Tdouble) by lia.
-rewrite H1; simpl; auto.
+rewrite Znth_map by lia.
+rewrite Znth_column_major by lia.
+forward.
+simpl.
+entailer!!.
+rewrite H; simpl; auto.
 Qed.
 
 Lemma body_densemat_get: semax_body Vprog Gprog f_densemat_get densemat_get_spec.
@@ -515,28 +683,34 @@ Proof.
 start_function.
 unfold densemat in POSTCONDITION|-*; Intros.
 forward.
-forward_call (m,n,v, offset_val densemat_data_offset p, sh, i, j, x).
+set (X := existT _ (m,n) (M,(i,j)) : 
+      {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type).
+forward_call (X, offset_val densemat_data_offset p, sh, x).
 forward.
 entailer!!.
 Qed.
 
+(** * [densemat_set] verification *)
 
 Lemma body_densematn_set: semax_body Vprog Gprog f_densematn_set densematn_set_spec.
 Proof.
 start_function.
 unfold densematn in POSTCONDITION|-*.
 Intros.
-assert (0 <= i + j * m < m * n) by nia. 
-forward.
+assert (Hi := ltn_ord i).
+assert (Hj := ltn_ord j).
+assert (0 <= Z.of_nat i + Z.of_nat j * Z.of_nat m < Z.of_nat m * Z.of_nat n) by nia.
+change (reptype_ftype _ ?A) with A.
+forward; simpl fst; simpl snd.
 entailer!.
 apply derives_refl'.
 f_equal.
-change (Vfloat x) with (@val_of_optfloat Tdouble (Some x)).
+change (Vfloat x) with (@val_of_optfloat the_type (Some x)).
 change (reptype_ftype _ ?A) with A.
 rewrite upd_Znth_map.
 f_equal.
-rewrite (@upd_Znth_column_major Tdouble) by lia.
-auto.
+replace (_ + _) with (Z.of_nat (i + j * m)) by lia.
+apply upd_Znth_column_major.
 Qed.
 
 
@@ -546,33 +720,41 @@ start_function.
 unfold densemat in POSTCONDITION|-*.
 Intros.
 forward.
-forward_call (m,n,v, offset_val densemat_data_offset p, sh, i, j, x).
-entailer!.
+set (X := existT _ (m,n) (M,(i,j)) : 
+      {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type).
+forward_call (X, offset_val densemat_data_offset p, sh, x).
+entailer!!.
 Qed.
+
+(** * [densemat_addto] verification *)
 
 Lemma body_densematn_addto: semax_body Vprog Gprog f_densematn_addto densematn_addto_spec.
 Proof.
 start_function.
 unfold densematn in POSTCONDITION|-*.
 Intros.
-pose proof (Zlength_column_major m n v ltac:(lia) ltac:(lia)).
-assert (0 <= i + j * m < Zlength (column_major m n v)) by nia.
+assert (Hi := ltn_ord i).
+assert (Hj := ltn_ord j).
+pose proof (Zlength_column_major _ _ M).
+assert (0 <= Z.of_nat i + Z.of_nat j * Z.of_nat m < Zlength (column_major M)) by nia.
+change (reptype_ftype _ ?A) with A.
 forward.
 entailer!.
-change (reptype_ftype _ ?A) with A.
 rewrite Znth_map by auto.
-rewrite (@Znth_column_major Tdouble) by lia.
-rewrite H1. simpl; auto.
+replace (_ + _) with (Z.of_nat (i + j * m)) by lia.
+rewrite Znth_column_major by lia.
+rewrite H. simpl; auto.
 forward.
-entailer!!.
+entailer!!; simpl.
 apply derives_refl'; f_equal.
 change (Vfloat x) with (@val_of_optfloat Tdouble (Some x)).
 change (reptype_ftype _ ?A) with A.
-rewrite Znth_map, (@Znth_column_major Tdouble), H1 by (auto; lia).
+replace (_ + _) with (Z.of_nat (i + j * m)) by lia.
+rewrite Znth_map, Znth_column_major, H by (auto; lia).
 simpl.
 change (Vfloat ?A) with (@val_of_optfloat Tdouble (Some A)).
 rewrite upd_Znth_map.
-rewrite (@upd_Znth_column_major Tdouble )by lia.
+rewrite upd_Znth_column_major by lia.
 auto.
 Qed.
 
@@ -583,10 +765,63 @@ start_function.
 unfold densemat in POSTCONDITION|-*.
 Intros.
 forward.
-forward_call (m,n,v, offset_val densemat_data_offset p, sh, i, j, y, x).
+set (X := existT _ (m,n) (M,(i,j)) : 
+      {mn : nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)) }%type).
+forward_call (X, offset_val densemat_data_offset p, sh, y, x).
 entailer!!.
 Qed.
 
+(** * Tactics for calling matrix subscripting functions *)
+
+(** When doing [forward_call] to the function [densematn_get] and [densematn_set], one
+ must first build a dependently typed package as illustrated above in [body_densemat_clear].
+ The tactics in this section help automate that, so one can do 
+ - [forward_densematn_get] instead of [forward_call] when calling [densemat_get]
+ - [forward_densematn_set] instead of [forward_call] when calling [densemat_set]
+*)
+
+(* begin hide *)
+Ltac typecheck ctx x t :=
+  lazymatch type of x with ?t2 =>
+    tryif unify t t2 then idtac else fail 3 "In" ctx ", type of" x "should be" t "but is" t
+  end.
+
+Ltac typecheck_forward_densemat ctx M i j p sh x :=
+  lazymatch type of M with
+  |  (@matrix _ ?m ?n) => 
+       typecheck ctx M  (@matrix (option (ftype the_type)) m n);
+       typecheck ctx i (ordinal m);
+       typecheck ctx j (ordinal n)
+  | ?T => fail "type of" M "should be (matrix (ftype the_type) _ _) but is" T
+  end;
+  typecheck ctx p Values.val;
+  typecheck ctx sh share;
+  typecheck ctx x (ftype the_type).
+(* end hide *)
+
+ (** Parameters:  
+   - [M: 'M[option (ftype the_type)]_(m,n)], the matrix value to be subscripted
+   - [i: 'I_m] [j: 'I_n],  the indices at which to subscript
+   - [p: val],  the address in memory where the matrix is represented column-major
+   - [sh: share], the permission-share of the representation in memory
+   - [x:  ftype the_type], the expected result of subscripting the matrix, or the value to store into the matrix
+ *)
+
+Ltac forward_densematn_get M i j p sh x:=
+   typecheck_forward_densemat forward_densematn_get M i j p sh x;
+   let X := fresh "X" in 
+   pose (X := existT _ (_,_) (M,(i, j)) 
+          : {mn : nat * nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn))}%type);
+    forward_call (X, p, sh, x); clear X.
+
+Ltac forward_densematn_set M i j p sh x:=
+   typecheck_forward_densemat forward_densematn_set M i j p sh x;
+   let X := fresh "X" in 
+   pose (X := existT _ (_,_) (M,(i, j)) 
+          : {mn : nat * nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn))}%type);
+    forward_call (X, p, sh, x); clear X.
+
+(** * [data_norm] and [densemat_norm] verification *)
 
 Lemma body_data_norm2: semax_body Vprog Gprog f_data_norm2 data_norm2_spec.
 Proof.
@@ -633,28 +868,15 @@ f_equal.
 apply proof_irr.
 Qed.
 
-
-Lemma val_of_optfloat_column_major:
-  forall t m n (v: Z -> Z -> ftype t),
-  map val_of_optfloat (column_major m n (fun i j : Z => Some (v i j)))
-  = map val_of_float (column_major m n v).
-Proof.
-intros.
-unfold column_major.
-rewrite !concat_map.
-f_equal.
-unfold mklist. rewrite !map_map.
-f_equal. extensionality x. rewrite !map_map. f_equal.
-Qed.
-
 Lemma body_densemat_norm2: semax_body Vprog Gprog f_densemat_norm2 densemat_norm2_spec.
 Proof.
 start_function.
+rename X into M.
 unfold densemat, densematn in POSTCONDITION|-*.
 Intros.
 forward.
 forward.
-forward_call (sh, column_major m n v, offset_val densemat_data_offset p);
+forward_call (sh, column_major M, offset_val densemat_data_offset p);
 rewrite Zlength_column_major by lia.
 - entailer!!.
 - simpl. change (ctype_of_type the_type) with the_ctype.
@@ -662,22 +884,24 @@ rewrite Zlength_column_major by lia.
    rewrite val_of_optfloat_column_major.
    cancel.
 - lia.
-- forward.
-  simpl. change (ctype_of_type the_type) with the_ctype.
-   change (reptype_ftype _ ?A) with A.
-   rewrite val_of_optfloat_column_major.
-   rewrite Z.max_r by lia.
-  cancel.
+- 
+  rewrite Z.max_r by lia.
+  forward; simpl.
+  change (ctype_of_type the_type) with the_ctype.
+  rewrite val_of_optfloat_column_major.
+  change (reptype_ftype _ ?A) with A.
+  entailer!!.
 Qed.
 
 Lemma body_densemat_norm: semax_body Vprog Gprog f_densemat_norm densemat_norm_spec.
 Proof.
 start_function.
+rename X into M.
 unfold densemat, densematn in POSTCONDITION|-*.
 Intros.
 forward.
 forward.
-forward_call (sh, column_major m n v, offset_val densemat_data_offset p);
+forward_call (sh, column_major M, offset_val densemat_data_offset p);
 rewrite Zlength_column_major by lia.
 - entailer!!.
 - simpl. change (ctype_of_type the_type) with the_ctype.
@@ -685,146 +909,170 @@ rewrite Zlength_column_major by lia.
    rewrite val_of_optfloat_column_major.
    cancel.
 - lia.
-- forward.
-  simpl. change (ctype_of_type the_type) with the_ctype.
-   change (reptype_ftype _ ?A) with A.
-   rewrite val_of_optfloat_column_major.
-   rewrite Z.max_r by lia.
-  cancel.
+-
+  rewrite Z.max_r by lia.
+  forward; simpl.
+  change (ctype_of_type the_type) with the_ctype.
+  change (reptype_ftype _ ?A) with A.
+  rewrite val_of_optfloat_column_major.
+  entailer!!.
 Qed.
+
+(** * [densemat_cfactor] verification: Cholesky factorization *)
 
 Lemma body_densematn_cfactor: semax_body Vprog Gprog f_densematn_cfactor densematn_cfactor_spec.
 Proof.
 start_function.
-assert_PROP (0<=n<=Int.max_signed) by entailer!.
-forward_for_simple_bound n 
-  (EX j:Z, EX R: Z->Z->ftype the_type,
-      PROP(cholesky_jik_upto n 0 j A R)
+rename X into M.
+assert_PROP (0< n <= Int.max_signed) by entailer!.
+pose (A := map_mx optfloat_to_float (mirror_UT M)).
+assert (Datatypes.is_true (ssrnat.leq 1 n)) by lia.
+pose (zero := @Ordinal n 0 H1).
+forward_for_simple_bound (Z.of_nat n) 
+  (EX j':Z, EX j: 'I_(S n), EX R: 'M[ftype the_type]_n,
+      PROP(j'=j; cholesky_jik_upto zero j A R)
       LOCAL(temp _n (Vint (Int.repr n)); temp _A p)
-      SEP(densematn sh n n (joinLU n M (fun i j : Z => Some (R i j))) p))%assert.
+      SEP(densematn sh (joinLU M (map_mx Some R)) p))%assert.
+- Exists (lshift1 zero) A.
+  entailer!!.
+  apply cholesky_jik_upto_zero; auto.
+  apply derives_refl'; f_equal.
+  subst A.
+  clear - H.
+  apply matrixP.
+  intros i j. unfold joinLU. rewrite mxE.
+  destruct (ssrnat.leq _ _) eqn:?H; auto.
+  unfold map_mx. rewrite !mxE.
+  specialize (H i j).
+  unfold mirror_UT, joinLU in *.
+  rewrite mxE in *. rewrite H0 in *. destruct (M i j); try contradiction. auto.  
 -
-Exists A.
-entailer!!.
-intros i j; split; [ | split3]; intros; try lia; auto; red; intros; try lia.
--
-rename i into j.
-forward_for_simple_bound j 
-  (EX i:Z, EX R: Z->Z->ftype the_type,
-      PROP(cholesky_jik_upto n i j A R)
+rename i into j'.
+Intros. subst j'.
+forward_for_simple_bound (Z.of_nat j) 
+  (EX i':Z, EX i: 'I_n, EX R: 'M[ftype the_type]_n,
+      PROP(i' = Z.of_nat i; cholesky_jik_upto i j A R)
       LOCAL(temp _j (Vint (Int.repr j)); temp _n (Vint (Int.repr n)); temp _A p)
-      SEP(densematn sh n n (joinLU n M (fun i j : Z => Some (R i j))) p))%assert.
- + Exists R.
+      SEP(densematn sh (joinLU M (map_mx Some R)) p))%assert.
+ + Exists (@Ordinal n O ltac:(clear - H2; lia)) R.
    entailer!!.
- + clear R.  rename R0 into R.
-   forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,i,j,R i j).
-   unfold joinLU; replace (andb _ _) with true by lia; auto.
-   Intros vret.
-   destruct (H2 i j) as [_ [_ [_ ?]]]. rewrite H4 in H3 by lia.
-   subst vret. clear H4.
-   forward_for_simple_bound i
-     (EX k:Z, 
-      PROP(cholesky_jik_upto n i j A R)
+ + clear H4 R.  rename R0 into R.
+   Intros. subst i. rename i0 into i.
+   assert (Datatypes.is_true (ssrnat.leq (S j) n)) by lia.
+   pose (j' := @Ordinal n _ H4).
+   assert (j = lshift1 j'). apply ord_inj. simpl. auto.
+   rewrite H6 in *. clearbody j'. subst j. rename j' into j. simpl in H3.
+  forward_densematn_get (joinLU M (map_mx Some R)) i j p sh (R i j).
+   unfold joinLU, map_mx. rewrite !mxE. replace (ssrnat.leq _ _) with true by lia. auto.
+   forward_for_simple_bound (Z.of_nat i)
+     (EX k':Z, EX k:'I_n,
+      PROP(k'=Z.of_nat k; cholesky_jik_upto i (lshift1 j) A R)
       LOCAL(temp _s (val_of_float (subtract_loop A R i j k) );
             temp _i (Vint (Int.repr i)); temp _j (Vint (Int.repr j)); 
             temp _n (Vint (Int.repr n)); temp _A p)
-      SEP(densematn sh n n (joinLU n M (fun i j : Z => Some (R i j))) p))%assert.
-  * entailer!!.
-  * rename i0 into k.
-    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,k,i,R k i).
-    unfold joinLU; replace (andb _ _) with true by lia; auto.
-    Intros vret. subst vret.
-    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,k,j,R k j).
-    unfold joinLU; replace (andb _ _) with true by lia; auto.
+      SEP(densematn sh (joinLU M (map_mx Some R)) p))%assert.
+    pose proof (ltn_ord i); lia.
+  * Exists zero. entailer!!. f_equal. unfold subtract_loop. simpl. rewrite seq.take0.
+    destruct (H5 i j) as [_ [_ [_ H8]]]. rewrite H8; auto.
+  * Intros. subst i0.
+    assert (Hi := ltn_ord i).
+    forward_densematn_get  (joinLU M (map_mx Some R)) k i p sh (R k i).
+    unfold joinLU, map_mx. rewrite !mxE. simpl. replace (ssrnat.leq _ _) with true by lia. auto.
+    forward_densematn_get  (joinLU M (map_mx Some R)) k j p sh (R k j).
+    unfold joinLU, map_mx. rewrite !mxE. simpl. replace (ssrnat.leq _ _) with true by lia. auto.
     forward.
+    assert (Datatypes.is_true (ssrnat.leq (S (S k)) n)) by lia.
+    pose (Sk := @Ordinal n _ H7).
+    Exists Sk. 
     change (Vfloat
             (Float.sub (subtract_loop A R i j k)
                (Float.mul (R k i) (R k j))))
     with (val_of_float (BMINUS (subtract_loop A R i j k) (BMULT (R k i) (R k j)))).
-    entailer!!.
+    entailer!!. split. simpl; lia.
      f_equal.
      unfold subtract_loop.
-     rewrite Zrangelist_plus1 by lia.
+     simpl nat_of_ord. rewrite (take_snoc k) by (rewrite size_ord_enum; lia). 
      rewrite !map_app, fold_left_app.
-     simpl. f_equal. 
+     simpl. rewrite !nth_ord_enum'.  f_equal.
     *
-    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,i,i,R i i).
-    unfold joinLU; replace (andb _ _) with true by lia; auto.
-    Intros vret. subst vret.
-    forward_call.
-     change (Float.div ?A ?B) with (BDIV A B).
-     set (rij := BDIV _ _).
-     Exists (updij R i j rij).
-     entailer!!.
-     apply update_i_lt_j; auto. lia.
-     apply derives_refl'. f_equal.
-     unfold densemat_upd, updij.
-     extensionality i' j'.
-     subst rij.
-     unfold joinLU.
-     repeat if_tac; try lia; subst; auto.
-     replace (andb _ _) with true by lia; auto.
-  + clear R. Intros R.
-    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,j,j,R j j).
-    unfold joinLU; replace (andb _ _) with true by lia; auto.
-    deadvars!.
-   forward_for_simple_bound j
-     (EX k:Z, 
-      PROP()
-      LOCAL(temp _s (val_of_float (subtract_loop A R j j k) );
-            temp _j (Vint (Int.repr j)); 
+    Intros k'.
+    assert (i=k')%nat by (apply ord_inj; lia). subst k'.
+    forward_densematn_get  (joinLU M (map_mx Some R)) i i p sh (R i i).
+    unfold joinLU, map_mx. rewrite !mxE. simpl. replace (ssrnat.leq _ _) with true by lia. auto.
+    pose (X := existT _ (n,n) (joinLU M (map_mx Some R),(i,j)) 
+          : {mn : nat * nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn))}%type).
+    forward_call (X,p,sh, BDIV (subtract_loop A R i j i) (R i i)); clear X.
+    set (rij := BDIV _ _).
+    assert (Datatypes.is_true (ssrnat.leq (S (S i)) n)) by (pose proof ltn_ord j; lia).
+    pose (i1 := @Ordinal n _ H7).
+    Exists i1 (update_mx R i j rij).
+    entailer!!. split. subst i1. simpl.  lia.
+    apply update_i_lt_j; auto. lia.
+    apply derives_refl'. f_equal.
+     apply matrixP. intros i' j'.
+     unfold update_mx, joinLU, map_mx.
+     rewrite !mxE. simpl in i',j'.
+     do 2 destruct (Nat.eq_dec _ _); auto. simpl in *.
+     replace (ssrnat.leq _ _) with true; auto. lia.
+  + clear R H4. Intros i R.
+    assert (j = lshift1 i) by (apply ord_inj; simpl; lia).
+    subst j.
+    forward_densematn_set  (joinLU M (map_mx Some R)) i i p sh (R i i).
+    unfold joinLU, map_mx; rewrite !mxE; replace (ssrnat.leq _ _) with true by lia; auto.
+    simpl.
+   forward_for_simple_bound (Z.of_nat i)
+     (EX k':Z, EX k:'I_n,
+      PROP(k' = Z.of_nat k)
+      LOCAL(temp _s (val_of_float (subtract_loop A R i i k) );
+            temp _j (Vint (Int.repr i)); 
             temp _n (Vint (Int.repr n)); temp _A p)
-      SEP(densematn sh n n (joinLU n M (fun i j : Z => Some (R i j))) p)).
-  * entailer!!. unfold subtract_loop. simpl.
-    f_equal. destruct (H1 j j) as [_ [_ [? ?]]]. symmetry; apply H3; lia.
-  * rename i into k. 
-    forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,sh,k,j,R k j).
-    unfold joinLU; replace (andb _ _) with true by lia; auto.
+      SEP(densematn sh (joinLU M (map_mx Some R)) p)).
+  * Exists zero. entailer!!. unfold subtract_loop. simpl. rewrite seq.take0.
+    f_equal. destruct (H4 i i) as [_ [_ [? ?]]]. symmetry; apply H6; lia.
+  * Intros. subst i0.
+    forward_densematn_get  (joinLU M (map_mx Some R)) k i p sh (R k i).
+    unfold joinLU, map_mx; rewrite !mxE; replace (ssrnat.leq _ _) with true by lia; auto.
     forward.
+    assert (Datatypes.is_true (ssrnat.leq (S (S k)) n)) by lia.
+    Exists (Ordinal H6).
     change Vfloat with (@val_of_float the_type).
     change Float.sub with (@BMINUS _ the_type).
-    change Float.mul with (@BMULT _ the_type).
-    entailer!!. f_equal.
-    apply @subtract_another; lia.
-  * forward_call.
+    change Float.mul with (@BMULT _ the_type).    
+    entailer!!.  split. simpl; lia. f_equal.
+    apply @subtract_another; auto; lia.
+  * Intros k. assert (k=i) by (apply ord_inj; lia). subst k.
     forward_call.
     replace (Binary.Bsqrt _ _ _ _ _ _) with (@BSQRT _ the_type).
 2:{ (* Simplify this proof when https://github.com/VeriNum/vcfloat/issues/32
    is resolved. *)
  unfold BSQRT, UNOP. f_equal. extensionality x. simpl. f_equal. apply proof_irr.
    }
-    set (Rx := densemat_upd _ _ _ _).
-    assert (Rx = joinLU n M (fun i' j' => Some (updij R j j (BSQRT (subtract_loop A R j j j)) i' j'))). {
-      extensionality i' j'.
-      subst Rx. unfold densemat_upd, updij.
-      repeat if_tac; try lia; auto.
-      unfold joinLU; replace (andb _ _) with true by lia; auto.
-      subst i'. rewrite !if_true by auto. auto.
-      subst i'.
-      unfold joinLU.
-      destruct (andb _ _) eqn:?H; auto.
-      repeat if_tac; try lia; auto.
-      unfold joinLU.
-      destruct (andb _ _) eqn:?H; auto.
-      repeat if_tac; try lia; auto.   
-    }
-    rewrite H2; clear Rx H2.     
-    set (R' := updij _ _ _ _).
-    Exists R'.
-    entailer!!.
-    apply cholesky_jik_upto_newrow; auto.       
- - Intros R. Exists R.
-   entailer!!.
+    forward_densematn_set  (joinLU M (map_mx Some R)) i i p sh (BSQRT (subtract_loop A R i i i)).
+    assert (Datatypes.is_true (ssrnat.leq (S (S i)) (S n))) by (lia).
+    Exists (@Ordinal (S n) (S i) H6).
+    Exists (update_mx R i i (BSQRT (subtract_loop A R i i i))).
+    entailer!!. split. simpl. lia.
+    apply cholesky_jik_upto_newrow; auto.   
+    apply derives_refl'. f_equal.
+    set (a := BSQRT _). clearbody a.
+    clear.
+    apply matrixP; simpl; intros i' j'.
+    unfold update_mx, joinLU, map_mx; rewrite !mxE.
+    repeat destruct (Nat.eq_dec _ _); simpl in *; auto.
+    replace (ssrnat.leq _ _) with true by lia; auto.
+ - Intros n' R. Exists R.
+   entailer!!. fold A.
    intros i j.
-   specialize (H0 i j).   
-   destruct (zlt j n);[ | split; intros; lia].
-   destruct H0.
-   apply H0; auto.
+   destruct (H3 i j) as [H4 _ _ _].
+   apply H4.
+   pose proof (ltn_ord j).  lia.
 Qed.
 
 
 Lemma body_densemat_cfactor: semax_body Vprog Gprog f_densemat_cfactor densemat_cfactor_spec.
 Proof.
 start_function.
+rename X into M.
 unfold densemat in POSTCONDITION|-*.
 Intros.
 forward.
@@ -833,176 +1081,200 @@ forward_if True; [ | contradiction | ].
 forward.
 entailer!!.
 forward.
-forward_call (sh,n,M,A,offset_val densemat_data_offset p).
+pose (X := existT _ n M  :  {n & 'M[option (ftype the_type)]_n}).
+forward_call (sh,X,offset_val densemat_data_offset p); clear X.
 Intros R. Exists R.
 entailer!!.
 Qed.
 
-
-Lemma Zlength_forward_subst_step:
-  forall {t} n (L: Z -> Z -> ftype t) x i,
-   Zlength (forward_subst_step n L x i) = Zlength x.
-Proof.
-intros.
-unfold forward_subst_step.
-list_solve.
-Qed.
-
-Lemma Zlength_backward_subst_step:
-  forall {t} n (L: Z -> Z -> ftype t) x i,
-   Zlength (backward_subst_step n L x i) = Zlength x.
-Proof.
-intros.
-unfold backward_subst_step.
-list_solve.
-Qed.
-
-
-Lemma fold_left_preserves: forall [A C: Type] (g: A -> C) [B: Type] (f: A -> B -> A) (bl: list B),
-  (forall x y, g (f x y) = g x) -> 
-  (forall x, g (fold_left f bl x) = g x).
-Proof.
-intros.
-revert x; induction bl; simpl; intros; auto.
-rewrite IHbl; auto.
-Qed.
+(** * [densemat_csolve] verification: Cholesky solve by forward substitution and back substitution *)
 
 Lemma body_densematn_csolve: semax_body Vprog Gprog f_densematn_csolve densematn_csolve_spec.
 Proof.
 start_function. 
-assert_PROP (0 <= n <= Int.max_signed /\ Zlength x = n)
-  by (entailer!; list_solve).
-destruct H.
-forward_for_simple_bound n (EX i:Z,
+assert_PROP (0 <= n <= Int.max_signed /\ n*n <= Int.max_signed) by entailer!.
+assert (LEN := Zlength_ord_enum n). 
+pose (L := trmx (map_mx optfloat_to_float M)).
+
+assert (HML: forall i j: 'I_n, (j <= i) -> M j i = Some (L i j)). {
+ clear - H.
+  intros i j ?.
+  unfold L. rewrite map_trmx. unfold map_mx, trmx; rewrite !mxE.
+  specialize (H j i). unfold mirror_UT, joinLU, trmx in H. rewrite !mxE in H.
+  destruct (@ssrnat.leP j i).
+  destruct (M j i); try contradiction; auto.
+  assert (i=j) by (apply ord_inj; lia). subst j.
+   destruct (M i i); try contradiction; auto.
+}
+
+pose (fstep i := fold_left (forward_subst_step L) (sublist 0 i (ord_enum n)) x).
+forward_for_simple_bound (Z.of_nat n) (EX i:Z,
    PROP ( )
    LOCAL (temp _R p; temp _x xp; temp _n (Vint (Int.repr n)))
-   SEP (densematn rsh n n (joinLU n M (fun i j : Z => Some (R i j))) p;
-        data_at sh (tarray the_ctype n) (map val_of_float 
-         (fold_left (forward_subst_step n (transpose R)) (Zrangelist 0 i) x)) xp))%assert.
-- entailer!!.
-- forward. {
-    entailer!!.
-    rewrite Znth_map. simpl; auto.
-    rewrite fold_left_preserves; auto.
-    intros. apply Zlength_forward_subst_step.
-  }
-  rewrite Znth_map.
-  set (x' := fold_left _ _ _).
-  set (xi := Znth i x').
-  forward_for_simple_bound i (EX j:Z,
+   SEP (densematn rsh M p; 
+            densematn sh (map_mx Some (fstep i)) xp))%assert.
+- unfold fstep, fold_left; rewrite sublist_nil; entailer!!.
+- ordify n i.
+  assert (IHn : Inhabitant 'I_n) by exact i. 
+  forward_densematn_get (map_mx Some (fstep i)) i (@ord0 O) xp sh (fstep i i ord0).
+  apply mxE.
+  forward_for_simple_bound (Z.of_nat i) (EX j:Z,
    PROP ( )
    LOCAL (temp _bi (val_of_float (fold_left BMINUS 
-                     (map (fun j => BMULT (transpose R i j) (Znth j x')) (Zrangelist 0 j))
-                      (Znth i x'))); 
+                     (map (fun j => BMULT (L i j) (fstep i j ord0)) (sublist 0 j (ord_enum n)))
+                      (fstep i i ord0))); 
           temp _i (Vint (Int.repr i)); temp _R p; 
    temp _x xp; temp _n (Vint (Int.repr n)))
-   SEP (densematn rsh n n
-          (joinLU n M (fun i0 j : Z => Some (R i0 j))) p;
-   data_at sh (tarray the_ctype n) (map val_of_float x') xp))%assert.
+   SEP (densematn rsh M p;
+             densematn sh (map_mx Some (fstep i)) xp))%assert.
  + entailer!!.
- + rename i0 into j.
-   assert (Zlength x' = Zlength x). {
-     apply fold_left_preserves; try lia.
-     intros. apply Zlength_forward_subst_step.
-   }
-   forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,rsh,j,i,R j i).
-   unfold joinLU; replace (andb _ _) with true by lia; auto.
-   forward. 
-    entailer!!;  rewrite Znth_map; simpl; auto; lia.
+ + rename i0 into j. ordify n j.
+    destruct H1 as [_ H1]. destruct H2 as [_ H2].
+    forward_densematn_get M j i p rsh (L i j).
+   apply HML; lia.
+   forward_densematn_get (map_mx Some (fstep i)) j (@ord0 O) xp sh (fstep i j ord0).
+   apply mxE.
    forward.
    entailer!!.
-   rewrite Znth_map by lia.
-   simpl. 
-   rewrite Zrangelist_plus1 by lia.
-   rewrite map_app.
-   simpl map.
+  change (@val_of_float _) with Vfloat. 
+  change (@BMINUS _ _) with Float.sub.
+  change (@BMULT _ _) with Float.mul.
+  pose proof (Zlength_ord_enum n). 
+   f_equal.
+   rewrite (sublist_split 0 j (Z.of_nat j + 1)) by lia. 
+   rewrite map_app, fold_left_app.   
+   rewrite (sublist_one j (j+1)) by lia.
+   simpl.
+  rewrite Znth_ord_enum.
+  auto.
+ +    
+   forward_densematn_get M i i p rsh (L i i).
+   apply HML; lia.
+  set (bi := fold_left _ _ _ ).
+  forward_densematn_set (map_mx Some (fstep i)) i (@ord0 O) xp sh (BDIV bi (L i i)).
+  entailer!!.
+  apply derives_refl'. f_equal.
+   unfold fstep.
+   rewrite (sublist_split 0 i (i+1)) by lia.
    rewrite fold_left_app.
-   reflexivity.
- +  forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,rsh,i,i,R i i).
-    unfold joinLU; replace (andb _ _) with true by lia; auto.
-    forward.
-   entailer!!.
-   apply derives_refl'. f_equal.
-   rewrite upd_Znth_map. f_equal.
-   rewrite Zrangelist_plus1 by lia.
-   rewrite fold_left_app.
-   reflexivity.
- + rewrite fold_left_preserves. lia.
-   intros. apply Zlength_forward_subst_step.
+   rewrite (sublist_one i) by lia. simpl.
+  rewrite Znth_ord_enum.
+  set (al := fold_left _ _ _).
+  subst bi. change (fstep i)  with al.
+  unfold forward_subst_step.
+  change ssralg.GRing.zero with (@ord0 O).
+  change @seq.map with @map.
+  rewrite take_sublist.
+  set (uu := BDIV _ _).
+  unfold update_mx.
+  apply matrixP; intros i' j'.
+  unfold map_mx; rewrite !mxE.
+  ord1_eliminate j'.
+  simpl.
+  destruct (Nat.eq_dec _ _); auto.
+
 - 
  deadvars!.
- set (x1 := fold_left _ _ _).
- assert (Zlength x1 = n). {
-     rewrite <- H0; apply fold_left_preserves; try lia.
-     intros. apply Zlength_forward_subst_step.
-   }
+ pose (R := map_mx optfloat_to_float M).
+assert (HMR: forall i j: 'I_n, (j >= i) -> M i j = Some (R i j)). {
+ clear - H.
+ intros i j ?.
+ unfold R.  unfold map_mx, trmx; rewrite !mxE.
+ unfold mirror_UT, joinLU, trmx in H.
+ specialize (H i j); rewrite mxE in H. 
+ destruct (@ssrnat.leP i j); [ | lia]. 
+ destruct (M i j); try contradiction; auto.
+}
+
+pose (bstep i := fold_left (backward_subst_step R) (rev (sublist i  n (ord_enum n))) (fstep n)).
+
 forward_loop (EX i:Z,
    PROP (0 <= i <= n)
    LOCAL (temp _i__1 (Vint (Int.repr i));
           temp _R p; temp _x xp; temp _n (Vint (Int.repr n)))
-   SEP (densematn rsh n n (joinLU n M (fun i j : Z => Some (R i j))) p;
-   data_at sh (tarray the_ctype n)
-     (map val_of_float 
-         (fold_left (backward_subst_step n R) (rev (Zrangelist i n)) x1)) xp))%assert.
+   SEP (densematn rsh M p; 
+            densematn sh (map_mx Some (bstep i)) xp))%assert.
  + forward.
-  Exists n. entailer!!. 
-  unfold Zrangelist. rewrite Z.sub_diag. simpl. cancel.
+  Exists (Z.of_nat n). entailer!!.
+  unfold bstep. autorewrite with sublist. simpl. auto. 
  + Intros i.
-  set (x2 := fold_left (backward_subst_step n R) (rev (Zrangelist i n)) x1).
-  assert (Zlength x2 = n). {
-     rewrite <- H1.
-     apply fold_left_preserves; try lia.
-     intros. apply Zlength_backward_subst_step.
-   }
   forward_if.
-  * forward. entailer!!; rewrite Znth_map; simpl; auto; lia.
-    rewrite Znth_map by lia.
-  forward_for_simple_bound n (EX j:Z,
-   PROP (i <= j)
+  * 
+    rewrite <- (Z.sub_add 1 i) in *.
+   set (i1 := i-1) in *.
+   ordify n i1. rewrite Hi0 in *. clear i Hi0. clear H2. 
+  assert (IHn : Inhabitant 'I_n) by exact i1. 
+   pose (i := i1+1).
+   forward_densematn_get (map_mx Some (bstep i)) i1 (@ord0 O) xp sh (bstep i i1  ord0).
+   entailer!!;  simpl; repeat f_equal; lia.
+   subst i; cancel.
+   apply mxE.
+  forward_for_simple_bound (Z.of_nat n) (EX j:Z,
+   PROP (i1 < j)
    LOCAL (temp _yi (val_of_float 
             (fold_left BMINUS 
-              (map (fun j => BMULT (R (i-1) j) (Znth j x2)) (Zrangelist i j))
-                      (Znth (i-1) x2))); 
+              (map (fun j => BMULT (R i1 j) (bstep i j ord0)) (sublist i j (ord_enum n)))
+                      (bstep i i1 ord0)));
           temp _i__1 (Vint (Int.repr i)); temp _R p; 
           temp _x xp; temp _n (Vint (Int.repr n)))
-   SEP (densematn rsh n n (joinLU n M (fun i j : Z => Some (R i j))) p;
-        data_at sh (tarray the_ctype n) (map val_of_float x2) xp))%assert.
-  -- forward. Exists i; entailer!!. unfold Zrangelist; rewrite Z.sub_diag; reflexivity. 
+   SEP (densematn rsh M p;
+             densematn sh (map_mx Some (bstep i)) xp))%assert.
+  -- forward. Exists i; entailer!!. autorewrite with sublist. reflexivity. 
   -- rename i0 into j. Intros.
-   forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,rsh,i-1,j,R (i-1) j).
-   unfold joinLU; replace (andb _ _) with true by lia; auto.
-   forward. 
-    entailer!!;  rewrite Znth_map; simpl; auto; lia.
+   ordify n j.
+   forward_densematn_get M i1 j p rsh (R i1 j).
+   entailer!!. 
+     simpl; repeat f_equal; lia.
+     apply HMR; lia.
+   forward_densematn_get (map_mx Some (bstep i)) j (@ord0 O) xp sh (bstep i j ord0).
+   apply mxE.
    forward.
    entailer!!.
-   rewrite Znth_map by lia.
-   simpl. 
-   rewrite Zrangelist_plus1 by lia.
-   rewrite map_app.
-   simpl map.
-   rewrite fold_left_app.
+   rewrite (sublist_split i j) by lia.
+   rewrite (sublist_one j) by lia.
+   rewrite map_app, fold_left_app.
+   simpl.
+   rewrite Znth_ord_enum.
    reflexivity.
- -- forward_call (n,n,(joinLU n M (fun i j : Z => Some (R i j))),p,rsh,i-1,i-1,R (i-1) (i-1)).
-    unfold joinLU; replace (andb _ _) with true by lia; auto.
+ --
+   forward_densematn_get M i1 i1 p rsh (R i1 i1).
+   entailer!!. simpl. repeat f_equal; lia.
+   apply HMR; lia.
     Intros vret. subst vret.
-    forward.
-    forward.
-    Exists (i-1).
-    entailer!!.
-    apply derives_refl'. f_equal.
-    rewrite upd_Znth_map. f_equal.
-   rewrite (Zrangelist_minus1 (i-1)) by lia.
+   set (bi := fold_left _ _ _).
+   forward_densematn_set (map_mx Some (bstep i)) i1 (@ord0 O) xp sh (BDIV bi (R i1 i1)).
+   entailer!!. simpl; repeat f_equal; lia.
+   forward.
+   Exists (Z.of_nat i1).
+   entailer!!. f_equal; f_equal; lia.
+   apply derives_refl'; f_equal.
+   subst i.
+   unfold bstep at 2.
+   rewrite (sublist_split i1 (i1+1)) by lia.
+   rewrite (sublist_one i1) by lia.
    simpl rev.
    rewrite fold_left_app.
-   unfold backward_subst_step.
    simpl.
-   replace (i-1+1) with i by lia.
-   reflexivity.
+   rewrite Znth_ord_enum.
+   unfold backward_subst_step at 1.
+   apply matrixP; intros i' j'.
+   unfold update_mx, map_mx; rewrite !mxE.
+   ord1_eliminate j'.
+   destruct (Nat.eq_dec i' i1); simpl; auto.
+   rewrite drop_sublist.
+   f_equal. f_equal. subst bi. f_equal.
+   change @seq.map with @map.
+   f_equal. f_equal; lia.
   *
    forward.
    entailer!!.
    assert (i=0) by lia. subst i.
-   apply derives_refl.
+   apply derives_refl'.
+   f_equal. f_equal.
+   unfold bstep, backward_subst, fstep, forward_subst.
+   rewrite sublist_same by lia.
+   subst R L.
+   rewrite seq_rev_rev; reflexivity.
 Qed.
 
 
@@ -1012,9 +1284,12 @@ start_function.
 unfold densemat in POSTCONDITION|-*.
 Intros. 
 forward.
-forward_call (rsh,sh,n,M,R,x, offset_val densemat_data_offset p, xp).
+pose (X := existT _ n (M,x) : {n & 'M[option (ftype the_type)]_n * 'cV[ (ftype the_type)]_n}%type).
+forward_call (rsh,sh,X, offset_val densemat_data_offset p, xp); clear X.
 entailer!!.
 Qed.
+
+(** * Packaging the [densematVSU], the Verified Software Unit *)
 
 (* BEGIN workaround for VST issue #814, until we can install VST 2.16 which fixes it. *)
 Ltac new_simpl_fst_snd :=
