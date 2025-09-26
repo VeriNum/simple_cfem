@@ -58,9 +58,14 @@ docs/index.pdf: docs/index.qmd $(DOCS)
 
 doc: docs/index.pdf docs/index.html
 
+DOCFILES= index_files index.html index.pdf
 publish: docs/index.pdf docs/index.html
 	echo "THIS PUBLISHES ONLY THE C PROGRAM.  To publish the proofs: cd proof; make publish"
-	( cd docs ; quarto publish gh-pages index.qmd )
+	cd gh-pages; git submodule update
+	cd docs; cp -R $(DOCFILES) ../gh-pages
+	cd gh-pages; git commit $(DOCFILES) -m "Publishing C program"
+	cd gh-pages; git push
+#	( cd docs ; quarto publish gh-pages index.qmd )
 
 test: $(TESTS)
 	( for f in exe/test*.x ; do $$f ; done )

@@ -3,6 +3,7 @@ COQDOCEXTRAFLAGS= -g --no-lib-name --index genindex --lib-subtitles --interpolat
 
 publish: html
 	cd ../gh-pages; git submodule update
+	cd ../gh-pages; mkdir -p proofdoc
 	cp html/* ../gh-pages/proofdoc
 	$(HIDE)for i in ../gh-pages/proofdoc/*; do \
 	 if [ ! -f html/`basename $$i` ]; then \

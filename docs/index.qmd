@@ -16,7 +16,7 @@ at <https://github.com/bindel-group/simple_cfem>.  The code is written
 as a pedagogical example, and is coded in C to make it a reasonable
 target for verification with the Verified Software Toolchain.
 
-[The correctness proof is described here](proofdoc/index.html).
+[The correctness proof is described here](proofdoc/index.html). 
 
 The rest of this page is the C program.
 
