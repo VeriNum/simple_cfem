@@ -59,6 +59,7 @@ docs/index.pdf: docs/index.qmd $(DOCS)
 doc: docs/index.pdf docs/index.html
 
 publish: docs/index.pdf docs/index.html
+	echo "THIS PUBLISHES ONLY THE C PROGRAM.  To publish the proofs: cd proof; make publish"
 	( cd docs ; quarto publish gh-pages index.qmd )
 
 test: $(TESTS)
