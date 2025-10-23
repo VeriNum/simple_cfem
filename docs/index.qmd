@@ -1,6 +1,6 @@
 ---
 title: Simple Finite Element Method in C
-author: David Bindel (program), Andrew Appel
+author: David Bindel (program), Andrew Appel (proof)
 format:
   html:
     toc: true
