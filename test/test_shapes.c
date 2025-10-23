@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../src/densemat.h"
+#include <densemat.h>
 #include "../src/shapes.h"
 
 void test_shape(shapes_t shape, double* nodes, int d, int numnodes)

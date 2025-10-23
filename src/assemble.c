@@ -3,8 +3,8 @@
 #include <assert.h>
 
 #include "assemble.h"
-#include "densemat.h"
-#include "bandmat.h"
+#include <densemat.h>
+#include <bandmat.h>
 
 //ldoc on
 /**

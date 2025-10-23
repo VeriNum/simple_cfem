@@ -1,5 +1,5 @@
 -include CONFIGURE
-CFLAGS ?= -Wall
+CFLAGS ?= -Wall -ILAProof/C/include
 
 LDOC= 	lua util/ldoc.lua
 
@@ -37,6 +37,13 @@ TESTS=	exe/test_quad.x \
 all:
 
 objs:  $(OBJS)
+
+obj/alloc.o: LAProof/C/src/alloc.c
+	$(CC) $(CFLAGS) -c $< -o $@
+obj/densemat.o: LAProof/C/src/densemat.c
+	$(CC) $(CFLAGS) -c $< -o $@
+obj/bandmat.o: LAProof/C/src/bandmat.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
