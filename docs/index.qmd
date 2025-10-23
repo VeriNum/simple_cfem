@@ -1,6 +1,6 @@
 ---
-title: Simple 1D FEM in C
-author: David Bindel (with contributions from Andrew Appel)
+title: Simple Finite Element Method in C
+author: David Bindel (program), Andrew Appel
 format:
   html:
     toc: true
@@ -12,7 +12,7 @@ format:
 # Introduction
 
 This document is automatically extracted from the sources found
-at <https://github.com/bindel-group/simple_cfem>.  The code is written
+at <https://github.com/VeriNum/simple_cfem>.  The code is written
 as a pedagogical example, and is coded in C to make it a reasonable
 target for verification with the Verified Software Toolchain.
 
