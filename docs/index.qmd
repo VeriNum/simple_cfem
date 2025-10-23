@@ -18,11 +18,14 @@ target for verification with the Verified Software Toolchain.
 
 [The correctness proof is described here](proofdoc/index.html). 
 
+The C program is in two parts.  Basic linear algebra functions are in the LAProof library:
+
+ * [`alloc`: Memory allocation](https://verinum.org/LAProof/alloc.html)
+ * [`densemat`: Dense matrix operations](https://verinum.org/LAProof/densemat.html)
+ * [`bandmat`: Band matrix operations](https://verinum.org/LAProof/bandmat.html)
+
 The rest of this page is the C program.
 
-{{< include alloc.qmd >}}
-{{< include densemat.qmd >}}
-{{< include bandmat.qmd >}}
 {{< include shapes.qmd >}}
 {{< include mesh.qmd >}}
 {{< include quadrules.qmd >}}
