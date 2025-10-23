@@ -1,8 +1,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "densemat.h"
-#include "bandmat.h"
+#include <densemat.h>
+#include <bandmat.h>
 #include "assemble.h"
 
 void test_K_setup(assemble_t assembler)

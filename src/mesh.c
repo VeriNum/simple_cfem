@@ -3,8 +3,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "alloc.h"
-#include "densemat.h"
+#include <alloc.h>
+#include <densemat.h>
 #include "mesh.h"
 
 //ldoc on

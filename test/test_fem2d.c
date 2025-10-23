@@ -4,8 +4,8 @@
 #include <math.h>
 #include <assert.h>
 
-#include "densemat.h"
-#include "bandmat.h"
+#include <densemat.h>
+#include <bandmat.h>
 #include "mesh.h"
 #include "assemble.h"
 #include "element.h"

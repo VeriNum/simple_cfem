@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "densemat.h"
+#include <densemat.h>
 
 int main(void)
 {

@@ -1,7 +1,7 @@
 #ifndef ASSEMBLE_H
 #define ASSEMBLE_H
-#include "densemat.h"
-#include "bandmat.h"
+#include <densemat.h>
+#include <bandmat.h>
 
 //ldoc on
 /**
