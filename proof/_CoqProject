@@ -1,8 +1,8 @@
 -Q . CFEM
 -arg "-async-proofs-j 8"
-assemble.v
-element.v
-fem.v
-mesh.v
-quadrules.v
-shapes.v
+C/assemble.v
+C/element.v
+C/fem.v
+C/mesh.v
+C/quadrules.v
+C/shapes.v

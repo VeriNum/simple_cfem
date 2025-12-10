@@ -24,7 +24,7 @@ endif
 clean:
 	rm -f CoqMakefile CoqMakefile.conf
 	rm -f *.vo *.vos *.vok *.glob
-
+	rm -f C/*.vo C/*.vos C/*.vok C/*.glob
 # This should be the last rule, to handle any targets not declared above
 %: invoke-coqmakefile
 	@true
