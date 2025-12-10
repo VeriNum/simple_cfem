@@ -3,8 +3,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "densemat.h"
-#include "bandmat.h"
+#include <densemat.h>
+#include <bandmat.h>
 
 void get_Aref(double* A)
 {

@@ -1,13 +1,10 @@
 -include CONFIGURE
-CFLAGS ?= -Wall
+CFLAGS ?= -Wall -ILAProof/C/include
 
 LDOC= 	lua util/ldoc.lua
 
-DOCS=	docs/alloc.qmd \
-	docs/quadrules.qmd \
+DOCS=	docs/quadrules.qmd \
 	docs/shapes.qmd \
-	docs/densemat.qmd \
-	docs/bandmat.qmd \
 	docs/mesh.qmd \
 	docs/assemble.qmd \
 	docs/fem.qmd \
@@ -37,6 +34,13 @@ TESTS=	exe/test_quad.x \
 all:
 
 objs:  $(OBJS)
+
+obj/alloc.o: LAProof/C/src/alloc.c
+	$(CC) $(CFLAGS) -c $< -o $@
+obj/densemat.o: LAProof/C/src/densemat.c
+	$(CC) $(CFLAGS) -c $< -o $@
+obj/bandmat.o: LAProof/C/src/bandmat.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@

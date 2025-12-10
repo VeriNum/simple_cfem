@@ -16,18 +16,18 @@ publish: html
 # CONVERTING .c FILES TO .v FILES USING clightgen
 
 %.v: ../src/%.c
-	clightgen -normalize $< -o $@
+	clightgen -I../LAProof/C/include -normalize $< -o $@
+
+LAProof: 
+	cd ../LAProof; $(MAKE) C/spec_alloc.vo C/spec_densemat.vo
 
 # the rest of this is adapted from the makedepend part of ../Makefile
-alloc.v: ../src/alloc.h
-assemble.v: ../src/assemble.h ../src/densemat.h ../src/bandmat.h
-bandmat.v: ../src/densemat.h ../src/bandmat.h
-densemat.v: ../src/densemat.h
-element.v: ../src/shapes.h ../src/quadrules.h ../src/assemble.h ../src/densemat.h
-element.v: ../src/bandmat.h ../src/mesh.h ../src/fem.h ../src/element.h
-fem.v: ../src/alloc.h ../src/assemble.h ../src/densemat.h ../src/bandmat.h
+assemble.v: ../src/assemble.h ../LAProof/C/include/densemat.h ../LAProof/C/include/bandmat.h
+element.v: ../src/shapes.h ../src/quadrules.h ../src/assemble.h ../LAProof/C/include/densemat.h
+element.v: ../LAProof/C/include/bandmat.h ../src/mesh.h ../src/fem.h ../src/element.h
+fem.v: ../LAProof/C/include/alloc.h ../src/assemble.h ../LAProof/C/include/densemat.h ../LAProof/C/include/bandmat.h
 fem.v: ../src/element.h ../src/mesh.h ../src/shapes.h ../src/fem.h
-mesh.v: ../src/densemat.h ../src/mesh.h ../src/shapes.h
+mesh.v: ../LAProof/C/include/densemat.h ../src/mesh.h ../src/shapes.h
 quadrules.v: ../src/quadrules.h
 shapes.v: ../src/shapes.h
 mesh.v: ../src/shapes.h

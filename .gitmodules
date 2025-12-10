@@ -1,3 +1,6 @@
 [submodule "simple_cfem"]
 	path = gh-pages
 	url = git@github.com:VeriNum/simple_cfem.git
+[submodule "LAProof"]
+	path = LAProof
+	url = git@github.com:VeriNum/LAProof.git
