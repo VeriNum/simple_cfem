@@ -1,9 +1,8 @@
 #ifndef FEM1D_H
 #define FEM1D_H
-
+#include "mesh.h"
+#include "assemble.h"
 struct element_t;
-struct assembler_t;
-struct mesh_t;
 
 //ldoc on
 /**
@@ -88,6 +87,14 @@ void fem_update_U(fem_t fe, double* du_red);
  * loading / right-hand side vector (an output argument).
  */
 void fem_set_load(fem_t fe, void (*f)(double* x, double* fx));
+
+/**
+ * The following two functions need not be public except for unit tests;
+ * normally they're called only from fem_assemble.
+ */
+void assemble_matrix(assemble_t K, double* emat, int* ids, int ne);
+void assemble_vector(double* v, double* ve, int* ids, int ne);
+
 
 /**
  * The assembly loops iterate through the elements and produce a global

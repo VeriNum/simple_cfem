@@ -111,6 +111,7 @@ Definition _densemat_clear : ident := $"densemat_clear".
 Definition _densemat_norm2 : ident := $"densemat_norm2".
 Definition _densemat_print : ident := $"densemat_print".
 Definition _densemat_t : ident := $"densemat_t".
+Definition _densematn_get : ident := $"densematn_get".
 Definition _emat : ident := $"emat".
 Definition _i : ident := $"i".
 Definition _ids : ident := $"ids".
@@ -568,8 +569,8 @@ Definition f_assemble_dense_add := {|
                 (_ne, tint) :: nil);
   fn_vars := nil;
   fn_temps := ((_A, (tptr (Tstruct _densemat_t noattr))) :: (_je, tint) ::
-               (_j, tint) :: (_ie, tint) :: (_i, tint) :: (_t'1, tint) ::
-               (_t'2, tdouble) :: nil);
+               (_j, tint) :: (_ie, tint) :: (_i, tint) :: (_t'2, tint) ::
+               (_t'1, tdouble) :: nil);
   fn_body :=
 (Ssequence
   (Sset _A
@@ -604,20 +605,21 @@ Definition f_assemble_dense_add := {|
                   (Ssequence
                     (Sifthenelse (Ebinop Oge (Etempvar _i tint)
                                    (Econst_int (Int.repr 0) tint) tint)
-                      (Sset _t'1
+                      (Sset _t'2
                         (Ecast
                           (Ebinop Oge (Etempvar _j tint) (Etempvar _i tint)
                             tint) tbool))
-                      (Sset _t'1 (Econst_int (Int.repr 0) tint)))
-                    (Sifthenelse (Etempvar _t'1 tint)
+                      (Sset _t'2 (Econst_int (Int.repr 0) tint)))
+                    (Sifthenelse (Etempvar _t'2 tint)
                       (Ssequence
-                        (Sset _t'2
-                          (Ederef
-                            (Ebinop Oadd (Etempvar _emat (tptr tdouble))
-                              (Ebinop Oadd (Etempvar _ie tint)
-                                (Ebinop Omul (Etempvar _ne tint)
-                                  (Etempvar _je tint) tint) tint)
-                              (tptr tdouble)) tdouble))
+                        (Scall (Some _t'1)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Etempvar _emat (tptr tdouble)) ::
+                           (Etempvar _ne tint) :: (Etempvar _ie tint) ::
+                           (Etempvar _je tint) :: nil))
                         (Scall None
                           (Evar _densemat_addto (Tfunction
                                                   ((tptr (Tstruct _densemat_t noattr)) ::
@@ -625,7 +627,7 @@ Definition f_assemble_dense_add := {|
                                                    nil) tvoid cc_default))
                           ((Etempvar _A (tptr (Tstruct _densemat_t noattr))) ::
                            (Etempvar _i tint) :: (Etempvar _j tint) ::
-                           (Etempvar _t'2 tdouble) :: nil)))
+                           (Etempvar _t'1 tdouble) :: nil)))
                       Sskip))))
               (Sset _ie
                 (Ebinop Oadd (Etempvar _ie tint)
@@ -643,7 +645,7 @@ Definition f_assemble_bandmat_add := {|
   fn_vars := nil;
   fn_temps := ((_P, (tptr (Tstruct _bandmat_t noattr))) :: (_n, tint) ::
                (_b, tint) :: (_je, tint) :: (_j, tint) :: (_ie, tint) ::
-               (_i, tint) :: (_d, tint) :: (_t'1, tint) :: (_t'2, tdouble) ::
+               (_i, tint) :: (_d, tint) :: (_t'2, tint) :: (_t'1, tdouble) ::
                nil);
   fn_body :=
 (Ssequence
@@ -693,12 +695,12 @@ Definition f_assemble_bandmat_add := {|
                         (Ssequence
                           (Sifthenelse (Ebinop Oge (Etempvar _j tint)
                                          (Econst_int (Int.repr 0) tint) tint)
-                            (Sset _t'1
+                            (Sset _t'2
                               (Ecast
                                 (Ebinop Oge (Etempvar _d tint)
                                   (Econst_int (Int.repr 0) tint) tint) tbool))
-                            (Sset _t'1 (Econst_int (Int.repr 0) tint)))
-                          (Sifthenelse (Etempvar _t'1 tint)
+                            (Sset _t'2 (Econst_int (Int.repr 0) tint)))
+                          (Sifthenelse (Etempvar _t'2 tint)
                             (Ssequence
                               (Sifthenelse (Ebinop Ole (Etempvar _d tint)
                                              (Etempvar _b tint) tint)
@@ -718,14 +720,16 @@ Definition f_assemble_bandmat_add := {|
                                     (Evar _abort (Tfunction nil tvoid
                                                    cc_default)) nil)))
                               (Ssequence
-                                (Sset _t'2
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Etempvar _emat (tptr tdouble))
-                                      (Ebinop Oadd (Etempvar _ie tint)
-                                        (Ebinop Omul (Etempvar _ne tint)
-                                          (Etempvar _je tint) tint) tint)
-                                      (tptr tdouble)) tdouble))
+                                (Scall (Some _t'1)
+                                  (Evar _densematn_get (Tfunction
+                                                         ((tptr tdouble) ::
+                                                          tint :: tint ::
+                                                          tint :: nil)
+                                                         tdouble cc_default))
+                                  ((Etempvar _emat (tptr tdouble)) ::
+                                   (Etempvar _ne tint) ::
+                                   (Etempvar _ie tint) ::
+                                   (Etempvar _je tint) :: nil))
                                 (Scall None
                                   (Evar _bandmat_addto (Tfunction
                                                          ((tptr (Tstruct _bandmat_t noattr)) ::
@@ -735,7 +739,7 @@ Definition f_assemble_bandmat_add := {|
                                   ((Etempvar _P (tptr (Tstruct _bandmat_t noattr))) ::
                                    (Etempvar _j tint) ::
                                    (Etempvar _d tint) ::
-                                   (Etempvar _t'2 tdouble) :: nil))))
+                                   (Etempvar _t'1 tdouble) :: nil))))
                             Sskip)))))
                   (Sset _ie
                     (Ebinop Oadd (Etempvar _ie tint)
@@ -1086,6 +1090,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_external "densemat_norm2"
                    (mksignature (AST.Xptr :: nil) AST.Xfloat cc_default))
      ((tptr (Tstruct _densemat_t noattr)) :: nil) tdouble cc_default)) ::
+ (_densematn_get,
+   Gfun(External (EF_external "densematn_get"
+                   (mksignature
+                     (AST.Xptr :: AST.Xint :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xfloat cc_default))
+     ((tptr tdouble) :: tint :: tint :: tint :: nil) tdouble cc_default)) ::
  (_densemat_addto,
    Gfun(External (EF_external "densemat_addto"
                    (mksignature
@@ -1135,26 +1145,26 @@ Definition public_idents : list ident :=
  _casted_densemat_norm2 :: _casted_densemat_clear :: _assemble_print ::
  _assemble_norm :: _assemble_norm2 :: _assemble_clear :: _assemble_add ::
  _bandmat_addto :: _bandmat_norm2 :: _bandmat_print :: _bandmat_clear ::
- _densemat_addto :: _densemat_norm2 :: _densemat_print :: _densemat_clear ::
- _abort :: _sqrt :: _printf :: ___builtin_debug :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_clsll ::
- ___builtin_clsl :: ___builtin_cls :: ___builtin_expect ::
- ___builtin_unreachable :: ___builtin_va_end :: ___builtin_va_copy ::
- ___builtin_va_arg :: ___builtin_va_start :: ___builtin_membar ::
- ___builtin_annot_intval :: ___builtin_annot :: ___builtin_sel ::
- ___builtin_memcpy_aligned :: ___builtin_sqrt :: ___builtin_fsqrt ::
- ___builtin_fabsf :: ___builtin_fabs :: ___builtin_ctzll ::
- ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll :: ___builtin_clzl ::
- ___builtin_clz :: ___builtin_bswap16 :: ___builtin_bswap32 ::
- ___builtin_bswap :: ___builtin_bswap64 :: ___compcert_i64_umulh ::
- ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
- ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
- ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
- ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
- ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
- ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
- nil).
+ _densemat_addto :: _densematn_get :: _densemat_norm2 :: _densemat_print ::
+ _densemat_clear :: _abort :: _sqrt :: _printf :: ___builtin_debug ::
+ ___builtin_fmin :: ___builtin_fmax :: ___builtin_fnmsub ::
+ ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
+ ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
+ ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
+ ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
+ ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
+ ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
+ ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
+ ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
+ ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
+ ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___compcert_va_composite :: ___compcert_va_float64 ::
+ ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.

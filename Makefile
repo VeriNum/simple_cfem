@@ -73,7 +73,7 @@ publish: docs/index.pdf docs/index.html
 #	( cd docs ; quarto publish gh-pages index.qmd )
 
 test: $(TESTS)
-	( for f in exe/test*.x ; do $$f ; done )
+	( for f in exe/test*.x ; do echo "Running test" $$f; $$f ; done )
 
 depend:
 	makedepend -Isrc src/*.c src/*.h test/*.c

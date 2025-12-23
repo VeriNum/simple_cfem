@@ -1,4 +1,5 @@
 -Q . CFEM
+-Q LAProof LAProof
 -arg "-async-proofs-j 8"
 C/assemble.v
 C/element.v
@@ -6,3 +7,4 @@ C/fem.v
 C/mesh.v
 C/quadrules.v
 C/shapes.v
+model.v
