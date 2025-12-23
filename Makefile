@@ -66,13 +66,14 @@ DOCFILES= index_files index.html index.pdf
 publish: docs/index.pdf docs/index.html
 	echo "THIS PUBLISHES ONLY THE C PROGRAM.  To publish the proofs: cd proof; make publish"
 	cd gh-pages; git submodule update
+	cd gh-pages; git rm -rf $(DOCFILES)
 	cd docs; cp -R $(DOCFILES) ../gh-pages
-	cd gh-pages; git commit $(DOCFILES) -m "Publishing C program"
+	cd gh-pages; git add $(DOCFILES); git commit -m "Publishing C program"
 	cd gh-pages; git push
 #	( cd docs ; quarto publish gh-pages index.qmd )
 
 test: $(TESTS)
-	( for f in exe/test*.x ; do $$f ; done )
+	( for f in exe/test*.x ; do echo "Running test" $$f; $$f ; done )
 
 depend:
 	makedepend -Isrc src/*.c src/*.h test/*.c

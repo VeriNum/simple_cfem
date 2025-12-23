@@ -81,6 +81,45 @@ void fem_set_load(fem_t fe, void (*f)(double* x, double* fx))
         (*f)(X+i*d, F+i*ndof);
 }
 
+/**
+ * ## Matrix assembly loop
+ * 
+ * The assembly loop logically executes `A[iglobal, jglobal] += Ae[i, j]`
+ * for every local index pair `(i,j)`.  We filter out the contributions
+ * where the global indices are negative (indicating that these
+ * contributions are not needed because of an essential boundary condition.
+ */
+void assemble_matrix(assemble_t K, double* emat, int* ids, int ne)
+{
+    for (int je = 0; je < ne; ++je) {
+        int j = ids[je];
+        for (int ie = 0; ie <= je; ++ie) {
+            int i = ids[ie];
+            if (i >= 0 && j >= i)
+	      assemble_add(K,i,j, densematn_get(emat,ne,ie,je));
+        }
+    }
+}
+
+/**
+ * ## Vector assembly
+ * 
+ * We only really use one vector representation (a simple array), so
+ * there is no need for the same type of assembler abstraction for vectors
+ * that we have for matrices.  The semantics of `assemble_vector` are
+ * similar to those of `assemble_add` in the matrix case, except now
+ * we add the element vector `ve` into the global vector `v`.
+ * 
+ */
+void assemble_vector(double* v, double* ve, int* ids, int ne)
+{
+    for (int ie = 0; ie < ne; ++ie) {
+        int i = ids[ie];
+        if (i >= 0)
+            v[i] += ve[ie];
+    }
+}
+
 // Assemble global residual and tangent stiffness (general)
 void fem_assemble(fem_t fe, double* R, assemble_t K)
 {
@@ -110,7 +149,7 @@ void fem_assemble(fem_t fe, double* R, assemble_t K)
 
         // Put them into the global vector/matrix
         if (R) assemble_vector(R, Re, ids, nen);
-        if (K) assemble_add(K, Ke, ids, nen);
+        if (K) assemble_matrix(K, Ke, ids, nen);
 
     }
 

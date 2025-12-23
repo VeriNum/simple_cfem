@@ -4,14 +4,15 @@
 #include <densemat.h>
 #include <bandmat.h>
 #include "assemble.h"
+#include "fem.h"
 
 void test_K_setup(assemble_t assembler)
 {
     double emat[] = {1.0, -1.0, -1.0, 1.0};
     int ids[2];
     assemble_clear(assembler);
-    ids[0] = 0; ids[1] = 1; assemble_add(assembler, emat, ids, 2);
-    ids[0] = 1; ids[1] = 2; assemble_add(assembler, emat, ids, 2);
+    ids[0] = 0; ids[1] = 1; assemble_matrix(assembler, emat, ids, 2);
+    ids[0] = 1; ids[1] = 2; assemble_matrix(assembler, emat, ids, 2);
 }
 
 void test_Kassembly(void)

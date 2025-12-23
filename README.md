@@ -12,3 +12,4 @@ documents yourself: run `make doc`, which builds the documentation
 Markdown from comments in the C files (via `util/ldoc.lua`) and then
 converts it to a PDF and a web page (via Quarto).
 
+See [ORGANIZATION.md](ORGANIZATION.md) for an outline of directory structure.

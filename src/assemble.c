@@ -10,18 +10,15 @@
 /**
  * ## Method dispatch
  */
-void assemble_add(assemble_t assembler, double* emat, int* ids, int ne)
-{
-    (*(assembler->add))(assembler->p, emat, ids, ne);
+void assemble_add(assemble_t assembler, int i, int j, double x) {
+  (*(assembler->add))(assembler->p, i, j, x);
 }
 
-void assemble_clear (assemble_t assembler)
-{
+void assemble_clear (assemble_t assembler) {
     (*(assembler->clear))(assembler->p);
 }
 
-double assemble_norm2 (assemble_t assembler)
-{
+double assemble_norm2 (assemble_t assembler) {
    return (*(assembler->norm2))(assembler->p);
 }
 
@@ -29,8 +26,7 @@ double assemble_norm (assemble_t assembler) {
   return sqrt(assemble_norm2(assembler));
 }
 
-void assemble_print (assemble_t assembler)
-{
+void assemble_print (assemble_t assembler) {
     (*(assembler->print))(assembler->p);
 }
 
@@ -42,8 +38,8 @@ void assemble_print (assemble_t assembler)
  * 
  */
 // Declare private implementations for the methods
-/*static*/ void assemble_dense_add(assemble_data_t p, double* emat, int* ids, int ne);
-/*static*/ void assemble_bandmat_add(assemble_data_t p, double* emat, int* ids, int ne);
+/*static*/ void assemble_dense_add(assemble_data_t p, int i, int j, double x);
+/*static*/ void assemble_bandmat_add(assemble_data_t p, int i, int j, double x);
 
 // Initialize a dense assembler
 void casted_densemat_clear(assemble_data_t p) {
@@ -90,54 +86,14 @@ void init_assemble_band(assemble_t assembler, bandmat_t b)
 }
 
 /**
- * ## Matrix assembly loops
- * 
- * The assembly loops logically execute `A[iglobal, jglobal] += Ae[i, j]`
- * for every local index pair `(i,j)`.  We filter out the contributions
- * where the global indices are negative (indicating that these
- * contributions are not needed because of an essential boundary condition.
+ * ## Matrix add functions
  */
-/*static*/ void assemble_dense_add(assemble_data_t p, double* emat, int* ids, int ne)
-{
+void assemble_dense_add(assemble_data_t p, int i, int j, double x) {
     densemat_t A = (densemat_t)p;
-
-    for (int je = 0; je < ne; ++je) {
-        int j = ids[je];
-        for (int ie = 0; ie <= je; ++ie) {
-            int i = ids[ie];
-            if (i >= 0 && j >= i)
-	      densemat_addto(A,i,j, emat[ie+ne*je]);
-        }
-    }
+    densemat_addto(A,i,j,x);
 }
 
-/*static*/ void assemble_bandmat_add(assemble_data_t p, double* emat, int* ids, int ne)
-{
+void assemble_bandmat_add(assemble_data_t p, int i, int j, double x) {
     bandmat_t P = (bandmat_t)p;
-    int n = P->m;
-    int b = P->b;
-
-    for (int je = 0; je < ne; ++je) {
-        int j = ids[je];
-        for (int ie = 0; ie <= je; ++ie) {
-            int i = ids[ie];
-            int d = j-i;
-            if (j >= 0 && d >= 0) {
-                assert(d <= b);
-		bandmat_addto(P,j,d, emat[ie+ne*je]);
-            }
-        }
-    }
-}
-
-/**
- * ## Vector assembly
- */
-void assemble_vector(double* v, double* ve, int* ids, int ne)
-{
-    for (int ie = 0; ie < ne; ++ie) {
-        int i = ids[ie];
-        if (i >= 0)
-            v[i] += ve[ie];
-    }
+    bandmat_addto(P,j,j-i,x);
 }

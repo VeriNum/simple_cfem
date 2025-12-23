@@ -80,14 +80,14 @@ typedef struct assemble_data_t *assemble_data_t;
 
 typedef struct assemble_t {
     assemble_data_t p;                            // Context
-    void (*add)(assemble_data_t, double*, int*, int); // Add contribution
+  void (*add)(assemble_data_t, int, int, double); // Add contribution
     void (*clear)(assemble_data_t); // set to zero
     double (*norm2)(assemble_data_t); // square of Frobenius norm
     void (*print)(assemble_data_t);
 } *assemble_t;
 
 // Convenience functions that call the assembler methods
-void assemble_add(assemble_t assembler, double* emat, int* ids, int ne);
+void assemble_add(assemble_t assembler, int i, int j, double x);
 void assemble_clear(assemble_t assembler);
 double assemble_norm2(assemble_t assembler);
 void assemble_print(assemble_t assembler);
@@ -102,18 +102,6 @@ void assemble_print(assemble_t assembler);
  */
 void init_assemble_dense(assemble_t assembler, densemat_t A);
 void init_assemble_band(assemble_t assembler, bandmat_t b);
-
-/**
- * ## Vector assembly interface
- * 
- * We only really use one vector representation (a simple array), so
- * there is no need for the same type of assembler abstraction for vectors
- * that we have for matrices.  The semantics of `assemble_vector` are
- * similar to those of `assemble_add` in the matrix case, except now
- * we add the element vector `ve` into the global vector `v`.
- * 
- */
-void assemble_vector(double* v, double* ve, int* ids, int ne);
 
 //ldoc off
 #endif /* ASSEMBLE_H */
