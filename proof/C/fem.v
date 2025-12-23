@@ -94,6 +94,7 @@ Definition _add : ident := $"add".
 Definition _assemble_add : ident := $"assemble_add".
 Definition _assemble_clear : ident := $"assemble_clear".
 Definition _assemble_data_t : ident := $"assemble_data_t".
+Definition _assemble_matrix : ident := $"assemble_matrix".
 Definition _assemble_t : ident := $"assemble_t".
 Definition _assemble_vector : ident := $"assemble_vector".
 Definition _b : ident := $"b".
@@ -103,11 +104,13 @@ Definition _d : ident := $"d".
 Definition _dR : ident := $"dR".
 Definition _data : ident := $"data".
 Definition _densemat_t : ident := $"densemat_t".
+Definition _densematn_get : ident := $"densematn_get".
 Definition _double_calloc : ident := $"double_calloc".
 Definition _du_red : ident := $"du_red".
 Definition _element_dR : ident := $"element_dR".
 Definition _element_t : ident := $"element_t".
 Definition _elt : ident := $"elt".
+Definition _emat : ident := $"emat".
 Definition _etype : ident := $"etype".
 Definition _f : ident := $"f".
 Definition _fe : ident := $"fe".
@@ -125,6 +128,7 @@ Definition _free : ident := $"free".
 Definition _i : ident := $"i".
 Definition _id : ident := $"id".
 Definition _ids : ident := $"ids".
+Definition _ie : ident := $"ie".
 Definition _init_assemble_band : ident := $"init_assemble_band".
 Definition _init_assemble_dense : ident := $"init_assemble_dense".
 Definition _int_calloc : ident := $"int_calloc".
@@ -134,6 +138,7 @@ Definition _j__2 : ident := $"j__2".
 Definition _j__3 : ident := $"j__3".
 Definition _j__4 : ident := $"j__4".
 Definition _j__5 : ident := $"j__5".
+Definition _je : ident := $"je".
 Definition _m : ident := $"m".
 Definition _main : ident := $"main".
 Definition _memset : ident := $"memset".
@@ -144,6 +149,7 @@ Definition _mesh_t : ident := $"mesh_t".
 Definition _n : ident := $"n".
 Definition _nactive : ident := $"nactive".
 Definition _ndof : ident := $"ndof".
+Definition _ne : ident := $"ne".
 Definition _nen : ident := $"nen".
 Definition _next_id : ident := $"next_id".
 Definition _norm2 : ident := $"norm2".
@@ -154,6 +160,8 @@ Definition _print : ident := $"print".
 Definition _printf : ident := $"printf".
 Definition _shape : ident := $"shape".
 Definition _surely_malloc : ident := $"surely_malloc".
+Definition _v : ident := $"v".
+Definition _ve : ident := $"ve".
 Definition _t'1 : ident := 128%positive.
 Definition _t'10 : ident := 137%positive.
 Definition _t'11 : ident := 138%positive.
@@ -691,6 +699,119 @@ Definition f_fem_set_load := {|
                   (Econst_int (Int.repr 1) tint) tint)))))))))
 |}.
 
+Definition f_assemble_matrix := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_K, (tptr (Tstruct _assemble_t noattr))) ::
+                (_emat, (tptr tdouble)) :: (_ids, (tptr tint)) ::
+                (_ne, tint) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_je, tint) :: (_j, tint) :: (_ie, tint) :: (_i, tint) ::
+               (_t'2, tint) :: (_t'1, tdouble) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _je (Econst_int (Int.repr 0) tint))
+  (Sloop
+    (Ssequence
+      (Sifthenelse (Ebinop Olt (Etempvar _je tint) (Etempvar _ne tint) tint)
+        Sskip
+        Sbreak)
+      (Ssequence
+        (Sset _j
+          (Ederef
+            (Ebinop Oadd (Etempvar _ids (tptr tint)) (Etempvar _je tint)
+              (tptr tint)) tint))
+        (Ssequence
+          (Sset _ie (Econst_int (Int.repr 0) tint))
+          (Sloop
+            (Ssequence
+              (Sifthenelse (Ebinop Ole (Etempvar _ie tint)
+                             (Etempvar _je tint) tint)
+                Sskip
+                Sbreak)
+              (Ssequence
+                (Sset _i
+                  (Ederef
+                    (Ebinop Oadd (Etempvar _ids (tptr tint))
+                      (Etempvar _ie tint) (tptr tint)) tint))
+                (Ssequence
+                  (Sifthenelse (Ebinop Oge (Etempvar _i tint)
+                                 (Econst_int (Int.repr 0) tint) tint)
+                    (Sset _t'2
+                      (Ecast
+                        (Ebinop Oge (Etempvar _j tint) (Etempvar _i tint)
+                          tint) tbool))
+                    (Sset _t'2 (Econst_int (Int.repr 0) tint)))
+                  (Sifthenelse (Etempvar _t'2 tint)
+                    (Ssequence
+                      (Scall (Some _t'1)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Etempvar _emat (tptr tdouble)) ::
+                         (Etempvar _ne tint) :: (Etempvar _ie tint) ::
+                         (Etempvar _je tint) :: nil))
+                      (Scall None
+                        (Evar _assemble_add (Tfunction
+                                              ((tptr (Tstruct _assemble_t noattr)) ::
+                                               tint :: tint :: tdouble ::
+                                               nil) tvoid cc_default))
+                        ((Etempvar _K (tptr (Tstruct _assemble_t noattr))) ::
+                         (Etempvar _i tint) :: (Etempvar _j tint) ::
+                         (Etempvar _t'1 tdouble) :: nil)))
+                    Sskip))))
+            (Sset _ie
+              (Ebinop Oadd (Etempvar _ie tint) (Econst_int (Int.repr 1) tint)
+                tint))))))
+    (Sset _je
+      (Ebinop Oadd (Etempvar _je tint) (Econst_int (Int.repr 1) tint) tint))))
+|}.
+
+Definition f_assemble_vector := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_v, (tptr tdouble)) :: (_ve, (tptr tdouble)) ::
+                (_ids, (tptr tint)) :: (_ne, tint) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_ie, tint) :: (_i, tint) :: (_t'2, tdouble) ::
+               (_t'1, tdouble) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _ie (Econst_int (Int.repr 0) tint))
+  (Sloop
+    (Ssequence
+      (Sifthenelse (Ebinop Olt (Etempvar _ie tint) (Etempvar _ne tint) tint)
+        Sskip
+        Sbreak)
+      (Ssequence
+        (Sset _i
+          (Ederef
+            (Ebinop Oadd (Etempvar _ids (tptr tint)) (Etempvar _ie tint)
+              (tptr tint)) tint))
+        (Sifthenelse (Ebinop Oge (Etempvar _i tint)
+                       (Econst_int (Int.repr 0) tint) tint)
+          (Ssequence
+            (Sset _t'1
+              (Ederef
+                (Ebinop Oadd (Etempvar _v (tptr tdouble)) (Etempvar _i tint)
+                  (tptr tdouble)) tdouble))
+            (Ssequence
+              (Sset _t'2
+                (Ederef
+                  (Ebinop Oadd (Etempvar _ve (tptr tdouble))
+                    (Etempvar _ie tint) (tptr tdouble)) tdouble))
+              (Sassign
+                (Ederef
+                  (Ebinop Oadd (Etempvar _v (tptr tdouble))
+                    (Etempvar _i tint) (tptr tdouble)) tdouble)
+                (Ebinop Oadd (Etempvar _t'1 tdouble) (Etempvar _t'2 tdouble)
+                  tdouble))))
+          Sskip)))
+    (Sset _ie
+      (Ebinop Oadd (Etempvar _ie tint) (Econst_int (Int.repr 1) tint) tint))))
+|}.
+
 Definition f_fem_assemble := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
@@ -896,12 +1017,13 @@ Definition f_fem_assemble := {|
                                   Sskip)
                                 (Sifthenelse (Etempvar _K (tptr (Tstruct _assemble_t noattr)))
                                   (Scall None
-                                    (Evar _assemble_add (Tfunction
-                                                          ((tptr (Tstruct _assemble_t noattr)) ::
-                                                           (tptr tdouble) ::
-                                                           (tptr tint) ::
-                                                           tint :: nil) tvoid
-                                                          cc_default))
+                                    (Evar _assemble_matrix (Tfunction
+                                                             ((tptr (Tstruct _assemble_t noattr)) ::
+                                                              (tptr tdouble) ::
+                                                              (tptr tint) ::
+                                                              tint :: nil)
+                                                             tvoid
+                                                             cc_default))
                                     ((Etempvar _K (tptr (Tstruct _assemble_t noattr))) ::
                                      (Etempvar _Ke (tptr tdouble)) ::
                                      (Etempvar _ids (tptr tint)) ::
@@ -1371,8 +1493,8 @@ Definition composites : list composite_definition :=
    (Member_plain _p (tptr (Tstruct _assemble_data_t noattr)) ::
     Member_plain _add
       (tptr (Tfunction
-              ((tptr (Tstruct _assemble_data_t noattr)) :: (tptr tdouble) ::
-               (tptr tint) :: tint :: nil) tvoid cc_default)) ::
+              ((tptr (Tstruct _assemble_data_t noattr)) :: tint :: tint ::
+               tdouble :: nil) tvoid cc_default)) ::
     Member_plain _clear
       (tptr (Tfunction ((tptr (Tstruct _assemble_data_t noattr)) :: nil)
               tvoid cc_default)) ::
@@ -1685,13 +1807,19 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_external "int_calloc"
                    (mksignature (AST.Xint :: nil) AST.Xptr cc_default))
      (tint :: nil) (tptr tint) cc_default)) ::
+ (_densematn_get,
+   Gfun(External (EF_external "densematn_get"
+                   (mksignature
+                     (AST.Xptr :: AST.Xint :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xfloat cc_default))
+     ((tptr tdouble) :: tint :: tint :: tint :: nil) tdouble cc_default)) ::
  (_assemble_add,
    Gfun(External (EF_external "assemble_add"
                    (mksignature
-                     (AST.Xptr :: AST.Xptr :: AST.Xptr :: AST.Xint :: nil)
+                     (AST.Xptr :: AST.Xint :: AST.Xint :: AST.Xfloat :: nil)
                      AST.Xvoid cc_default))
-     ((tptr (Tstruct _assemble_t noattr)) :: (tptr tdouble) :: (tptr tint) ::
-      tint :: nil) tvoid cc_default)) ::
+     ((tptr (Tstruct _assemble_t noattr)) :: tint :: tint :: tdouble :: nil)
+     tvoid cc_default)) ::
  (_assemble_clear,
    Gfun(External (EF_external "assemble_clear"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
@@ -1708,13 +1836,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      cc_default))
      ((tptr (Tstruct _assemble_t noattr)) ::
       (tptr (Tstruct _bandmat_t noattr)) :: nil) tvoid cc_default)) ::
- (_assemble_vector,
-   Gfun(External (EF_external "assemble_vector"
-                   (mksignature
-                     (AST.Xptr :: AST.Xptr :: AST.Xptr :: AST.Xint :: nil)
-                     AST.Xvoid cc_default))
-     ((tptr tdouble) :: (tptr tdouble) :: (tptr tint) :: tint :: nil) tvoid
-     cc_default)) ::
  (_element_dR,
    Gfun(External (EF_external "element_dR"
                    (mksignature
@@ -1735,6 +1856,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_fem_assign_ids, Gfun(Internal f_fem_assign_ids)) ::
  (_fem_update_U, Gfun(Internal f_fem_update_U)) ::
  (_fem_set_load, Gfun(Internal f_fem_set_load)) ::
+ (_assemble_matrix, Gfun(Internal f_assemble_matrix)) ::
+ (_assemble_vector, Gfun(Internal f_assemble_vector)) ::
  (_fem_assemble, Gfun(Internal f_fem_assemble)) ::
  (_fem_assemble_band, Gfun(Internal f_fem_assemble_band)) ::
  (_fem_assemble_dense, Gfun(Internal f_fem_assemble_dense)) ::
@@ -1742,14 +1865,14 @@ Definition global_definitions : list (ident * globdef fundef type) :=
 
 Definition public_idents : list ident :=
 (_fem_print :: _fem_assemble_dense :: _fem_assemble_band :: _fem_assemble ::
- _fem_set_load :: _fem_update_U :: _fem_assign_ids :: _fem_free ::
- _fem_malloc :: _mesh_print_elt :: _mesh_free :: _element_dR ::
- _assemble_vector :: _init_assemble_band :: _init_assemble_dense ::
- _assemble_clear :: _assemble_add :: _int_calloc :: _double_calloc ::
- _surely_malloc :: _memset :: _free :: _printf :: ___builtin_debug ::
- ___builtin_fmin :: ___builtin_fmax :: ___builtin_fnmsub ::
- ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
- ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
+ _assemble_vector :: _assemble_matrix :: _fem_set_load :: _fem_update_U ::
+ _fem_assign_ids :: _fem_free :: _fem_malloc :: _mesh_print_elt ::
+ _mesh_free :: _element_dR :: _init_assemble_band :: _init_assemble_dense ::
+ _assemble_clear :: _assemble_add :: _densematn_get :: _int_calloc ::
+ _double_calloc :: _surely_malloc :: _memset :: _free :: _printf ::
+ ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
+ ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
+ ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
  ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
  ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
  ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
