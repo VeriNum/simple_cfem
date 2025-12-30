@@ -21,7 +21,6 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Set Bullet Behavior "Strict Subproofs".
 
-(** The next lines are usual in VST specification files *)
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 
@@ -34,80 +33,357 @@ Notation val_of_float := spec_densemat.val_of_float.
 Notation frobenius_norm2 := spec_densemat.frobenius_norm.
 Coercion Z.of_nat : nat >-> Z.
 
-Definition matrix_rep (t: type): Type := forall (sh: share) (m n: nat) (M: 'M[option (ftype t)]_(m,n)) (p: val), mpred.
+Definition matrix_rep (t: type): Type := forall (sh: share) (X: { mn &  'M[option (ftype t)]_(fst mn, snd mn)}) (p: val), mpred.
 
+Definition assemble_data_t := Tstruct _assemble_data_t noattr.
 Definition assemble_t := Tstruct _assemble_t noattr.
 
 Definition assemble_add_spec' (instance: matrix_rep the_type) :=
  WITH p: val, sh: share, X: {mn: nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn))}%type, 
              y: ftype the_type, x: ftype the_type
- PRE[ tptr assemble_t, tint, tint, the_ctype ] let '(existT _ (m,n) (A,(i,j))) := X in 
+ PRE[ tptr assemble_data_t, tint, tint, the_ctype ] let '(existT _ (m,n) (A,(i,j))) := X in 
    PROP(writable_share sh; A i j = Some y)
    PARAMS( p; Vint (Int.repr i); Vint (Int.repr j); Vfloat x)
-   SEP(instance sh m n A p)
+   SEP(instance sh (existT _ (m,n) A) p)
  POST [ tvoid ] let '(existT _ (m,n) (A,(i,j))) := X in 
    PROP()
    RETURN()
-   SEP(instance sh m n (update_mx A i j (Some (BPLUS y x))) p).
-
+   SEP(instance sh (existT _ (m,n) (update_mx A i j (Some (BPLUS y x)))) p).
 
 Definition assemble_clear_spec' (instance: matrix_rep the_type) :=
  WITH p: val, sh: share, X: {mn: nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn)}%type
- PRE[ tptr assemble_t, tint, tint, the_ctype ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr assemble_data_t ] let '(existT _ (m,n) A) := X in 
    PROP(writable_share sh)
    PARAMS( p )
-   SEP(instance sh m n A p)
+   SEP(instance sh (existT _ (m,n) A) p)
  POST [ tvoid ] let '(existT _ (m,n) A) := X in 
    PROP()
    RETURN()
-   SEP(instance sh m n (@const_mx _ m n (Some (Zconst the_type 0))) p).
+   SEP(instance sh (existT _ (m,n) (@const_mx _ m n (Some (Zconst the_type 0)))) p).
 
 
 Definition assemble_norm2_spec' (instance: matrix_rep the_type) :=
  WITH p: val, sh: share, X: {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type
- PRE[ tptr assemble_t, tint, tint, the_ctype ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr assemble_data_t ] let '(existT _ (m,n) A) := X in 
    PROP(readable_share sh)
    PARAMS( p )
-   SEP(instance sh m n (map_mx Some A) p)
+   SEP(instance sh (existT _ (m,n) (map_mx Some A)) p)
  POST [ the_ctype ] let '(existT _ (m,n) A) := X in 
    PROP()
    RETURN(val_of_float (frobenius_norm2 A))
-   SEP(instance sh m n (map_mx Some A) p).
+   SEP(instance sh (existT _ (m,n) (map_mx Some A)) p).
 
 Definition assemble_print_spec' (instance: matrix_rep the_type) :=
  WITH p: val, sh: share, X: {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type
- PRE[ tptr assemble_t, tint, tint, the_ctype ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr assemble_data_t ] let '(existT _ (m,n) A) := X in 
    PROP(readable_share sh)
    PARAMS( p )
-   SEP(instance sh m n (map_mx Some A) p)
+   SEP(instance sh (existT _ (m,n) (map_mx Some A)) p)
  POST [ tvoid ] let '(existT _ (m,n) A) := X in 
    PROP()
    RETURN()
-   SEP(instance sh m n (map_mx Some A) p).
+   SEP(instance sh (existT _ (m,n) (map_mx Some A)) p).
 
-Compute reptype assemble_t.
-
-Definition assemble_obj (sh: share) (instance: matrix_rep the_type)
+Definition assemble_obj (sho sh: share) (instance: matrix_rep the_type)
           (m n: nat) (A: 'M[option (ftype the_type)]_(m,n)) (obj: val) :=
-  EX sho: share, EX p: val, EX add: val, EX clear: val, EX norm2: val, EX print: val, 
-  !! readable_share sho && 
+  EX p: val, EX add: val, EX clear: val, EX norm2: val, EX print: val, 
+  !! (readable_share sho /\ isptr p) && 
   func_ptr' (assemble_add_spec' instance) add *
   func_ptr' (assemble_clear_spec' instance) clear *
   func_ptr' (assemble_norm2_spec' instance) norm2 *
   func_ptr' (assemble_print_spec' instance) print *
-  data_at sh assemble_t (p,(add,(clear,(norm2,print)))) obj * instance sh m n A p.
+  data_at sho assemble_t (p,(add,(clear,(norm2,print)))) obj * instance sh (existT _ (m,n) A) p.
 
-Lemma assemble_obj_local_facts: forall sh instance m n A obj,
-   assemble_obj sh instance m n A obj |-- !!(isptr obj).
+Lemma assemble_obj_local_facts: forall sho sh instance m n A obj,
+   assemble_obj sho sh instance m n A obj |-- !!(isptr obj).
 Proof.
 intros.
 unfold assemble_obj.
-Intros sho p add clear norm2 print.
+Intros p add clear norm2 print.
 entailer!.
 Qed.
 #[export] Hint Resolve assemble_obj_local_facts : saturate_local.
 
+Lemma assemble_obj_valid_pointer: forall sho sh instance m n A obj,
+  sepalg.nonidentity sho ->
+   assemble_obj sho sh instance m n A obj |-- valid_pointer obj.
+Proof.
+intros.
+unfold assemble_obj.
+Intros p add clear norm2 print.
+entailer!.
+Qed.
+#[export] Hint Resolve assemble_obj_valid_pointer : valid_pointer.
 
+Definition matrix_package : Type :=  
+  {mn: nat*nat & matrix (option (ftype the_type)) (fst mn) (snd mn)}%type.
+
+
+Definition matrix_and_indices : Type :=  
+  {mn: nat*nat & matrix (option (ftype the_type)) (fst mn) (snd mn) * ('I_(fst mn) * 'I_(snd mn))}%type.
+
+
+Import rmaps.
+
+Definition matrix_package_typetree : TypeTree := 
+  SigType (nat*nat) (fun mn => ConstType ('M[option (ftype the_type)]_(fst mn, snd mn))).
+
+Definition test_typetree (tree: TypeTree) (type: Type) :=
+  forall t,  (functors.MixVariantFunctor._functor (rmaps.dependent_type_functor_rec nil (AssertTT tree)) t) = (type -> environ -> t).
+
+Goal test_typetree matrix_package_typetree matrix_package. intro; reflexivity. Abort.
+
+Definition matrix_and_indices_typetree: TypeTree :=
+  SigType (nat*nat) (fun mn => ConstType ('M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn)))).
+
+Goal test_typetree matrix_and_indices_typetree matrix_and_indices. intro; reflexivity. Abort.
+
+Definition matrix_rep_type : TypeTree :=
+   ProdType (ConstType share) 
+     (ArrowType (ConstType  {mn : nat * nat & 'M[option (ftype the_type)]_(fst mn, snd mn)}) (ArrowType (ConstType val) Mpred)).
+
+Definition assemble_add_type := 
+  ProdType (ConstType (val * share * share * matrix_and_indices * ftype the_type * ftype the_type))
+                   (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
+
+Lemma assemble_obj_super_non_expansive : forall n' sho sh inst m n A obj,
+compcert_rmaps.RML.R.approx n' (assemble_obj sho sh inst m n A obj) =
+compcert_rmaps.RML.R.approx n'
+  (assemble_obj sho sh
+     (fun (a : share) (a0 : matrix_package) (a1 : val) => compcert_rmaps.RML.R.approx n' (inst a a0 a1)) m n A obj).
+Proof.
+intros.
+unfold assemble_obj.
+repeat (rewrite !approx_exp; apply exp_congr; intro).
+rewrite !approx_sepcon, !approx_andp.
+assert (Hsepcon: forall a a' b b', a = a' -> b = b' -> sepcon a b = sepcon a' b') by (intros; congruence).
+assert (Handp: forall a b a' b', a = a' -> b = b' -> andp a b = andp a' b') by (intros; congruence).
+repeat apply Hsepcon; repeat apply Handp.
+-
+reflexivity.
+-
+unfold assemble_add_spec'.
+destruct n'; [ rewrite !approx_0; reflexivity | ].
+rewrite approx_func_ptr'.
+symmetry; rewrite approx_func_ptr'; symmetry.
+apply f_equal2; [auto  | ].
+f_equal.
+f_equal.
++
+clear.
+extensionality u rho.
+destruct u as ((((p,sh'),X),y),x).
+destruct X as [ [m n] [A [i j]]].
+unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
+    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
+f_equal. unfold argsassert2assert.
+change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
+  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
++
+clear.
+extensionality u rho.
+destruct u as ((((p,sh'),X),y),x).
+destruct X as [ [m n] [A [i j]]].
+unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
+    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
+f_equal. unfold argsassert2assert.
+change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
+  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
+-
+unfold assemble_clear_spec'.
+destruct n'; [ rewrite !approx_0; reflexivity | ].
+rewrite approx_func_ptr'.
+symmetry; rewrite approx_func_ptr'; symmetry.
+apply f_equal2; [auto  | ].
+f_equal.
+f_equal.
++
+clear.
+extensionality u rho.
+destruct u as ((p,sh'),X).
+destruct X as [ [m n] A].
+unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
+    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
+f_equal. unfold argsassert2assert.
+change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
+  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
++
+clear.
+extensionality u rho.
+destruct u as ((p,sh'),X).
+destruct X as [ [m n] A].
+unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
+    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
+f_equal. unfold argsassert2assert.
+change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
+  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
+-
+unfold assemble_norm2_spec'.
+destruct n'; [ rewrite !approx_0; reflexivity | ].
+rewrite approx_func_ptr'.
+symmetry; rewrite approx_func_ptr'; symmetry.
+apply f_equal2; [auto  | ].
+f_equal.
+f_equal.
++
+clear.
+extensionality u rho.
+destruct u as ((p,sh'),X).
+destruct X as [ [m n] A].
+unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
+    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
+f_equal. unfold argsassert2assert.
+change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
+  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
++
+clear.
+extensionality u rho.
+destruct u as ((p,sh'),X).
+destruct X as [ [m n] A].
+unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
+    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
+f_equal. unfold argsassert2assert.
+change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
+  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
+-
+unfold assemble_print_spec'.
+destruct n'; [ rewrite !approx_0; reflexivity | ].
+rewrite approx_func_ptr'.
+symmetry; rewrite approx_func_ptr'; symmetry.
+apply f_equal2; [auto  | ].
+f_equal.
+f_equal.
++
+clear.
+extensionality u rho.
+destruct u as ((p,sh'),X).
+destruct X as [ [m n] A].
+unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
+    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
+f_equal. unfold argsassert2assert.
+change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
+  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
++
+clear.
+extensionality u rho.
+destruct u as ((p,sh'),X).
+destruct X as [ [m n] A].
+unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
+    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
+f_equal. unfold argsassert2assert.
+change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
+  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
+-
+reflexivity.
+-
+rewrite approx_idem.
+reflexivity.
+Qed.
+
+Program Definition assemble_add_spec :=
+ DECLARE _assemble_add
+ TYPE assemble_add_type
+ WITH obj: val, sho: share, sh: share, 
+             X: matrix_and_indices, 
+             y: ftype the_type, x: ftype the_type,
+             inst: matrix_rep the_type
+ PRE[ tptr assemble_t, tint, tint, the_ctype ] let '(existT _ (m,n) (A,(i,j))) := X in 
+   PROP(writable_share sh; A i j = Some y)
+   PARAMS( obj; Vint (Int.repr i); Vint (Int.repr j); Vfloat x) GLOBALS()
+   SEP (assemble_obj sho sh inst m n A obj)
+ POST [ tvoid ] let '(existT _ (m,n) (A,(i,j))) := X in 
+   PROP()
+   RETURN()
+   SEP (assemble_obj sho sh inst m n (update_mx A i j (Some (BPLUS y x))) obj).
+Next Obligation.
+match goal with |- args_super_non_expansive ?TT => 
+replace TT with (fun (_: list Type) (u: val * share * share * matrix_and_indices * ftype the_type * ftype the_type * matrix_rep the_type) =>
+   PROPx (let '(obj,sho,sh,X,y,x,inst) := u in let '(existT _ (m,n) (A,(i,j))) := X in  [writable_share sh; A i j = Some y])
+   (PARAMSx (let '(obj,sho,sh,X,y,x,inst) := u in let '(existT _ (m,n) (A,(i,j))) := X in [obj; Vint (Int.repr i); Vint (Int.repr j); Vfloat x])
+   (GLOBALSx nil
+    (SEPx (let '(obj,sho,sh,X,y,x,inst) := u in let '(existT _ (m,n) (A,(i,j))) := X in [assemble_obj sho sh inst m n A obj])))))
+end.
+2: extensionality ts x rho; destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [m n] [ A [ i j]]]; reflexivity.
+apply (PROPx_args_super_non_expansive' assemble_add_type).
+2:{  hnf; intros. destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl. repeat constructor; auto. }
+apply (PARAMSx_args_super_non_expansive assemble_add_type).
+2:{ hnf; intros. destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl. repeat constructor; auto. }
+apply (GLOBALSx_args_super_non_expansive assemble_add_type).
+2:{ hnf; intros. constructor. }
+apply SEPx_args_super_non_expansive'.
+hnf; intros.
+destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl.
+constructor. 2: constructor.
+apply assemble_obj_super_non_expansive.
+Qed.
+Next Obligation.
+match goal with |- super_non_expansive ?TT => 
+replace TT with (fun (_: list Type) (u: val * share * share * matrix_and_indices * ftype the_type * ftype the_type * matrix_rep the_type) =>
+   PROP() LOCAL() 
+   SEP (let '(obj,sho,sh,X,y,x,inst) := u in let '(existT _ (m,n) (A,(i,j))) := X in 
+                 assemble_obj sho sh inst m n (update_mx A i j (Some (BPLUS y x))) obj))
+end.
+2: extensionality ts x rho; destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [m n] [ A [ i j]]]; reflexivity.
+apply (PROPx_super_non_expansive' assemble_add_type).
+2:{  hnf; intros. destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl. repeat constructor; auto. }
+apply (LOCALx_super_non_expansive' assemble_add_type).
+2:{ hnf; intros. destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl. repeat constructor; auto. }
+apply SEPx_super_non_expansive'.
+hnf; intros.
+destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl.
+constructor. 2: constructor.
+apply assemble_obj_super_non_expansive.
+Qed.
+
+Definition dense_matrix_rep : matrix_rep the_type := 
+  fun (sh: share) (X: { mn &  'M[option (ftype the_type)]_(fst mn, snd mn)}) (p: val) => 
+   spec_densemat.densemat sh (projT2 X) p.
+
+Definition casted_densemat_add_spec :=
+ DECLARE _casted_densemat_add (assemble_add_spec' dense_matrix_rep).
+
+Definition casted_densemat_clear_spec :=
+ DECLARE _casted_densemat_clear (assemble_clear_spec' dense_matrix_rep).
+
+Definition casted_densemat_norm2_spec :=
+ DECLARE _casted_densemat_norm2 (assemble_norm2_spec' dense_matrix_rep).
+
+Definition casted_densemat_print_spec :=
+ DECLARE _casted_densemat_print (assemble_print_spec' dense_matrix_rep).
+
+Definition init_assemble_dense_spec :=
+ DECLARE _init_assemble_dense
+ WITH obj: val, sho: share,  p: val, shp: share, X: { mn &  'M[option (ftype the_type)]_(fst mn, snd mn)}%type, gv: globals
+ PRE [ tptr assemble_t , tptr spec_densemat.densemat_t ]
+   PROP(writable_share sho)
+   PARAMS (obj; p) GLOBALS(gv)
+   SEP(data_at_ sho assemble_t obj; spec_densemat.densemat shp (projT2 X) p)
+ POST [ tvoid ]
+   PROP()
+   RETURN()
+   SEP(assemble_obj sho shp dense_matrix_rep _ _ (projT2 X) obj).
+
+
+Definition assemble_ASI: funspecs :=
+ [ assemble_add_spec; casted_densemat_add_spec;
+   casted_densemat_clear_spec; casted_densemat_norm2_spec; casted_densemat_print_spec;
+   init_assemble_dense_spec ].
 
 
 

@@ -37,11 +37,12 @@ void assemble_print (assemble_t assembler) {
  * data pointer `p` and setting up the method table.  
  * 
  */
-// Declare private implementations for the methods
-/*static*/ void assemble_dense_add(assemble_data_t p, int i, int j, double x);
-/*static*/ void assemble_bandmat_add(assemble_data_t p, int i, int j, double x);
 
 // Initialize a dense assembler
+void casted_densemat_add(assemble_data_t p, int i, int j, double x) {
+    densemat_addto((densemat_t)p,i,j,x);
+}
+
 void casted_densemat_clear(assemble_data_t p) {
   densemat_clear ((densemat_t)p);
 }
@@ -57,13 +58,18 @@ void casted_densemat_print(assemble_data_t p) {
 void init_assemble_dense(assemble_t assembler, densemat_t A)
 {
     assembler->p = (assemble_data_t)A;
-    assembler->add = assemble_dense_add;
-    assembler->clear = casted_densemat_clear;
-    assembler->norm2 = casted_densemat_norm2;
-    assembler->print = casted_densemat_print;
+    assembler->add = &casted_densemat_add;
+    assembler->clear = &casted_densemat_clear;
+    assembler->norm2 = &casted_densemat_norm2;
+    assembler->print = &casted_densemat_print;
 }
 
 // Initialize a band assembler
+void casted_bandmat_add(assemble_data_t p, int i, int j, double x) {
+  /* TODO: fix bandmat_addto so that the j-i subtraction is done in there. */
+    bandmat_addto((bandmat_t)p,j,j-i,x);
+}
+
 void casted_bandmat_clear(assemble_data_t p) {
   bandmat_clear ((bandmat_t)p);
 }
@@ -79,21 +85,9 @@ void casted_bandmat_print(assemble_data_t p) {
 void init_assemble_band(assemble_t assembler, bandmat_t b)
 {
     assembler->p = (assemble_data_t)b;
-    assembler->add = assemble_bandmat_add;
+    assembler->add = casted_bandmat_add;
     assembler->clear = casted_bandmat_clear;
     assembler->norm2 = casted_bandmat_norm2;
     assembler->print = casted_bandmat_print;
 }
 
-/**
- * ## Matrix add functions
- */
-void assemble_dense_add(assemble_data_t p, int i, int j, double x) {
-    densemat_t A = (densemat_t)p;
-    densemat_addto(A,i,j,x);
-}
-
-void assemble_bandmat_add(assemble_data_t p, int i, int j, double x) {
-    bandmat_t P = (bandmat_t)p;
-    bandmat_addto(P,j,j-i,x);
-}

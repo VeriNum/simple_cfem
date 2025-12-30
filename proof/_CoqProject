@@ -8,4 +8,5 @@ C/mesh.v
 C/quadrules.v
 C/shapes.v
 C/spec_assemble.v
+C/verif_assemble.v
 model.v

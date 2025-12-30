@@ -20,7 +20,6 @@ Module Info.
 End Info.
 
 Definition _A : ident := $"A".
-Definition _P : ident := $"P".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
 Definition ___builtin_bswap : ident := $"__builtin_bswap".
@@ -77,10 +76,8 @@ Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition _add : ident := $"add".
 Definition _assemble_add : ident := $"assemble_add".
-Definition _assemble_bandmat_add : ident := $"assemble_bandmat_add".
 Definition _assemble_clear : ident := $"assemble_clear".
 Definition _assemble_data_t : ident := $"assemble_data_t".
-Definition _assemble_dense_add : ident := $"assemble_dense_add".
 Definition _assemble_norm : ident := $"assemble_norm".
 Definition _assemble_norm2 : ident := $"assemble_norm2".
 Definition _assemble_print : ident := $"assemble_print".
@@ -92,9 +89,11 @@ Definition _bandmat_clear : ident := $"bandmat_clear".
 Definition _bandmat_norm2 : ident := $"bandmat_norm2".
 Definition _bandmat_print : ident := $"bandmat_print".
 Definition _bandmat_t : ident := $"bandmat_t".
+Definition _casted_bandmat_add : ident := $"casted_bandmat_add".
 Definition _casted_bandmat_clear : ident := $"casted_bandmat_clear".
 Definition _casted_bandmat_norm2 : ident := $"casted_bandmat_norm2".
 Definition _casted_bandmat_print : ident := $"casted_bandmat_print".
+Definition _casted_densemat_add : ident := $"casted_densemat_add".
 Definition _casted_densemat_clear : ident := $"casted_densemat_clear".
 Definition _casted_densemat_norm2 : ident := $"casted_densemat_norm2".
 Definition _casted_densemat_print : ident := $"casted_densemat_print".
@@ -286,6 +285,23 @@ Definition f_assemble_print := {|
       ((Etempvar _t'2 (tptr (Tstruct _assemble_data_t noattr))) :: nil))))
 |}.
 
+Definition f_casted_densemat_add := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_p, (tptr (Tstruct _assemble_data_t noattr))) ::
+                (_i, tint) :: (_j, tint) :: (_x, tdouble) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Scall None
+  (Evar _densemat_addto (Tfunction
+                          ((tptr (Tstruct _densemat_t noattr)) :: tint ::
+                           tint :: tdouble :: nil) tvoid cc_default))
+  ((Ecast (Etempvar _p (tptr (Tstruct _assemble_data_t noattr)))
+     (tptr (Tstruct _densemat_t noattr))) :: (Etempvar _i tint) ::
+   (Etempvar _j tint) :: (Etempvar _x tdouble) :: nil))
+|}.
+
 Definition f_casted_densemat_clear := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
@@ -357,10 +373,14 @@ Definition f_init_assemble_dense := {|
         (tptr (Tfunction
                 ((tptr (Tstruct _assemble_data_t noattr)) :: tint :: tint ::
                  tdouble :: nil) tvoid cc_default)))
-      (Evar _assemble_dense_add (Tfunction
-                                  ((tptr (Tstruct _assemble_data_t noattr)) ::
-                                   tint :: tint :: tdouble :: nil) tvoid
-                                  cc_default)))
+      (Eaddrof
+        (Evar _casted_densemat_add (Tfunction
+                                     ((tptr (Tstruct _assemble_data_t noattr)) ::
+                                      tint :: tint :: tdouble :: nil) tvoid
+                                     cc_default))
+        (tptr (Tfunction
+                ((tptr (Tstruct _assemble_data_t noattr)) :: tint :: tint ::
+                 tdouble :: nil) tvoid cc_default))))
     (Ssequence
       (Sassign
         (Efield
@@ -368,9 +388,12 @@ Definition f_init_assemble_dense := {|
             (Tstruct _assemble_t noattr)) _clear
           (tptr (Tfunction ((tptr (Tstruct _assemble_data_t noattr)) :: nil)
                   tvoid cc_default)))
-        (Evar _casted_densemat_clear (Tfunction
-                                       ((tptr (Tstruct _assemble_data_t noattr)) ::
-                                        nil) tvoid cc_default)))
+        (Eaddrof
+          (Evar _casted_densemat_clear (Tfunction
+                                         ((tptr (Tstruct _assemble_data_t noattr)) ::
+                                          nil) tvoid cc_default))
+          (tptr (Tfunction ((tptr (Tstruct _assemble_data_t noattr)) :: nil)
+                  tvoid cc_default))))
       (Ssequence
         (Sassign
           (Efield
@@ -379,9 +402,13 @@ Definition f_init_assemble_dense := {|
             (tptr (Tfunction
                     ((tptr (Tstruct _assemble_data_t noattr)) :: nil) tdouble
                     cc_default)))
-          (Evar _casted_densemat_norm2 (Tfunction
-                                         ((tptr (Tstruct _assemble_data_t noattr)) ::
-                                          nil) tdouble cc_default)))
+          (Eaddrof
+            (Evar _casted_densemat_norm2 (Tfunction
+                                           ((tptr (Tstruct _assemble_data_t noattr)) ::
+                                            nil) tdouble cc_default))
+            (tptr (Tfunction
+                    ((tptr (Tstruct _assemble_data_t noattr)) :: nil) tdouble
+                    cc_default))))
         (Sassign
           (Efield
             (Ederef (Etempvar _assembler (tptr (Tstruct _assemble_t noattr)))
@@ -389,9 +416,31 @@ Definition f_init_assemble_dense := {|
             (tptr (Tfunction
                     ((tptr (Tstruct _assemble_data_t noattr)) :: nil) tvoid
                     cc_default)))
-          (Evar _casted_densemat_print (Tfunction
-                                         ((tptr (Tstruct _assemble_data_t noattr)) ::
-                                          nil) tvoid cc_default)))))))
+          (Eaddrof
+            (Evar _casted_densemat_print (Tfunction
+                                           ((tptr (Tstruct _assemble_data_t noattr)) ::
+                                            nil) tvoid cc_default))
+            (tptr (Tfunction
+                    ((tptr (Tstruct _assemble_data_t noattr)) :: nil) tvoid
+                    cc_default))))))))
+|}.
+
+Definition f_casted_bandmat_add := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_p, (tptr (Tstruct _assemble_data_t noattr))) ::
+                (_i, tint) :: (_j, tint) :: (_x, tdouble) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Scall None
+  (Evar _bandmat_addto (Tfunction
+                         ((tptr (Tstruct _bandmat_t noattr)) :: tint ::
+                          tint :: tdouble :: nil) tvoid cc_default))
+  ((Ecast (Etempvar _p (tptr (Tstruct _assemble_data_t noattr)))
+     (tptr (Tstruct _bandmat_t noattr))) :: (Etempvar _j tint) ::
+   (Ebinop Osub (Etempvar _j tint) (Etempvar _i tint) tint) ::
+   (Etempvar _x tdouble) :: nil))
 |}.
 
 Definition f_casted_bandmat_clear := {|
@@ -463,10 +512,10 @@ Definition f_init_assemble_band := {|
         (tptr (Tfunction
                 ((tptr (Tstruct _assemble_data_t noattr)) :: tint :: tint ::
                  tdouble :: nil) tvoid cc_default)))
-      (Evar _assemble_bandmat_add (Tfunction
-                                    ((tptr (Tstruct _assemble_data_t noattr)) ::
-                                     tint :: tint :: tdouble :: nil) tvoid
-                                    cc_default)))
+      (Evar _casted_bandmat_add (Tfunction
+                                  ((tptr (Tstruct _assemble_data_t noattr)) ::
+                                   tint :: tint :: tdouble :: nil) tvoid
+                                  cc_default)))
     (Ssequence
       (Sassign
         (Efield
@@ -498,49 +547,6 @@ Definition f_init_assemble_band := {|
           (Evar _casted_bandmat_print (Tfunction
                                         ((tptr (Tstruct _assemble_data_t noattr)) ::
                                          nil) tvoid cc_default)))))))
-|}.
-
-Definition f_assemble_dense_add := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((_p, (tptr (Tstruct _assemble_data_t noattr))) ::
-                (_i, tint) :: (_j, tint) :: (_x, tdouble) :: nil);
-  fn_vars := nil;
-  fn_temps := ((_A, (tptr (Tstruct _densemat_t noattr))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset _A
-    (Ecast (Etempvar _p (tptr (Tstruct _assemble_data_t noattr)))
-      (tptr (Tstruct _densemat_t noattr))))
-  (Scall None
-    (Evar _densemat_addto (Tfunction
-                            ((tptr (Tstruct _densemat_t noattr)) :: tint ::
-                             tint :: tdouble :: nil) tvoid cc_default))
-    ((Etempvar _A (tptr (Tstruct _densemat_t noattr))) ::
-     (Etempvar _i tint) :: (Etempvar _j tint) :: (Etempvar _x tdouble) ::
-     nil)))
-|}.
-
-Definition f_assemble_bandmat_add := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((_p, (tptr (Tstruct _assemble_data_t noattr))) ::
-                (_i, tint) :: (_j, tint) :: (_x, tdouble) :: nil);
-  fn_vars := nil;
-  fn_temps := ((_P, (tptr (Tstruct _bandmat_t noattr))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset _P
-    (Ecast (Etempvar _p (tptr (Tstruct _assemble_data_t noattr)))
-      (tptr (Tstruct _bandmat_t noattr))))
-  (Scall None
-    (Evar _bandmat_addto (Tfunction
-                           ((tptr (Tstruct _bandmat_t noattr)) :: tint ::
-                            tint :: tdouble :: nil) tvoid cc_default))
-    ((Etempvar _P (tptr (Tstruct _bandmat_t noattr))) ::
-     (Etempvar _j tint) ::
-     (Ebinop Osub (Etempvar _j tint) (Etempvar _i tint) tint) ::
-     (Etempvar _x tdouble) :: nil)))
 |}.
 
 Definition composites : list composite_definition :=
@@ -859,26 +865,26 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_assemble_norm2, Gfun(Internal f_assemble_norm2)) ::
  (_assemble_norm, Gfun(Internal f_assemble_norm)) ::
  (_assemble_print, Gfun(Internal f_assemble_print)) ::
+ (_casted_densemat_add, Gfun(Internal f_casted_densemat_add)) ::
  (_casted_densemat_clear, Gfun(Internal f_casted_densemat_clear)) ::
  (_casted_densemat_norm2, Gfun(Internal f_casted_densemat_norm2)) ::
  (_casted_densemat_print, Gfun(Internal f_casted_densemat_print)) ::
  (_init_assemble_dense, Gfun(Internal f_init_assemble_dense)) ::
+ (_casted_bandmat_add, Gfun(Internal f_casted_bandmat_add)) ::
  (_casted_bandmat_clear, Gfun(Internal f_casted_bandmat_clear)) ::
  (_casted_bandmat_norm2, Gfun(Internal f_casted_bandmat_norm2)) ::
  (_casted_bandmat_print, Gfun(Internal f_casted_bandmat_print)) ::
- (_init_assemble_band, Gfun(Internal f_init_assemble_band)) ::
- (_assemble_dense_add, Gfun(Internal f_assemble_dense_add)) ::
- (_assemble_bandmat_add, Gfun(Internal f_assemble_bandmat_add)) :: nil).
+ (_init_assemble_band, Gfun(Internal f_init_assemble_band)) :: nil).
 
 Definition public_idents : list ident :=
-(_assemble_bandmat_add :: _assemble_dense_add :: _init_assemble_band ::
- _casted_bandmat_print :: _casted_bandmat_norm2 :: _casted_bandmat_clear ::
- _init_assemble_dense :: _casted_densemat_print :: _casted_densemat_norm2 ::
- _casted_densemat_clear :: _assemble_print :: _assemble_norm ::
- _assemble_norm2 :: _assemble_clear :: _assemble_add :: _bandmat_addto ::
- _bandmat_norm2 :: _bandmat_print :: _bandmat_clear :: _densemat_addto ::
- _densemat_norm2 :: _densemat_print :: _densemat_clear :: _sqrt ::
- ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
+(_init_assemble_band :: _casted_bandmat_print :: _casted_bandmat_norm2 ::
+ _casted_bandmat_clear :: _casted_bandmat_add :: _init_assemble_dense ::
+ _casted_densemat_print :: _casted_densemat_norm2 ::
+ _casted_densemat_clear :: _casted_densemat_add :: _assemble_print ::
+ _assemble_norm :: _assemble_norm2 :: _assemble_clear :: _assemble_add ::
+ _bandmat_addto :: _bandmat_norm2 :: _bandmat_print :: _bandmat_clear ::
+ _densemat_addto :: _densemat_norm2 :: _densemat_print :: _densemat_clear ::
+ _sqrt :: ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
  ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
  ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
  ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
