@@ -146,6 +146,87 @@ Definition assemble_add_type :=
   ProdType (ConstType (val * share * share * matrix_and_indices * ftype the_type * ftype the_type))
                    (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
 
+
+Import compcert_rmaps.RML.R.
+
+Lemma approx_approx_S: forall (n: nat) (P: mpred), approx n (approx (S n) P) = approx n P.
+Proof.
+intros.
+change (base.compose (approx n) (approx (S n)) P = approx n P).
+rewrite Clight_initial_world.approx_min.
+rewrite Nat.min_l by lia. auto.
+Qed.
+
+
+Lemma approx_andp_prop: forall n P Q Q', approx n Q = approx n Q' ->
+       approx n (andp (prop P) Q) = approx n (andp (prop P) Q').
+Proof.
+intros. rewrite !approx_andp. f_equal. auto.
+Qed.
+
+Lemma approx_andp': forall n (P P' Q Q': mpred), 
+       approx n P = approx n P' -> 
+       approx n Q = approx n Q' ->
+       approx n (andp P Q) = approx n (andp P' Q').
+Proof.
+intros. rewrite !approx_andp; f_equal; auto.
+Qed.
+
+Lemma approx_sepcon': forall n (P P' Q Q': mpred),
+  approx n P = approx n P' ->
+  approx n Q = approx n Q' ->
+  approx n (sepcon P Q) = approx n (sepcon P' Q').
+Proof.
+intros. rewrite !approx_sepcon; f_equal; auto.
+Qed.
+
+Lemma approx_exp': forall (A: Type) (P1 P2: A -> mpred) (n: nat),
+    (forall x, approx n (P1 x) = approx n (P2 x)) ->
+    approx n (exp P1) = approx n (exp P2).
+Proof. intros; rewrite ?approx_exp; apply exp_congr; auto. Qed.
+
+Lemma approx_func_ptr'': 
+  forall n fsig cc A P P' Q Q' v,
+   (forall x rho, approx n (P x rho) = approx n (P' x rho)) ->
+   (forall x rho, approx n (Q x rho) = approx n (Q' x rho)) ->
+   approx (S n) (func_ptr' (NDmk_funspec fsig cc A P Q) v) =
+   approx (S n) (func_ptr' (NDmk_funspec fsig cc A P' Q') v).
+Proof.
+intros.
+rewrite approx_func_ptr'; symmetry; rewrite approx_func_ptr'; symmetry.
+apply f_equal.
+f_equal.
+f_equal; extensionality x rho; auto.
+Qed.
+
+Ltac nonexpansive_prover :=
+lazymatch goal with
+  |  |- args_super_non_expansive _ => intros ? ? ? ? 
+  |  |- super_non_expansive _ => intros ? ? ? ? 
+  | _ => idtac end;
+repeat match goal with 
+          | |- approx _ ?A = approx _ ?B => constr_eq A B; reflexivity
+          | |- approx _ (sepcon _ _) = approx _ (sepcon _ _) => apply approx_sepcon'
+          | |- approx _ (andp _ _) = approx _ (andp _ _) => apply approx_andp' 
+          | |- approx _ (exp _) = approx _ (exp _) => apply approx_exp'; intro
+          | |- approx (S _) (func_ptr' _ _) = approx (S _) (func_ptr' _ _) => apply approx_func_ptr''; intros
+          | |- approx ?n (func_ptr' _ _) = approx ?n' (func_ptr' _ _) => 
+                 constr_eq n n'; is_var n; destruct n as [ | n]; [rewrite !approx_0; reflexivity | ]
+          | |- approx _ (PROPx _ _ _) = approx _ (PROPx _ _ _) => apply approx_andp'
+          | |- approx _ (PARAMSx _ _ _) = approx _ (PARAMSx _ _ _) => apply approx_andp'
+          | |- approx _ (GLOBALSx _ _ _) = approx _ (GLOBALSx _ _ _) => apply approx_andp'
+          | |- approx _ (LOCALx _ _ _) = approx _ (LOCALx _ _ _) => apply approx_andp'
+          | |- approx _ (SEPx _ _) = approx _ (SEPx _ _) => apply approx_sepcon'
+          | |- approx _ (match ?x with _ => _ end) = _ => destruct x
+          | |- approx _ (match ?x with _ => _ end _) = _ => destruct x
+          | |- approx _ (match ?x with _ => _ end _ _) = _ => destruct x
+          | |- approx _ (match ?x with _ => _ end _ _ _ ) = _ => destruct x
+          | |- _ => progress rewrite ?approx_idem, ?approx_approx_S
+          | |- _ => progress unfold argsassert2assert
+          | H:  functors.MixVariantFunctor._functor _ _ |- _ => progress simpl in H
+          | |- _ => progress simpl
+   end.
+
 Lemma assemble_obj_super_non_expansive : forall n' sho sh inst m n A obj,
 compcert_rmaps.RML.R.approx n' (assemble_obj sho sh inst m n A obj) =
 compcert_rmaps.RML.R.approx n'
@@ -154,146 +235,7 @@ compcert_rmaps.RML.R.approx n'
 Proof.
 intros.
 unfold assemble_obj.
-repeat (rewrite !approx_exp; apply exp_congr; intro).
-rewrite !approx_sepcon, !approx_andp.
-assert (Hsepcon: forall a a' b b', a = a' -> b = b' -> sepcon a b = sepcon a' b') by (intros; congruence).
-assert (Handp: forall a b a' b', a = a' -> b = b' -> andp a b = andp a' b') by (intros; congruence).
-repeat apply Hsepcon; repeat apply Handp.
--
-reflexivity.
--
-unfold assemble_add_spec'.
-destruct n'; [ rewrite !approx_0; reflexivity | ].
-rewrite approx_func_ptr'.
-symmetry; rewrite approx_func_ptr'; symmetry.
-apply f_equal2; [auto  | ].
-f_equal.
-f_equal.
-+
-clear.
-extensionality u rho.
-destruct u as ((((p,sh'),X),y),x).
-destruct X as [ [m n] [A [i j]]].
-unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
-    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
-f_equal. unfold argsassert2assert.
-change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
-  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
-+
-clear.
-extensionality u rho.
-destruct u as ((((p,sh'),X),y),x).
-destruct X as [ [m n] [A [i j]]].
-unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
-    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
-f_equal. unfold argsassert2assert.
-change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
-  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
--
-unfold assemble_clear_spec'.
-destruct n'; [ rewrite !approx_0; reflexivity | ].
-rewrite approx_func_ptr'.
-symmetry; rewrite approx_func_ptr'; symmetry.
-apply f_equal2; [auto  | ].
-f_equal.
-f_equal.
-+
-clear.
-extensionality u rho.
-destruct u as ((p,sh'),X).
-destruct X as [ [m n] A].
-unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
-    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
-f_equal. unfold argsassert2assert.
-change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
-  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
-+
-clear.
-extensionality u rho.
-destruct u as ((p,sh'),X).
-destruct X as [ [m n] A].
-unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
-    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
-f_equal. unfold argsassert2assert.
-change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
-  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
--
-unfold assemble_norm2_spec'.
-destruct n'; [ rewrite !approx_0; reflexivity | ].
-rewrite approx_func_ptr'.
-symmetry; rewrite approx_func_ptr'; symmetry.
-apply f_equal2; [auto  | ].
-f_equal.
-f_equal.
-+
-clear.
-extensionality u rho.
-destruct u as ((p,sh'),X).
-destruct X as [ [m n] A].
-unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
-    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
-f_equal. unfold argsassert2assert.
-change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
-  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
-+
-clear.
-extensionality u rho.
-destruct u as ((p,sh'),X).
-destruct X as [ [m n] A].
-unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
-    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
-f_equal. unfold argsassert2assert.
-change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
-  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
--
-unfold assemble_print_spec'.
-destruct n'; [ rewrite !approx_0; reflexivity | ].
-rewrite approx_func_ptr'.
-symmetry; rewrite approx_func_ptr'; symmetry.
-apply f_equal2; [auto  | ].
-f_equal.
-f_equal.
-+
-clear.
-extensionality u rho.
-destruct u as ((p,sh'),X).
-destruct X as [ [m n] A].
-unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
-    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
-f_equal. unfold argsassert2assert.
-change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
-  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
-+
-clear.
-extensionality u rho.
-destruct u as ((p,sh'),X).
-destruct X as [ [m n] A].
-unfold PROPx, PARAMSx, GLOBALSx, LOCALx, SEPx; simpl; rewrite !approx_andp; f_equal;
-    f_equal; rewrite -> ?approx_sepcon, ?approx_idem, ?sepcon_emp.
-f_equal. unfold argsassert2assert.
-change (compcert_rmaps.RML.R.approx n' (compcert_rmaps.RML.R.approx (S n') ?X)) with
-  (base.compose (compcert_rmaps.RML.R.approx n') (compcert_rmaps.RML.R.approx (S n')) X).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
--
-reflexivity.
--
-rewrite approx_idem.
-reflexivity.
+nonexpansive_prover.
 Qed.
 
 Program Definition assemble_add_spec :=
@@ -312,42 +254,11 @@ Program Definition assemble_add_spec :=
    RETURN()
    SEP (assemble_obj sho sh inst m n (update_mx A i j (Some (BPLUS y x))) obj).
 Next Obligation.
-match goal with |- args_super_non_expansive ?TT => 
-replace TT with (fun (_: list Type) (u: val * share * share * matrix_and_indices * ftype the_type * ftype the_type * matrix_rep the_type) =>
-   PROPx (let '(obj,sho,sh,X,y,x,inst) := u in let '(existT _ (m,n) (A,(i,j))) := X in  [writable_share sh; A i j = Some y])
-   (PARAMSx (let '(obj,sho,sh,X,y,x,inst) := u in let '(existT _ (m,n) (A,(i,j))) := X in [obj; Vint (Int.repr i); Vint (Int.repr j); Vfloat x])
-   (GLOBALSx nil
-    (SEPx (let '(obj,sho,sh,X,y,x,inst) := u in let '(existT _ (m,n) (A,(i,j))) := X in [assemble_obj sho sh inst m n A obj])))))
-end.
-2: extensionality ts x rho; destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [m n] [ A [ i j]]]; reflexivity.
-apply (PROPx_args_super_non_expansive' assemble_add_type).
-2:{  hnf; intros. destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl. repeat constructor; auto. }
-apply (PARAMSx_args_super_non_expansive assemble_add_type).
-2:{ hnf; intros. destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl. repeat constructor; auto. }
-apply (GLOBALSx_args_super_non_expansive assemble_add_type).
-2:{ hnf; intros. constructor. }
-apply SEPx_args_super_non_expansive'.
-hnf; intros.
-destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl.
-constructor. 2: constructor.
+nonexpansive_prover.
 apply assemble_obj_super_non_expansive.
 Qed.
 Next Obligation.
-match goal with |- super_non_expansive ?TT => 
-replace TT with (fun (_: list Type) (u: val * share * share * matrix_and_indices * ftype the_type * ftype the_type * matrix_rep the_type) =>
-   PROP() LOCAL() 
-   SEP (let '(obj,sho,sh,X,y,x,inst) := u in let '(existT _ (m,n) (A,(i,j))) := X in 
-                 assemble_obj sho sh inst m n (update_mx A i j (Some (BPLUS y x))) obj))
-end.
-2: extensionality ts x rho; destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [m n] [ A [ i j]]]; reflexivity.
-apply (PROPx_super_non_expansive' assemble_add_type).
-2:{  hnf; intros. destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl. repeat constructor; auto. }
-apply (LOCALx_super_non_expansive' assemble_add_type).
-2:{ hnf; intros. destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl. repeat constructor; auto. }
-apply SEPx_super_non_expansive'.
-hnf; intros.
-destruct x as ((((((?,?),?), m), ?), ?), ?); destruct m as [ [?m ?n] [ A [ i j]]]. simpl.
-constructor. 2: constructor.
+nonexpansive_prover.
 apply assemble_obj_super_non_expansive.
 Qed.
 
