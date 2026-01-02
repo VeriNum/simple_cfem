@@ -24,13 +24,15 @@ Set Bullet Behavior "Strict Subproofs".
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 
+Require Import CFEM.C.nonexpansive.
+
 Open Scope logic.
 
 (* FIXME: the following definitions & coercion should be factored out of spec_densemat *)
 Notation the_type := spec_densemat.the_type.
 Notation the_ctype := spec_densemat.the_ctype.
 Notation val_of_float := spec_densemat.val_of_float.
-Notation frobenius_norm2 := spec_densemat.frobenius_norm.
+Notation frobenius_norm2 := spec_densemat.frobenius_norm2.
 Coercion Z.of_nat : nat >-> Z.
 
 Definition matrix_rep (t: type): Type := forall (sh: share) (X: { mn &  'M[option (ftype t)]_(fst mn, snd mn)}) (p: val), mpred.
@@ -122,7 +124,6 @@ Definition matrix_package : Type :=
 Definition matrix_and_indices : Type :=  
   {mn: nat*nat & matrix (option (ftype the_type)) (fst mn) (snd mn) * ('I_(fst mn) * 'I_(snd mn))}%type.
 
-
 Import rmaps.
 
 Definition matrix_package_typetree : TypeTree := 
@@ -142,101 +143,22 @@ Definition matrix_rep_type : TypeTree :=
    ProdType (ConstType share) 
      (ArrowType (ConstType  {mn : nat * nat & 'M[option (ftype the_type)]_(fst mn, snd mn)}) (ArrowType (ConstType val) Mpred)).
 
-Definition assemble_add_type := 
-  ProdType (ConstType (val * share * share * matrix_and_indices * ftype the_type * ftype the_type))
-                   (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
-
-
-Import compcert_rmaps.RML.R.
-
-Lemma approx_approx_S: forall (n: nat) (P: mpred), approx n (approx (S n) P) = approx n P.
-Proof.
-intros.
-change (base.compose (approx n) (approx (S n)) P = approx n P).
-rewrite Clight_initial_world.approx_min.
-rewrite Nat.min_l by lia. auto.
-Qed.
-
-
-Lemma approx_andp_prop: forall n P Q Q', approx n Q = approx n Q' ->
-       approx n (andp (prop P) Q) = approx n (andp (prop P) Q').
-Proof.
-intros. rewrite !approx_andp. f_equal. auto.
-Qed.
-
-Lemma approx_andp': forall n (P P' Q Q': mpred), 
-       approx n P = approx n P' -> 
-       approx n Q = approx n Q' ->
-       approx n (andp P Q) = approx n (andp P' Q').
-Proof.
-intros. rewrite !approx_andp; f_equal; auto.
-Qed.
-
-Lemma approx_sepcon': forall n (P P' Q Q': mpred),
-  approx n P = approx n P' ->
-  approx n Q = approx n Q' ->
-  approx n (sepcon P Q) = approx n (sepcon P' Q').
-Proof.
-intros. rewrite !approx_sepcon; f_equal; auto.
-Qed.
-
-Lemma approx_exp': forall (A: Type) (P1 P2: A -> mpred) (n: nat),
-    (forall x, approx n (P1 x) = approx n (P2 x)) ->
-    approx n (exp P1) = approx n (exp P2).
-Proof. intros; rewrite ?approx_exp; apply exp_congr; auto. Qed.
-
-Lemma approx_func_ptr'': 
-  forall n fsig cc A P P' Q Q' v,
-   (forall x rho, approx n (P x rho) = approx n (P' x rho)) ->
-   (forall x rho, approx n (Q x rho) = approx n (Q' x rho)) ->
-   approx (S n) (func_ptr' (NDmk_funspec fsig cc A P Q) v) =
-   approx (S n) (func_ptr' (NDmk_funspec fsig cc A P' Q') v).
-Proof.
-intros.
-rewrite approx_func_ptr'; symmetry; rewrite approx_func_ptr'; symmetry.
-apply f_equal.
-f_equal.
-f_equal; extensionality x rho; auto.
-Qed.
-
-Ltac nonexpansive_prover :=
-lazymatch goal with
-  |  |- args_super_non_expansive _ => intros ? ? ? ? 
-  |  |- super_non_expansive _ => intros ? ? ? ? 
-  | _ => idtac end;
-repeat match goal with 
-          | |- approx _ ?A = approx _ ?B => constr_eq A B; reflexivity
-          | |- approx _ (sepcon _ _) = approx _ (sepcon _ _) => apply approx_sepcon'
-          | |- approx _ (andp _ _) = approx _ (andp _ _) => apply approx_andp' 
-          | |- approx _ (exp _) = approx _ (exp _) => apply approx_exp'; intro
-          | |- approx (S _) (func_ptr' _ _) = approx (S _) (func_ptr' _ _) => apply approx_func_ptr''; intros
-          | |- approx ?n (func_ptr' _ _) = approx ?n' (func_ptr' _ _) => 
-                 constr_eq n n'; is_var n; destruct n as [ | n]; [rewrite !approx_0; reflexivity | ]
-          | |- approx _ (PROPx _ _ _) = approx _ (PROPx _ _ _) => apply approx_andp'
-          | |- approx _ (PARAMSx _ _ _) = approx _ (PARAMSx _ _ _) => apply approx_andp'
-          | |- approx _ (GLOBALSx _ _ _) = approx _ (GLOBALSx _ _ _) => apply approx_andp'
-          | |- approx _ (LOCALx _ _ _) = approx _ (LOCALx _ _ _) => apply approx_andp'
-          | |- approx _ (SEPx _ _) = approx _ (SEPx _ _) => apply approx_sepcon'
-          | |- approx _ (match ?x with _ => _ end) = _ => destruct x
-          | |- approx _ (match ?x with _ => _ end _) = _ => destruct x
-          | |- approx _ (match ?x with _ => _ end _ _) = _ => destruct x
-          | |- approx _ (match ?x with _ => _ end _ _ _ ) = _ => destruct x
-          | |- _ => progress rewrite ?approx_idem, ?approx_approx_S
-          | |- _ => progress unfold argsassert2assert
-          | H:  functors.MixVariantFunctor._functor _ _ |- _ => progress simpl in H
-          | |- _ => progress simpl
-   end.
-
-Lemma assemble_obj_super_non_expansive : forall n' sho sh inst m n A obj,
+Lemma assemble_obj_expansive : forall n' sho sh inst m n A obj,
 compcert_rmaps.RML.R.approx n' (assemble_obj sho sh inst m n A obj) =
 compcert_rmaps.RML.R.approx n'
   (assemble_obj sho sh
-     (fun (a : share) (a0 : matrix_package) (a1 : val) => compcert_rmaps.RML.R.approx n' (inst a a0 a1)) m n A obj).
+     (fun (a : share) (a0 : matrix_package) (a1 : val) => compcert_rmaps.R.approx n' (inst a a0 a1)) m n A obj).
 Proof.
 intros.
 unfold assemble_obj.
 nonexpansive_prover.
 Qed.
+Hint Resolve assemble_obj_expansive : nonexpansive.
+
+
+Definition assemble_add_type := 
+  ProdType (ConstType (val * share * share * matrix_and_indices * ftype the_type * ftype the_type))
+                   (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
 
 Program Definition assemble_add_spec :=
  DECLARE _assemble_add
@@ -255,11 +177,84 @@ Program Definition assemble_add_spec :=
    SEP (assemble_obj sho sh inst m n (update_mx A i j (Some (BPLUS y x))) obj).
 Next Obligation.
 nonexpansive_prover.
-apply assemble_obj_super_non_expansive.
 Qed.
 Next Obligation.
 nonexpansive_prover.
-apply assemble_obj_super_non_expansive.
+Qed.
+
+Definition assemble_clear_type := 
+  ProdType (ConstType (val * share * share * matrix_package))
+                   (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
+
+Program Definition assemble_clear_spec :=
+ DECLARE _assemble_clear
+ TYPE assemble_clear_type
+ WITH obj: val, sho: share, sh: share, 
+             X: matrix_package,
+             inst: matrix_rep the_type
+ PRE[ tptr assemble_t ] let '(existT _ (m,n) A) := X in 
+   PROP(writable_share sh)
+   PARAMS( obj ) GLOBALS()
+   SEP (assemble_obj sho sh inst m n A obj)
+ POST [ tvoid ] let '(existT _ (m,n) A) := X in 
+   PROP()
+   RETURN()
+   SEP (assemble_obj sho sh inst m n (@const_mx _ m n (Some (Zconst the_type 0))) obj).
+Next Obligation.
+nonexpansive_prover.
+Qed.
+Next Obligation.
+nonexpansive_prover.
+Qed.
+
+Definition assemble_norm2_type := 
+  ProdType (ConstType (val * share * share *  {mn: nat*nat & matrix (ftype the_type) (fst mn) (snd mn)}))
+                   (ArrowType (ConstType share) (ArrowType (ConstType  matrix_package) (ArrowType (ConstType val) Mpred))).
+
+Program Definition assemble_norm2_spec :=
+ DECLARE _assemble_norm2
+ TYPE assemble_norm2_type
+ WITH obj: val, sho: share, sh: share, 
+             X:  {mn: nat*nat & matrix (ftype the_type) (fst mn) (snd mn)}%type,
+             inst: matrix_rep the_type
+ PRE[ tptr assemble_t ] let '(existT _ (m,n) A) := X in 
+   PROP(writable_share sh)
+   PARAMS( obj ) GLOBALS()
+   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj)
+ POST [ the_ctype ] let '(existT _ (m,n) A) := X in 
+   PROP()
+   RETURN(val_of_float (frobenius_norm2 A))
+   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj).
+Next Obligation.
+nonexpansive_prover.
+Qed.
+Next Obligation.
+nonexpansive_prover.
+Qed.
+
+Definition assemble_print_type := 
+  ProdType (ConstType (val * share * share *  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}))
+                   (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
+
+Program Definition assemble_print_spec :=
+ DECLARE _assemble_print
+ TYPE assemble_print_type
+ WITH obj: val, sho: share, sh: share, 
+             X:  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)},
+             inst: matrix_rep the_type
+ PRE[ tptr assemble_t ] let '(existT _ (m,n) A) := X in 
+   PROP(writable_share sh)
+   PARAMS( obj ) GLOBALS()
+   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj)
+ POST [ tvoid ] let '(existT _ (m,n) A) := X in 
+   PROP()
+   RETURN()
+   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj).
+Next Obligation.
+nonexpansive_prover.
+Qed.
+Next Obligation.
+nonexpansive_prover.
 Qed.
 
 Definition dense_matrix_rep : matrix_rep the_type := 
@@ -293,8 +288,11 @@ Definition init_assemble_dense_spec :=
 
 Definition assemble_ASI: funspecs :=
  [ assemble_add_spec; casted_densemat_add_spec;
-   casted_densemat_clear_spec; casted_densemat_norm2_spec; casted_densemat_print_spec;
+   assemble_clear_spec; casted_densemat_clear_spec; 
+   assemble_norm2_spec; casted_densemat_norm2_spec; 
+   assemble_print_spec; casted_densemat_print_spec;
    init_assemble_dense_spec ].
+
 
 
 

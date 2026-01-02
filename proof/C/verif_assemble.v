@@ -74,6 +74,95 @@ simpl. cancel.
 entailer!!.
 Qed.
 
+Lemma body_assemble_clear: semax_body Vprog Gprog f_assemble_clear assemble_clear_spec.
+Proof.
+start_function.
+rename X into A.
+unfold assemble_obj.
+Intros p add clear norm2 print.
+forward.
+forward.
+change spec_densemat.the_type with the_type in *.
+pose (X := existT _ (m,n) A :  {mn: nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn)}%type).
+forward_call (p,sh,X).
+unfold assemble_obj.
+entailer!!.
+Exists p add clear norm2 print.
+entailer!!.
+Qed.
+
+Lemma body_casted_densemat_clear: semax_body Vprog Gprog f_casted_densemat_clear casted_densemat_clear_spec.
+Proof.
+start_function.
+rename X into A.
+pose (X := existT _ (m,n) A : {mn: nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn)}%type).
+forward_call (X,p,sh).
+unfold dense_matrix_rep.
+simpl. cancel.
+entailer!!.
+Qed.
+
+Lemma body_assemble_norm2: semax_body Vprog Gprog f_assemble_norm2 assemble_norm2_spec.
+Proof.
+start_function.
+rename X into A.
+unfold assemble_obj.
+Intros p add clear norm2 print.
+forward.
+forward.
+change spec_densemat.the_type with the_type in *.
+pose (X := existT _ (m,n) A :  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type).
+forward_call (p,sh,X).
+forward.
+unfold assemble_obj.
+Exists p add clear norm2 print.
+entailer!!.
+Qed.
+
+Lemma body_casted_densemat_norm2: semax_body Vprog Gprog f_casted_densemat_norm2 casted_densemat_norm2_spec.
+Proof.
+start_function.
+rename X into A.
+pose (X := existT _ (m,n) A : {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type).
+forward_call (sh,X,p).
+unfold dense_matrix_rep.
+simpl. cancel.
+forward.
+Qed.
+
+Lemma body_assemble_print: semax_body Vprog Gprog f_assemble_print assemble_print_spec.
+Proof.
+start_function.
+rename X into A.
+unfold assemble_obj.
+Intros p add clear norm2 print.
+forward.
+forward.
+change spec_densemat.the_type with the_type in *.
+pose (X := existT _ (m,n) A :  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type).
+forward_call (p,sh,X).
+unfold assemble_obj.
+entailer!!.
+Exists p add clear norm2 print.
+entailer!!.
+Qed.
+
+Lemma body_casted_densemat_print: semax_body Vprog Gprog f_casted_densemat_print casted_densemat_print_spec.
+Proof.
+start_function.
+rename X into A.
+pose (X := existT _ (m,n) A : {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type).
+(* The next line won't work until densemat_print is proved in LAProof 
+forward_call (X,p,sh).
+unfold dense_matrix_rep.
+simpl. cancel.
+entailer!!.
+Qed.
+*)
+Admitted.
+
+
+
 Lemma body_init_assemble_dense: semax_body Vprog Gprog f_init_assemble_dense init_assemble_dense_spec.
 Proof.
 start_function.

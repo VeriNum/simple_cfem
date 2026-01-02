@@ -9,4 +9,5 @@ C/quadrules.v
 C/shapes.v
 C/spec_assemble.v
 C/verif_assemble.v
+C/nonexpansive.v
 model.v
