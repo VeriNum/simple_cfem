@@ -152,16 +152,10 @@ Proof.
 start_function.
 rename X into A.
 pose (X := existT _ (m,n) A : {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type).
-(* The next line won't work until densemat_print is proved in LAProof 
 forward_call (X,p,sh).
-unfold dense_matrix_rep.
-simpl. cancel.
+unfold dense_matrix_rep; simpl; cancel.
 entailer!!.
 Qed.
-*)
-Admitted.
-
-
 
 Lemma body_init_assemble_dense: semax_body Vprog Gprog f_init_assemble_dense init_assemble_dense_spec.
 Proof.

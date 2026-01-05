@@ -143,7 +143,7 @@ Definition matrix_rep_type : TypeTree :=
    ProdType (ConstType share) 
      (ArrowType (ConstType  {mn : nat * nat & 'M[option (ftype the_type)]_(fst mn, snd mn)}) (ArrowType (ConstType val) Mpred)).
 
-Lemma assemble_obj_expansive : forall n' sho sh inst m n A obj,
+Lemma assemble_obj_nonexpansive : forall n' sho sh inst m n A obj,
 compcert_rmaps.RML.R.approx n' (assemble_obj sho sh inst m n A obj) =
 compcert_rmaps.RML.R.approx n'
   (assemble_obj sho sh
@@ -153,7 +153,7 @@ intros.
 unfold assemble_obj.
 nonexpansive_prover.
 Qed.
-Hint Resolve assemble_obj_expansive : nonexpansive.
+Hint Resolve assemble_obj_nonexpansive : nonexpansive.
 
 
 Definition assemble_add_type := 
