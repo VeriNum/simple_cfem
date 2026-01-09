@@ -232,6 +232,27 @@ Next Obligation.
 nonexpansive_prover.
 Qed.
 
+Program Definition assemble_norm_spec :=
+ DECLARE _assemble_norm
+ TYPE assemble_norm2_type
+ WITH obj: val, sho: share, sh: share, 
+             X:  {mn: nat*nat & matrix (ftype the_type) (fst mn) (snd mn)}%type,
+             inst: matrix_rep the_type
+ PRE[ tptr assemble_t ] let '(existT _ (m,n) A) := X in 
+   PROP(writable_share sh)
+   PARAMS( obj ) GLOBALS()
+   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj)
+ POST [ the_ctype ] let '(existT _ (m,n) A) := X in 
+   PROP()
+   RETURN(val_of_float (BSQRT (frobenius_norm2 A)))
+   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj).
+Next Obligation.
+nonexpansive_prover.
+Qed.
+Next Obligation.
+nonexpansive_prover.
+Qed.
+
 Definition assemble_print_type := 
   ProdType (ConstType (val * share * share *  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}))
                    (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
@@ -286,12 +307,26 @@ Definition init_assemble_dense_spec :=
    SEP(assemble_obj sho shp dense_matrix_rep _ _ (projT2 X) obj).
 
 
+Definition casted_bandmat_add_spec : ident*funspec := 
+ (_casted_bandmat_add, vacuous_funspec (Internal f_casted_bandmat_add)).
+Definition casted_bandmat_clear_spec : ident*funspec := 
+ (_casted_bandmat_clear, vacuous_funspec (Internal f_casted_bandmat_clear)).
+Definition casted_bandmat_norm2_spec : ident*funspec := 
+ (_casted_bandmat_norm2, vacuous_funspec (Internal f_casted_bandmat_norm2)).
+Definition casted_bandmat_print_spec : ident*funspec := 
+ (_casted_bandmat_print, vacuous_funspec (Internal f_casted_bandmat_print)).
+Definition init_assemble_band_spec : ident*funspec := 
+ (_init_assemble_band, vacuous_funspec (Internal f_init_assemble_band)).
+
 Definition assemble_ASI: funspecs :=
  [ assemble_add_spec; casted_densemat_add_spec;
    assemble_clear_spec; casted_densemat_clear_spec; 
-   assemble_norm2_spec; casted_densemat_norm2_spec; 
+   assemble_norm2_spec; casted_densemat_norm2_spec; assemble_norm_spec;
    assemble_print_spec; casted_densemat_print_spec;
-   init_assemble_dense_spec ].
+   init_assemble_dense_spec;
+   casted_bandmat_add_spec; casted_bandmat_clear_spec;
+   casted_bandmat_norm2_spec; casted_bandmat_print_spec;
+   init_assemble_band_spec ].
 
 
 

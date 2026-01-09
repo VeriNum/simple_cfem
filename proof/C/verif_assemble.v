@@ -23,7 +23,17 @@ Unset Printing Implicit Defensive.
 Set Bullet Behavior "Strict Subproofs".
 Open Scope logic.
 
-Definition Gprog := assemble_ASI ++ spec_densemat.densematASI.
+Section import_densemat.
+Import spec_densemat.
+Definition assemble_imported_specs := 
+  [densemat_addto_spec; densemat_clear_spec; densemat_norm2_spec; densemat_print_spec;
+   sqrt_spec ].
+End import_densemat.
+
+Definition assemble_E : funspecs := [].
+Definition assemble_internal_specs : funspecs := assemble_ASI.
+
+Definition Gprog := assemble_imported_specs ++ assemble_internal_specs.
 
 Ltac destruct_it B ::= (* remove this if/when VST 2.17 incorporates it. *)
  match B with
@@ -119,6 +129,23 @@ Exists p add clear norm2 print.
 entailer!!.
 Qed.
 
+Lemma body_assemble_norm: semax_body Vprog Gprog f_assemble_norm assemble_norm_spec.
+Proof.
+start_function.
+rename X into A.
+pose (X := existT _ (m,n) A :  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type).
+forward_call (obj, sho, sh, X, inst).
+forward_call.
+Locate sqrt_ff.
+forward.
+entailer!!.
+change (val_of_float ?A) with (Vfloat A).
+f_equal.
+unfold BSQRT, UNOP. f_equal.
+replace (FPCore.fprec_gt_one FPCore.Tdouble) with (fprec_gt_one the_type) by (apply proof_irr).
+reflexivity.
+Qed.
+
 Lemma body_casted_densemat_norm2: semax_body Vprog Gprog f_casted_densemat_norm2 casted_densemat_norm2_spec.
 Proof.
 start_function.
@@ -180,5 +207,23 @@ entailer!!.
 Qed.
 
 
+Require Import VST.floyd.VSU.
+
+Definition assembleVSU: @VSU NullExtension.Espec
+         assemble_E assemble_imported_specs 
+         ltac:(QPprog prog) assemble_ASI (fun _ => TT).
+  Proof.
+    mkVSU prog assemble_internal_specs.
+    - solve_SF_internal body_assemble_add.
+    - solve_SF_internal body_casted_densemat_add.
+    - solve_SF_internal body_assemble_clear.
+    - solve_SF_internal body_casted_densemat_clear.
+    - solve_SF_internal body_assemble_norm2.
+    - solve_SF_internal body_casted_densemat_norm2.
+    - solve_SF_internal body_assemble_norm.
+    - solve_SF_internal body_assemble_print.
+    - solve_SF_internal body_casted_densemat_print.
+    - solve_SF_internal body_init_assemble_dense.
+Qed.
 
 

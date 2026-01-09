@@ -69,8 +69,11 @@ lazymatch goal with
 repeat match goal with 
           | |- approx _ ?A = approx _ ?B => constr_eq A B; reflexivity
           | |- approx _ (sepcon _ _) = approx _ (sepcon _ _) => apply approx_sepcon'
+          | |- approx _ (sepcon _ _ _) = approx _ (sepcon _ _ _) => apply approx_sepcon'
           | |- approx _ (andp _ _) = approx _ (andp _ _) => apply approx_andp' 
+          | |- approx _ (andp _ _ _) = approx _ (andp _ _ _) => apply approx_andp' 
           | |- approx _ (exp _) = approx _ (exp _) => apply approx_exp'; intro
+          | |- approx _ (exp _ _) = approx _ (exp _ _) => apply approx_exp'; intro
           | |- approx (S _) (func_ptr' _ _) = approx (S _) (func_ptr' _ _) => apply approx_func_ptr''; intros
           | |- approx ?n (func_ptr' _ _) = approx ?n' (func_ptr' _ _) => 
                  constr_eq n n'; is_var n; destruct n as [ | n]; [rewrite !approx_0; reflexivity | ]
