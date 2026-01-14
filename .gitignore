@@ -10,6 +10,9 @@ proof/*/.*.cache
 proof/.CoqMakefile.d
 proof/CoqMakefile
 proof/CoqMakefile.conf
+docs/index_files/*/*
+docs/index.html
+docs/index.pdf
 obj/*
 exe/*
 
