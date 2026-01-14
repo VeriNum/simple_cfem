@@ -3,35 +3,35 @@
 
 #include <densemat.h>
 #include <bandmat.h>
-#include "assemble.h"
+#include "matrix.h"
 #include "fem.h"
 
-void test_K_setup(assemble_t assembler)
+void test_K_setup(matrix_t m)
 {
     double emat[] = {1.0, -1.0, -1.0, 1.0};
     int ids[2];
-    assemble_clear(assembler);
-    ids[0] = 0; ids[1] = 1; assemble_matrix(assembler, emat, ids, 2);
-    ids[0] = 1; ids[1] = 2; assemble_matrix(assembler, emat, ids, 2);
+    matrix_clear(m);
+    ids[0] = 0; ids[1] = 1; assemble_matrix(m, emat, ids, 2);
+    ids[0] = 1; ids[1] = 2; assemble_matrix(m, emat, ids, 2);
 }
 
 void test_Kassembly(void)
 {
     densemat_t A = densemat_malloc(3,3);
     bandmat_t P = bandmat_malloc(3,1);
-    struct assemble_t assembler;
+    struct matrix_t m;
 
     memset(A->data, 0xF, 9 * sizeof(double));
     memset(P->data, 0xF, 6 * sizeof(double));
 
-    init_assemble_dense(&assembler, A);
-    test_K_setup(&assembler);
+    init_matrix_dense(&m, A);
+    test_K_setup(&m);
     assert(A->data[0] ==  1.0 && A->data[3] == -1.0 && A->data[6] ==  0.0 &&
            A->data[1] ==  0.0 && A->data[4] ==  2.0 && A->data[7] == -1.0 &&
            A->data[2] ==  0.0 && A->data[5] ==  0.0 && A->data[8] ==  1.0);
 
-    init_assemble_band(&assembler, P);
-    test_K_setup(&assembler);
+    init_matrix_band(&m, P);
+    test_K_setup(&m);
     assert(P->data[0] == 1.0 && P->data[1] ==  2.0 && P->data[2] ==  1.0
                        && P->data[4] == -1.0 && P->data[5] == -1.0);
 

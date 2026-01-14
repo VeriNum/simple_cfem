@@ -1,6 +1,7 @@
 CONFIGURE
 src/*.o
 test/*.o
+proof/.lia_cache
 proof/*/*.vo
 proof/*/*.vok
 proof/*/*.vos
