@@ -8,7 +8,8 @@
 
 //ldoc on
 /**
- * ## Method dispatch
+ * ## Implementation of the Matrix-object module
+ * ### Method dispatch
  */
 void matrix_add(matrix_t m, int i, int j, double x) {
   (*(m->add))(m->p, i, j, x);
@@ -33,8 +34,8 @@ void matrix_print (matrix_t m) {
 
 
 /**
- * Setting up an matrix object just involves initializing the
- * data pointer `p` and setting up the method table.  
+ * ### Setting up an matrix object 
+ * just involves initializing the data pointer `p` and setting up the method table.  
  * 
  */
 
