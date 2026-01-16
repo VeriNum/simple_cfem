@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "alloc.h"
-#include "assemble.h"
+#include "matrix.h"
 #include "element.h"
 #include "bandmat.h"
 #include "mesh.h"
@@ -88,15 +88,18 @@ void fem_set_load(fem_t fe, void (*f)(double* x, double* fx))
  * for every local index pair `(i,j)`.  We filter out the contributions
  * where the global indices are negative (indicating that these
  * contributions are not needed because of an essential boundary condition.
+ *
+ *   The `ids` array implements the map $\iota$ from local
+ *   indices to global indices (i.e. `ids[ilocal] = iglobal`).
  */
-void assemble_matrix(assemble_t K, double* emat, int* ids, int ne)
+void assemble_matrix(matrix_t K, double* emat, int* ids, int ne)
 {
     for (int je = 0; je < ne; ++je) {
         int j = ids[je];
         for (int ie = 0; ie <= je; ++ie) {
             int i = ids[ie];
             if (i >= 0 && j >= i)
-	      assemble_add(K,i,j, densematn_get(emat,ne,ie,je));
+	      matrix_add(K,i,j, densematn_get(emat,ne,ie,je));
         }
     }
 }
@@ -105,9 +108,9 @@ void assemble_matrix(assemble_t K, double* emat, int* ids, int ne)
  * ## Vector assembly
  * 
  * We only really use one vector representation (a simple array), so
- * there is no need for the same type of assembler abstraction for vectors
+ * there is no need for the same type of matrix abstraction for vectors
  * that we have for matrices.  The semantics of `assemble_vector` are
- * similar to those of `assemble_add` in the matrix case, except now
+ * similar to those of `assemble_matrix`, except now
  * we add the element vector `ve` into the global vector `v`.
  * 
  */
@@ -121,7 +124,7 @@ void assemble_vector(double* v, double* ve, int* ids, int ne)
 }
 
 // Assemble global residual and tangent stiffness (general)
-void fem_assemble(fem_t fe, double* R, assemble_t K)
+void fem_assemble(fem_t fe, double* R, matrix_t K)
 {
     int numelt       = fe->mesh->numelt;
     int nen          = fe->mesh->nen;
@@ -134,7 +137,7 @@ void fem_assemble(fem_t fe, double* R, assemble_t K)
 
     // Clear storage for assembly
     if (R) memset(R, 0, fe->nactive * sizeof(double));
-    if (K) assemble_clear(K);
+    if (K) matrix_clear(K);
 
     // Assemble contributions
     for (int i = 0; i < numelt; ++i) {
@@ -163,9 +166,9 @@ void fem_assemble(fem_t fe, double* R, assemble_t K)
 void fem_assemble_band(fem_t fe, double* R, bandmat_t K)
 {
     if (K) {
-        struct assemble_t Kassembler;
-        init_assemble_band(&Kassembler, K);
-        fem_assemble(fe, R, &Kassembler);
+        struct matrix_t Kmatrix;
+        init_matrix_band(&Kmatrix, K);
+        fem_assemble(fe, R, &Kmatrix);
     } else {
         fem_assemble(fe, R, NULL);
     }
@@ -175,9 +178,9 @@ void fem_assemble_band(fem_t fe, double* R, bandmat_t K)
 void fem_assemble_dense(fem_t fe, double* R, densemat_t K)
 {
     if (K) {
-        struct assemble_t Kassembler;
-        init_assemble_dense(&Kassembler, K);
-        fem_assemble(fe, R, &Kassembler);
+        struct matrix_t Kmatrix;
+        init_matrix_dense(&Kmatrix, K);
+        fem_assemble(fe, R, &Kmatrix);
     } else {
         fem_assemble(fe, R, NULL);
     }

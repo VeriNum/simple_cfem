@@ -1,5 +1,5 @@
 Require Import VST.floyd.proofauto.
-From CFEM.C Require Import assemble.
+From CFEM.C Require Import matrix.
 From vcfloat Require Import FPStdCompCert FPStdLib.
 From VSTlib Require Import spec_math spec_malloc.
 From LAProof.accuracy_proofs Require Import solve_model.
@@ -37,13 +37,13 @@ Coercion Z.of_nat : nat >-> Z.
 
 Definition matrix_rep (t: type): Type := forall (sh: share) (X: { mn &  'M[option (ftype t)]_(fst mn, snd mn)}) (p: val), mpred.
 
-Definition assemble_data_t := Tstruct _assemble_data_t noattr.
-Definition assemble_t := Tstruct _assemble_t noattr.
+Definition matrix_data_t := Tstruct _matrix_data_t noattr.
+Definition matrix_t := Tstruct _matrix_t noattr.
 
-Definition assemble_add_spec' (instance: matrix_rep the_type) :=
+Definition matrix_add_spec' (instance: matrix_rep the_type) :=
  WITH p: val, sh: share, X: {mn: nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn) * ('I_(fst mn) * 'I_(snd mn))}%type, 
              y: ftype the_type, x: ftype the_type
- PRE[ tptr assemble_data_t, tint, tint, the_ctype ] let '(existT _ (m,n) (A,(i,j))) := X in 
+ PRE[ tptr matrix_data_t, tint, tint, the_ctype ] let '(existT _ (m,n) (A,(i,j))) := X in 
    PROP(writable_share sh; A i j = Some y)
    PARAMS( p; Vint (Int.repr i); Vint (Int.repr j); Vfloat x)
    SEP(instance sh (existT _ (m,n) A) p)
@@ -52,9 +52,9 @@ Definition assemble_add_spec' (instance: matrix_rep the_type) :=
    RETURN()
    SEP(instance sh (existT _ (m,n) (update_mx A i j (Some (BPLUS y x)))) p).
 
-Definition assemble_clear_spec' (instance: matrix_rep the_type) :=
+Definition matrix_clear_spec' (instance: matrix_rep the_type) :=
  WITH p: val, sh: share, X: {mn: nat*nat & 'M[option (ftype the_type)]_(fst mn, snd mn)}%type
- PRE[ tptr assemble_data_t ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr matrix_data_t ] let '(existT _ (m,n) A) := X in 
    PROP(writable_share sh)
    PARAMS( p )
    SEP(instance sh (existT _ (m,n) A) p)
@@ -64,9 +64,9 @@ Definition assemble_clear_spec' (instance: matrix_rep the_type) :=
    SEP(instance sh (existT _ (m,n) (@const_mx _ m n (Some (Zconst the_type 0)))) p).
 
 
-Definition assemble_norm2_spec' (instance: matrix_rep the_type) :=
+Definition matrix_norm2_spec' (instance: matrix_rep the_type) :=
  WITH p: val, sh: share, X: {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type
- PRE[ tptr assemble_data_t ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr matrix_data_t ] let '(existT _ (m,n) A) := X in 
    PROP(readable_share sh)
    PARAMS( p )
    SEP(instance sh (existT _ (m,n) (map_mx Some A)) p)
@@ -75,9 +75,9 @@ Definition assemble_norm2_spec' (instance: matrix_rep the_type) :=
    RETURN(val_of_float (frobenius_norm2 A))
    SEP(instance sh (existT _ (m,n) (map_mx Some A)) p).
 
-Definition assemble_print_spec' (instance: matrix_rep the_type) :=
+Definition matrix_print_spec' (instance: matrix_rep the_type) :=
  WITH p: val, sh: share, X: {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type
- PRE[ tptr assemble_data_t ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr matrix_data_t ] let '(existT _ (m,n) A) := X in 
    PROP(readable_share sh)
    PARAMS( p )
    SEP(instance sh (existT _ (m,n) (map_mx Some A)) p)
@@ -86,36 +86,36 @@ Definition assemble_print_spec' (instance: matrix_rep the_type) :=
    RETURN()
    SEP(instance sh (existT _ (m,n) (map_mx Some A)) p).
 
-Definition assemble_obj (sho sh: share) (instance: matrix_rep the_type)
+Definition matrix_obj (sho sh: share) (instance: matrix_rep the_type)
           (m n: nat) (A: 'M[option (ftype the_type)]_(m,n)) (obj: val) :=
   EX p: val, EX add: val, EX clear: val, EX norm2: val, EX print: val, 
   !! (readable_share sho /\ isptr p) && 
-  func_ptr' (assemble_add_spec' instance) add *
-  func_ptr' (assemble_clear_spec' instance) clear *
-  func_ptr' (assemble_norm2_spec' instance) norm2 *
-  func_ptr' (assemble_print_spec' instance) print *
-  data_at sho assemble_t (p,(add,(clear,(norm2,print)))) obj * instance sh (existT _ (m,n) A) p.
+  func_ptr' (matrix_add_spec' instance) add *
+  func_ptr' (matrix_clear_spec' instance) clear *
+  func_ptr' (matrix_norm2_spec' instance) norm2 *
+  func_ptr' (matrix_print_spec' instance) print *
+  data_at sho matrix_t (p,(add,(clear,(norm2,print)))) obj * instance sh (existT _ (m,n) A) p.
 
-Lemma assemble_obj_local_facts: forall sho sh instance m n A obj,
-   assemble_obj sho sh instance m n A obj |-- !!(isptr obj).
+Lemma matrix_obj_local_facts: forall sho sh instance m n A obj,
+   matrix_obj sho sh instance m n A obj |-- !!(isptr obj).
 Proof.
 intros.
-unfold assemble_obj.
+unfold matrix_obj.
 Intros p add clear norm2 print.
 entailer!.
 Qed.
-#[export] Hint Resolve assemble_obj_local_facts : saturate_local.
+#[export] Hint Resolve matrix_obj_local_facts : saturate_local.
 
-Lemma assemble_obj_valid_pointer: forall sho sh instance m n A obj,
+Lemma matrix_obj_valid_pointer: forall sho sh instance m n A obj,
   sepalg.nonidentity sho ->
-   assemble_obj sho sh instance m n A obj |-- valid_pointer obj.
+   matrix_obj sho sh instance m n A obj |-- valid_pointer obj.
 Proof.
 intros.
-unfold assemble_obj.
+unfold matrix_obj.
 Intros p add clear norm2 print.
 entailer!.
 Qed.
-#[export] Hint Resolve assemble_obj_valid_pointer : valid_pointer.
+#[export] Hint Resolve matrix_obj_valid_pointer : valid_pointer.
 
 Definition matrix_package : Type :=  
   {mn: nat*nat & matrix (option (ftype the_type)) (fst mn) (snd mn)}%type.
@@ -143,38 +143,38 @@ Definition matrix_rep_type : TypeTree :=
    ProdType (ConstType share) 
      (ArrowType (ConstType  {mn : nat * nat & 'M[option (ftype the_type)]_(fst mn, snd mn)}) (ArrowType (ConstType val) Mpred)).
 
-Lemma assemble_obj_nonexpansive : forall n' sho sh inst m n A obj,
-compcert_rmaps.RML.R.approx n' (assemble_obj sho sh inst m n A obj) =
+Lemma matrix_obj_nonexpansive : forall n' sho sh inst m n A obj,
+compcert_rmaps.RML.R.approx n' (matrix_obj sho sh inst m n A obj) =
 compcert_rmaps.RML.R.approx n'
-  (assemble_obj sho sh
+  (matrix_obj sho sh
      (fun (a : share) (a0 : matrix_package) (a1 : val) => compcert_rmaps.R.approx n' (inst a a0 a1)) m n A obj).
 Proof.
 intros.
-unfold assemble_obj.
+unfold matrix_obj.
 nonexpansive_prover.
 Qed.
-Hint Resolve assemble_obj_nonexpansive : nonexpansive.
+Hint Resolve matrix_obj_nonexpansive : nonexpansive.
 
 
-Definition assemble_add_type := 
+Definition matrix_add_type := 
   ProdType (ConstType (val * share * share * matrix_and_indices * ftype the_type * ftype the_type))
                    (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
 
-Program Definition assemble_add_spec :=
- DECLARE _assemble_add
- TYPE assemble_add_type
+Program Definition matrix_add_spec :=
+ DECLARE _matrix_add
+ TYPE matrix_add_type
  WITH obj: val, sho: share, sh: share, 
              X: matrix_and_indices, 
              y: ftype the_type, x: ftype the_type,
              inst: matrix_rep the_type
- PRE[ tptr assemble_t, tint, tint, the_ctype ] let '(existT _ (m,n) (A,(i,j))) := X in 
+ PRE[ tptr matrix_t, tint, tint, the_ctype ] let '(existT _ (m,n) (A,(i,j))) := X in 
    PROP(writable_share sh; A i j = Some y)
    PARAMS( obj; Vint (Int.repr i); Vint (Int.repr j); Vfloat x) GLOBALS()
-   SEP (assemble_obj sho sh inst m n A obj)
+   SEP (matrix_obj sho sh inst m n A obj)
  POST [ tvoid ] let '(existT _ (m,n) (A,(i,j))) := X in 
    PROP()
    RETURN()
-   SEP (assemble_obj sho sh inst m n (update_mx A i j (Some (BPLUS y x))) obj).
+   SEP (matrix_obj sho sh inst m n (update_mx A i j (Some (BPLUS y x))) obj).
 Next Obligation.
 nonexpansive_prover.
 Qed.
@@ -182,24 +182,24 @@ Next Obligation.
 nonexpansive_prover.
 Qed.
 
-Definition assemble_clear_type := 
+Definition matrix_clear_type := 
   ProdType (ConstType (val * share * share * matrix_package))
                    (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
 
-Program Definition assemble_clear_spec :=
- DECLARE _assemble_clear
- TYPE assemble_clear_type
+Program Definition matrix_clear_spec :=
+ DECLARE _matrix_clear
+ TYPE matrix_clear_type
  WITH obj: val, sho: share, sh: share, 
              X: matrix_package,
              inst: matrix_rep the_type
- PRE[ tptr assemble_t ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr matrix_t ] let '(existT _ (m,n) A) := X in 
    PROP(writable_share sh)
    PARAMS( obj ) GLOBALS()
-   SEP (assemble_obj sho sh inst m n A obj)
+   SEP (matrix_obj sho sh inst m n A obj)
  POST [ tvoid ] let '(existT _ (m,n) A) := X in 
    PROP()
    RETURN()
-   SEP (assemble_obj sho sh inst m n (@const_mx _ m n (Some (Zconst the_type 0))) obj).
+   SEP (matrix_obj sho sh inst m n (@const_mx _ m n (Some (Zconst the_type 0))) obj).
 Next Obligation.
 nonexpansive_prover.
 Qed.
@@ -207,24 +207,24 @@ Next Obligation.
 nonexpansive_prover.
 Qed.
 
-Definition assemble_norm2_type := 
+Definition matrix_norm2_type := 
   ProdType (ConstType (val * share * share *  {mn: nat*nat & matrix (ftype the_type) (fst mn) (snd mn)}))
                    (ArrowType (ConstType share) (ArrowType (ConstType  matrix_package) (ArrowType (ConstType val) Mpred))).
 
-Program Definition assemble_norm2_spec :=
- DECLARE _assemble_norm2
- TYPE assemble_norm2_type
+Program Definition matrix_norm2_spec :=
+ DECLARE _matrix_norm2
+ TYPE matrix_norm2_type
  WITH obj: val, sho: share, sh: share, 
              X:  {mn: nat*nat & matrix (ftype the_type) (fst mn) (snd mn)}%type,
              inst: matrix_rep the_type
- PRE[ tptr assemble_t ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr matrix_t ] let '(existT _ (m,n) A) := X in 
    PROP(writable_share sh)
    PARAMS( obj ) GLOBALS()
-   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj)
+   SEP (matrix_obj sho sh inst m n (map_mx Some A) obj)
  POST [ the_ctype ] let '(existT _ (m,n) A) := X in 
    PROP()
    RETURN(val_of_float (frobenius_norm2 A))
-   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj).
+   SEP (matrix_obj sho sh inst m n (map_mx Some A) obj).
 Next Obligation.
 nonexpansive_prover.
 Qed.
@@ -232,20 +232,20 @@ Next Obligation.
 nonexpansive_prover.
 Qed.
 
-Program Definition assemble_norm_spec :=
- DECLARE _assemble_norm
- TYPE assemble_norm2_type
+Program Definition matrix_norm_spec :=
+ DECLARE _matrix_norm
+ TYPE matrix_norm2_type
  WITH obj: val, sho: share, sh: share, 
              X:  {mn: nat*nat & matrix (ftype the_type) (fst mn) (snd mn)}%type,
              inst: matrix_rep the_type
- PRE[ tptr assemble_t ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr matrix_t ] let '(existT _ (m,n) A) := X in 
    PROP(writable_share sh)
    PARAMS( obj ) GLOBALS()
-   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj)
+   SEP (matrix_obj sho sh inst m n (map_mx Some A) obj)
  POST [ the_ctype ] let '(existT _ (m,n) A) := X in 
    PROP()
    RETURN(val_of_float (BSQRT (frobenius_norm2 A)))
-   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj).
+   SEP (matrix_obj sho sh inst m n (map_mx Some A) obj).
 Next Obligation.
 nonexpansive_prover.
 Qed.
@@ -253,24 +253,24 @@ Next Obligation.
 nonexpansive_prover.
 Qed.
 
-Definition assemble_print_type := 
+Definition matrix_print_type := 
   ProdType (ConstType (val * share * share *  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}))
                    (ArrowType (ConstType share) (ArrowType (ConstType matrix_package) (ArrowType (ConstType val) Mpred))).
 
-Program Definition assemble_print_spec :=
- DECLARE _assemble_print
- TYPE assemble_print_type
+Program Definition matrix_print_spec :=
+ DECLARE _matrix_print
+ TYPE matrix_print_type
  WITH obj: val, sho: share, sh: share, 
              X:  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)},
              inst: matrix_rep the_type
- PRE[ tptr assemble_t ] let '(existT _ (m,n) A) := X in 
+ PRE[ tptr matrix_t ] let '(existT _ (m,n) A) := X in 
    PROP(writable_share sh)
    PARAMS( obj ) GLOBALS()
-   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj)
+   SEP (matrix_obj sho sh inst m n (map_mx Some A) obj)
  POST [ tvoid ] let '(existT _ (m,n) A) := X in 
    PROP()
    RETURN()
-   SEP (assemble_obj sho sh inst m n (map_mx Some A) obj).
+   SEP (matrix_obj sho sh inst m n (map_mx Some A) obj).
 Next Obligation.
 nonexpansive_prover.
 Qed.
@@ -283,28 +283,28 @@ Definition dense_matrix_rep : matrix_rep the_type :=
    spec_densemat.densemat sh (projT2 X) p.
 
 Definition casted_densemat_add_spec :=
- DECLARE _casted_densemat_add (assemble_add_spec' dense_matrix_rep).
+ DECLARE _casted_densemat_add (matrix_add_spec' dense_matrix_rep).
 
 Definition casted_densemat_clear_spec :=
- DECLARE _casted_densemat_clear (assemble_clear_spec' dense_matrix_rep).
+ DECLARE _casted_densemat_clear (matrix_clear_spec' dense_matrix_rep).
 
 Definition casted_densemat_norm2_spec :=
- DECLARE _casted_densemat_norm2 (assemble_norm2_spec' dense_matrix_rep).
+ DECLARE _casted_densemat_norm2 (matrix_norm2_spec' dense_matrix_rep).
 
 Definition casted_densemat_print_spec :=
- DECLARE _casted_densemat_print (assemble_print_spec' dense_matrix_rep).
+ DECLARE _casted_densemat_print (matrix_print_spec' dense_matrix_rep).
 
-Definition init_assemble_dense_spec :=
- DECLARE _init_assemble_dense
+Definition init_matrix_dense_spec :=
+ DECLARE _init_matrix_dense
  WITH obj: val, sho: share,  p: val, shp: share, X: { mn &  'M[option (ftype the_type)]_(fst mn, snd mn)}%type, gv: globals
- PRE [ tptr assemble_t , tptr spec_densemat.densemat_t ]
+ PRE [ tptr matrix_t , tptr spec_densemat.densemat_t ]
    PROP(writable_share sho)
    PARAMS (obj; p) GLOBALS(gv)
-   SEP(data_at_ sho assemble_t obj; spec_densemat.densemat shp (projT2 X) p)
+   SEP(data_at_ sho matrix_t obj; spec_densemat.densemat shp (projT2 X) p)
  POST [ tvoid ]
    PROP()
    RETURN()
-   SEP(assemble_obj sho shp dense_matrix_rep _ _ (projT2 X) obj).
+   SEP(matrix_obj sho shp dense_matrix_rep _ _ (projT2 X) obj).
 
 
 Definition casted_bandmat_add_spec : ident*funspec := 
@@ -315,18 +315,18 @@ Definition casted_bandmat_norm2_spec : ident*funspec :=
  (_casted_bandmat_norm2, vacuous_funspec (Internal f_casted_bandmat_norm2)).
 Definition casted_bandmat_print_spec : ident*funspec := 
  (_casted_bandmat_print, vacuous_funspec (Internal f_casted_bandmat_print)).
-Definition init_assemble_band_spec : ident*funspec := 
- (_init_assemble_band, vacuous_funspec (Internal f_init_assemble_band)).
+Definition init_matrix_band_spec : ident*funspec := 
+ (_init_matrix_band, vacuous_funspec (Internal f_init_matrix_band)).
 
-Definition assemble_ASI: funspecs :=
- [ assemble_add_spec; casted_densemat_add_spec;
-   assemble_clear_spec; casted_densemat_clear_spec; 
-   assemble_norm2_spec; casted_densemat_norm2_spec; assemble_norm_spec;
-   assemble_print_spec; casted_densemat_print_spec;
-   init_assemble_dense_spec;
+Definition matrix_ASI: funspecs :=
+ [ matrix_add_spec; casted_densemat_add_spec;
+   matrix_clear_spec; casted_densemat_clear_spec; 
+   matrix_norm2_spec; casted_densemat_norm2_spec; matrix_norm_spec;
+   matrix_print_spec; casted_densemat_print_spec;
+   init_matrix_dense_spec;
    casted_bandmat_add_spec; casted_bandmat_clear_spec;
    casted_bandmat_norm2_spec; casted_bandmat_print_spec;
-   init_assemble_band_spec ].
+   init_matrix_band_spec ].
 
 
 

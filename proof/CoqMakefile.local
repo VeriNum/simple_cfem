@@ -22,10 +22,10 @@ LAProof:
 	cd ../LAProof; $(MAKE) C/spec_alloc.vo C/spec_densemat.vo
 
 # the rest of this is adapted from the makedepend part of ../Makefile
-C/assemble.v: ../src/assemble.h ../LAProof/C/include/densemat.h ../LAProof/C/include/bandmat.h
-C/element.v: ../src/shapes.h ../src/quadrules.h ../src/assemble.h ../LAProof/C/include/densemat.h
+C/matrix.v: ../src/matrix.h ../LAProof/C/include/densemat.h ../LAProof/C/include/bandmat.h
+C/element.v: ../src/shapes.h ../src/quadrules.h ../src/matrix.h ../LAProof/C/include/densemat.h
 C/element.v: ../LAProof/C/include/bandmat.h ../src/mesh.h ../src/fem.h ../src/element.h
-C/fem.v: ../LAProof/C/include/alloc.h ../src/assemble.h ../LAProof/C/include/densemat.h ../LAProof/C/include/bandmat.h \
+C/fem.v: ../LAProof/C/include/alloc.h ../src/matrix.h ../LAProof/C/include/densemat.h ../LAProof/C/include/bandmat.h \
          ../src/element.h ../src/mesh.h ../src/shapes.h ../src/fem.h
 C/mesh.v: ../LAProof/C/include/densemat.h ../src/mesh.h ../src/shapes.h
 C/quadrules.v: ../src/quadrules.h

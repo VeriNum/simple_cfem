@@ -7,7 +7,7 @@
 #include <densemat.h>
 #include <bandmat.h>
 #include "mesh.h"
-#include "assemble.h"
+#include "matrix.h"
 #include "element.h"
 #include "fem.h"
 

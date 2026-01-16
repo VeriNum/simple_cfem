@@ -5,7 +5,7 @@
 
 #include "shapes.h"
 #include "quadrules.h"
-#include "assemble.h"
+#include "matrix.h"
 #include "mesh.h"
 #include "fem.h"
 #include "element.h"

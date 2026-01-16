@@ -1,13 +1,13 @@
 -Q . CFEM
 -Q ../LAProof LAProof
 -arg "-async-proofs-j 8"
-C/assemble.v
+C/matrix.v
 C/element.v
 C/fem.v
 C/mesh.v
 C/quadrules.v
 C/shapes.v
-C/spec_assemble.v
-C/verif_assemble.v
+C/spec_matrix.v
+C/verif_matrix.v
 C/nonexpansive.v
 model.v

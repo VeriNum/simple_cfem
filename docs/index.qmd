@@ -29,6 +29,6 @@ The rest of this page is the C program.
 {{< include shapes.qmd >}}
 {{< include mesh.qmd >}}
 {{< include quadrules.qmd >}}
-{{< include assemble.qmd >}}
+{{< include matrix.qmd >}}
 {{< include fem.qmd >}}
 {{< include element.qmd >}}

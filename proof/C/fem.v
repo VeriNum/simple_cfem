@@ -21,8 +21,8 @@ End Info.
 
 Definition _F : ident := $"F".
 Definition _K : ident := $"K".
-Definition _Kassembler : ident := $"Kassembler".
 Definition _Ke : ident := $"Ke".
+Definition _Kmatrix : ident := $"Kmatrix".
 Definition _R : ident := $"R".
 Definition _Re : ident := $"Re".
 Definition _U : ident := $"U".
@@ -91,11 +91,7 @@ Definition ___stringlit_7 : ident := $"__stringlit_7".
 Definition ___stringlit_8 : ident := $"__stringlit_8".
 Definition ___stringlit_9 : ident := $"__stringlit_9".
 Definition _add : ident := $"add".
-Definition _assemble_add : ident := $"assemble_add".
-Definition _assemble_clear : ident := $"assemble_clear".
-Definition _assemble_data_t : ident := $"assemble_data_t".
 Definition _assemble_matrix : ident := $"assemble_matrix".
-Definition _assemble_t : ident := $"assemble_t".
 Definition _assemble_vector : ident := $"assemble_vector".
 Definition _b : ident := $"b".
 Definition _bandmat_t : ident := $"bandmat_t".
@@ -129,8 +125,8 @@ Definition _i : ident := $"i".
 Definition _id : ident := $"id".
 Definition _ids : ident := $"ids".
 Definition _ie : ident := $"ie".
-Definition _init_assemble_band : ident := $"init_assemble_band".
-Definition _init_assemble_dense : ident := $"init_assemble_dense".
+Definition _init_matrix_band : ident := $"init_matrix_band".
+Definition _init_matrix_dense : ident := $"init_matrix_dense".
 Definition _int_calloc : ident := $"int_calloc".
 Definition _j : ident := $"j".
 Definition _j__1 : ident := $"j__1".
@@ -141,6 +137,10 @@ Definition _j__5 : ident := $"j__5".
 Definition _je : ident := $"je".
 Definition _m : ident := $"m".
 Definition _main : ident := $"main".
+Definition _matrix_add : ident := $"matrix_add".
+Definition _matrix_clear : ident := $"matrix_clear".
+Definition _matrix_data_t : ident := $"matrix_data_t".
+Definition _matrix_t : ident := $"matrix_t".
 Definition _memset : ident := $"memset".
 Definition _mesh : ident := $"mesh".
 Definition _mesh_free : ident := $"mesh_free".
@@ -702,7 +702,7 @@ Definition f_fem_set_load := {|
 Definition f_assemble_matrix := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((_K, (tptr (Tstruct _assemble_t noattr))) ::
+  fn_params := ((_K, (tptr (Tstruct _matrix_t noattr))) ::
                 (_emat, (tptr tdouble)) :: (_ids, (tptr tint)) ::
                 (_ne, tint) :: nil);
   fn_vars := nil;
@@ -753,11 +753,11 @@ Definition f_assemble_matrix := {|
                          (Etempvar _ne tint) :: (Etempvar _ie tint) ::
                          (Etempvar _je tint) :: nil))
                       (Scall None
-                        (Evar _assemble_add (Tfunction
-                                              ((tptr (Tstruct _assemble_t noattr)) ::
-                                               tint :: tint :: tdouble ::
-                                               nil) tvoid cc_default))
-                        ((Etempvar _K (tptr (Tstruct _assemble_t noattr))) ::
+                        (Evar _matrix_add (Tfunction
+                                            ((tptr (Tstruct _matrix_t noattr)) ::
+                                             tint :: tint :: tdouble :: nil)
+                                            tvoid cc_default))
+                        ((Etempvar _K (tptr (Tstruct _matrix_t noattr))) ::
                          (Etempvar _i tint) :: (Etempvar _j tint) ::
                          (Etempvar _t'1 tdouble) :: nil)))
                     Sskip))))
@@ -817,7 +817,7 @@ Definition f_fem_assemble := {|
   fn_callconv := cc_default;
   fn_params := ((_fe, (tptr (Tstruct _fem_t noattr))) ::
                 (_R, (tptr tdouble)) ::
-                (_K, (tptr (Tstruct _assemble_t noattr))) :: nil);
+                (_K, (tptr (Tstruct _matrix_t noattr))) :: nil);
   fn_vars := nil;
   fn_temps := ((_numelt, tint) :: (_nen, tint) ::
                (_etype, (tptr (Tstruct _element_t noattr))) ::
@@ -880,7 +880,7 @@ Definition f_fem_assemble := {|
             (Sset _Re (Etempvar _t'2 (tptr tvoid))))
           (Ssequence
             (Ssequence
-              (Sifthenelse (Etempvar _K (tptr (Tstruct _assemble_t noattr)))
+              (Sifthenelse (Etempvar _K (tptr (Tstruct _matrix_t noattr)))
                 (Ssequence
                   (Scall (Some _t'5)
                     (Evar _double_calloc (Tfunction (tint :: nil)
@@ -910,13 +910,12 @@ Definition f_fem_assemble := {|
                        (Esizeof tdouble tulong) tulong) :: nil)))
                 Sskip)
               (Ssequence
-                (Sifthenelse (Etempvar _K (tptr (Tstruct _assemble_t noattr)))
+                (Sifthenelse (Etempvar _K (tptr (Tstruct _matrix_t noattr)))
                   (Scall None
-                    (Evar _assemble_clear (Tfunction
-                                            ((tptr (Tstruct _assemble_t noattr)) ::
-                                             nil) tvoid cc_default))
-                    ((Etempvar _K (tptr (Tstruct _assemble_t noattr))) ::
-                     nil))
+                    (Evar _matrix_clear (Tfunction
+                                          ((tptr (Tstruct _matrix_t noattr)) ::
+                                           nil) tvoid cc_default))
+                    ((Etempvar _K (tptr (Tstruct _matrix_t noattr))) :: nil))
                   Sskip)
                 (Ssequence
                   (Ssequence
@@ -1015,16 +1014,16 @@ Definition f_fem_assemble := {|
                                      (Etempvar _ids (tptr tint)) ::
                                      (Etempvar _nen tint) :: nil))
                                   Sskip)
-                                (Sifthenelse (Etempvar _K (tptr (Tstruct _assemble_t noattr)))
+                                (Sifthenelse (Etempvar _K (tptr (Tstruct _matrix_t noattr)))
                                   (Scall None
                                     (Evar _assemble_matrix (Tfunction
-                                                             ((tptr (Tstruct _assemble_t noattr)) ::
+                                                             ((tptr (Tstruct _matrix_t noattr)) ::
                                                               (tptr tdouble) ::
                                                               (tptr tint) ::
                                                               tint :: nil)
                                                              tvoid
                                                              cc_default))
-                                    ((Etempvar _K (tptr (Tstruct _assemble_t noattr))) ::
+                                    ((Etempvar _K (tptr (Tstruct _matrix_t noattr))) ::
                                      (Etempvar _Ke (tptr tdouble)) ::
                                      (Etempvar _ids (tptr tint)) ::
                                      (Etempvar _nen tint) :: nil))
@@ -1058,34 +1057,34 @@ Definition f_fem_assemble_band := {|
   fn_params := ((_fe, (tptr (Tstruct _fem_t noattr))) ::
                 (_R, (tptr tdouble)) ::
                 (_K, (tptr (Tstruct _bandmat_t noattr))) :: nil);
-  fn_vars := ((_Kassembler, (Tstruct _assemble_t noattr)) :: nil);
+  fn_vars := ((_Kmatrix, (Tstruct _matrix_t noattr)) :: nil);
   fn_temps := nil;
   fn_body :=
 (Sifthenelse (Etempvar _K (tptr (Tstruct _bandmat_t noattr)))
   (Ssequence
     (Scall None
-      (Evar _init_assemble_band (Tfunction
-                                  ((tptr (Tstruct _assemble_t noattr)) ::
-                                   (tptr (Tstruct _bandmat_t noattr)) :: nil)
-                                  tvoid cc_default))
-      ((Eaddrof (Evar _Kassembler (Tstruct _assemble_t noattr))
-         (tptr (Tstruct _assemble_t noattr))) ::
+      (Evar _init_matrix_band (Tfunction
+                                ((tptr (Tstruct _matrix_t noattr)) ::
+                                 (tptr (Tstruct _bandmat_t noattr)) :: nil)
+                                tvoid cc_default))
+      ((Eaddrof (Evar _Kmatrix (Tstruct _matrix_t noattr))
+         (tptr (Tstruct _matrix_t noattr))) ::
        (Etempvar _K (tptr (Tstruct _bandmat_t noattr))) :: nil))
     (Scall None
       (Evar _fem_assemble (Tfunction
                             ((tptr (Tstruct _fem_t noattr)) ::
                              (tptr tdouble) ::
-                             (tptr (Tstruct _assemble_t noattr)) :: nil)
-                            tvoid cc_default))
+                             (tptr (Tstruct _matrix_t noattr)) :: nil) tvoid
+                            cc_default))
       ((Etempvar _fe (tptr (Tstruct _fem_t noattr))) ::
        (Etempvar _R (tptr tdouble)) ::
-       (Eaddrof (Evar _Kassembler (Tstruct _assemble_t noattr))
-         (tptr (Tstruct _assemble_t noattr))) :: nil)))
+       (Eaddrof (Evar _Kmatrix (Tstruct _matrix_t noattr))
+         (tptr (Tstruct _matrix_t noattr))) :: nil)))
   (Scall None
     (Evar _fem_assemble (Tfunction
                           ((tptr (Tstruct _fem_t noattr)) ::
                            (tptr tdouble) ::
-                           (tptr (Tstruct _assemble_t noattr)) :: nil) tvoid
+                           (tptr (Tstruct _matrix_t noattr)) :: nil) tvoid
                           cc_default))
     ((Etempvar _fe (tptr (Tstruct _fem_t noattr))) ::
      (Etempvar _R (tptr tdouble)) ::
@@ -1098,34 +1097,34 @@ Definition f_fem_assemble_dense := {|
   fn_params := ((_fe, (tptr (Tstruct _fem_t noattr))) ::
                 (_R, (tptr tdouble)) ::
                 (_K, (tptr (Tstruct _densemat_t noattr))) :: nil);
-  fn_vars := ((_Kassembler, (Tstruct _assemble_t noattr)) :: nil);
+  fn_vars := ((_Kmatrix, (Tstruct _matrix_t noattr)) :: nil);
   fn_temps := nil;
   fn_body :=
 (Sifthenelse (Etempvar _K (tptr (Tstruct _densemat_t noattr)))
   (Ssequence
     (Scall None
-      (Evar _init_assemble_dense (Tfunction
-                                   ((tptr (Tstruct _assemble_t noattr)) ::
-                                    (tptr (Tstruct _densemat_t noattr)) ::
-                                    nil) tvoid cc_default))
-      ((Eaddrof (Evar _Kassembler (Tstruct _assemble_t noattr))
-         (tptr (Tstruct _assemble_t noattr))) ::
+      (Evar _init_matrix_dense (Tfunction
+                                 ((tptr (Tstruct _matrix_t noattr)) ::
+                                  (tptr (Tstruct _densemat_t noattr)) :: nil)
+                                 tvoid cc_default))
+      ((Eaddrof (Evar _Kmatrix (Tstruct _matrix_t noattr))
+         (tptr (Tstruct _matrix_t noattr))) ::
        (Etempvar _K (tptr (Tstruct _densemat_t noattr))) :: nil))
     (Scall None
       (Evar _fem_assemble (Tfunction
                             ((tptr (Tstruct _fem_t noattr)) ::
                              (tptr tdouble) ::
-                             (tptr (Tstruct _assemble_t noattr)) :: nil)
-                            tvoid cc_default))
+                             (tptr (Tstruct _matrix_t noattr)) :: nil) tvoid
+                            cc_default))
       ((Etempvar _fe (tptr (Tstruct _fem_t noattr))) ::
        (Etempvar _R (tptr tdouble)) ::
-       (Eaddrof (Evar _Kassembler (Tstruct _assemble_t noattr))
-         (tptr (Tstruct _assemble_t noattr))) :: nil)))
+       (Eaddrof (Evar _Kmatrix (Tstruct _matrix_t noattr))
+         (tptr (Tstruct _matrix_t noattr))) :: nil)))
   (Scall None
     (Evar _fem_assemble (Tfunction
                           ((tptr (Tstruct _fem_t noattr)) ::
                            (tptr tdouble) ::
-                           (tptr (Tstruct _assemble_t noattr)) :: nil) tvoid
+                           (tptr (Tstruct _matrix_t noattr)) :: nil) tvoid
                           cc_default))
     ((Etempvar _fe (tptr (Tstruct _fem_t noattr))) ::
      (Etempvar _R (tptr tdouble)) ::
@@ -1489,21 +1488,21 @@ Definition composites : list composite_definition :=
    (Member_plain _m tint :: Member_plain _b tint ::
     Member_plain _data (tarray tdouble 0) :: nil)
    noattr ::
- Composite _assemble_t Struct
-   (Member_plain _p (tptr (Tstruct _assemble_data_t noattr)) ::
+ Composite _matrix_t Struct
+   (Member_plain _p (tptr (Tstruct _matrix_data_t noattr)) ::
     Member_plain _add
       (tptr (Tfunction
-              ((tptr (Tstruct _assemble_data_t noattr)) :: tint :: tint ::
+              ((tptr (Tstruct _matrix_data_t noattr)) :: tint :: tint ::
                tdouble :: nil) tvoid cc_default)) ::
     Member_plain _clear
-      (tptr (Tfunction ((tptr (Tstruct _assemble_data_t noattr)) :: nil)
-              tvoid cc_default)) ::
+      (tptr (Tfunction ((tptr (Tstruct _matrix_data_t noattr)) :: nil) tvoid
+              cc_default)) ::
     Member_plain _norm2
-      (tptr (Tfunction ((tptr (Tstruct _assemble_data_t noattr)) :: nil)
+      (tptr (Tfunction ((tptr (Tstruct _matrix_data_t noattr)) :: nil)
               tdouble cc_default)) ::
     Member_plain _print
-      (tptr (Tfunction ((tptr (Tstruct _assemble_data_t noattr)) :: nil)
-              tvoid cc_default)) :: nil)
+      (tptr (Tfunction ((tptr (Tstruct _matrix_data_t noattr)) :: nil) tvoid
+              cc_default)) :: nil)
    noattr ::
  Composite _element_t Struct
    (Member_plain _p (tptr tvoid) ::
@@ -1813,28 +1812,28 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      (AST.Xptr :: AST.Xint :: AST.Xint :: AST.Xint :: nil)
                      AST.Xfloat cc_default))
      ((tptr tdouble) :: tint :: tint :: tint :: nil) tdouble cc_default)) ::
- (_assemble_add,
-   Gfun(External (EF_external "assemble_add"
+ (_matrix_add,
+   Gfun(External (EF_external "matrix_add"
                    (mksignature
                      (AST.Xptr :: AST.Xint :: AST.Xint :: AST.Xfloat :: nil)
                      AST.Xvoid cc_default))
-     ((tptr (Tstruct _assemble_t noattr)) :: tint :: tint :: tdouble :: nil)
+     ((tptr (Tstruct _matrix_t noattr)) :: tint :: tint :: tdouble :: nil)
      tvoid cc_default)) ::
- (_assemble_clear,
-   Gfun(External (EF_external "assemble_clear"
+ (_matrix_clear,
+   Gfun(External (EF_external "matrix_clear"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
-     ((tptr (Tstruct _assemble_t noattr)) :: nil) tvoid cc_default)) ::
- (_init_assemble_dense,
-   Gfun(External (EF_external "init_assemble_dense"
+     ((tptr (Tstruct _matrix_t noattr)) :: nil) tvoid cc_default)) ::
+ (_init_matrix_dense,
+   Gfun(External (EF_external "init_matrix_dense"
                    (mksignature (AST.Xptr :: AST.Xptr :: nil) AST.Xvoid
                      cc_default))
-     ((tptr (Tstruct _assemble_t noattr)) ::
+     ((tptr (Tstruct _matrix_t noattr)) ::
       (tptr (Tstruct _densemat_t noattr)) :: nil) tvoid cc_default)) ::
- (_init_assemble_band,
-   Gfun(External (EF_external "init_assemble_band"
+ (_init_matrix_band,
+   Gfun(External (EF_external "init_matrix_band"
                    (mksignature (AST.Xptr :: AST.Xptr :: nil) AST.Xvoid
                      cc_default))
-     ((tptr (Tstruct _assemble_t noattr)) ::
+     ((tptr (Tstruct _matrix_t noattr)) ::
       (tptr (Tstruct _bandmat_t noattr)) :: nil) tvoid cc_default)) ::
  (_element_dR,
    Gfun(External (EF_external "element_dR"
@@ -1867,8 +1866,8 @@ Definition public_idents : list ident :=
 (_fem_print :: _fem_assemble_dense :: _fem_assemble_band :: _fem_assemble ::
  _assemble_vector :: _assemble_matrix :: _fem_set_load :: _fem_update_U ::
  _fem_assign_ids :: _fem_free :: _fem_malloc :: _mesh_print_elt ::
- _mesh_free :: _element_dR :: _init_assemble_band :: _init_assemble_dense ::
- _assemble_clear :: _assemble_add :: _densematn_get :: _int_calloc ::
+ _mesh_free :: _element_dR :: _init_matrix_band :: _init_matrix_dense ::
+ _matrix_clear :: _matrix_add :: _densematn_get :: _int_calloc ::
  _double_calloc :: _surely_malloc :: _memset :: _free :: _printf ::
  ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
  ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
