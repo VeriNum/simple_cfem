@@ -1,0 +1,143 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>CFEM.C.verif_matrix</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">CFEM.C.verif_matrix</h1>
+
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">VST.floyd.proofauto</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">vcfloat</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">FPStdCompCert</span> <span class="id" title="library">FPStdLib</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">VSTlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">spec_math</span> <span class="id" title="library">spec_malloc</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">LAProof.accuracy_proofs</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">solve_model</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">LAProof.C</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">VSU_densemat</span> <span class="id" title="library">spec_alloc</span> <span class="id" title="library">floatlib</span> <span class="id" title="library">matrix_model</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Coq.Classes.RelationClasses</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span>  <span class="id" title="library">ssreflect</span> <span class="id" title="library">ssrbool</span> <span class="id" title="library">ssrfun</span> <span class="id" title="library">eqtype</span> <span class="id" title="library">ssrnat</span> <span class="id" title="library">seq</span> <span class="id" title="library">choice</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span>  <span class="id" title="library">fintype</span> <span class="id" title="library">finfun</span> <span class="id" title="library">bigop</span> <span class="id" title="library">finset</span> <span class="id" title="library">fingroup</span> <span class="id" title="library">perm</span> <span class="id" title="library">order</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span>  <span class="id" title="library">div</span> <span class="id" title="library">ssralg</span> <span class="id" title="library">countalg</span> <span class="id" title="library">finalg</span> <span class="id" title="library">zmodp</span> <span class="id" title="library">matrix</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp.zify</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">ssrZ</span> <span class="id" title="library">zify</span>.<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="module">fintype</span> <span class="id" title="module">matrix</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">CFEM.C</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.matrix.html#"><span class="id" title="library">matrix</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#"><span class="id" title="library">spec_matrix</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="library">LAProof.accuracy_proofs.export</span>.<br/>
+<span class="id" title="keyword">Module</span> <a id="F" class="idref" href="#F"><span class="id" title="module">F</span></a> := <span class="id" title="module">LAProof.accuracy_proofs.mv_mathcomp.F</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now we undo all the settings that mathcomp has modified 
+</div>
+<div class="code">
+<span class="id" title="keyword">Unset Implicit Arguments</span>.<br/>
+<span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">logic</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="import_densemat" class="idref" href="#import_densemat"><span class="id" title="section">import_densemat</span></a>.<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="module">spec_densemat</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="matrix_imported_specs" class="idref" href="#matrix_imported_specs"><span class="id" title="definition">matrix_imported_specs</span></a> := <br/>
+&nbsp;&nbsp;<span class="id" title="notation">[</span><span class="id" title="definition">densemat_addto_spec</span><span class="id" title="notation">;</span> <span class="id" title="definition">densemat_clear_spec</span><span class="id" title="notation">;</span> <span class="id" title="definition">densemat_norm2_spec</span><span class="id" title="notation">;</span> <span class="id" title="definition">densemat_print_spec</span><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="definition">sqrt_spec</span> <span class="id" title="notation">]</span>.<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="CFEM.C.verif_matrix.html#import_densemat"><span class="id" title="section">import_densemat</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="matrix_E" class="idref" href="#matrix_E"><span class="id" title="definition">matrix_E</span></a> : <span class="id" title="definition">funspecs</span> := <span class="id" title="notation">[]</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="matrix_internal_specs" class="idref" href="#matrix_internal_specs"><span class="id" title="definition">matrix_internal_specs</span></a> : <span class="id" title="definition">funspecs</span> := <a class="idref" href="CFEM.C.spec_matrix.html#matrix_ASI"><span class="id" title="definition">matrix_ASI</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Gprog" class="idref" href="#Gprog"><span class="id" title="definition">Gprog</span></a> := <a class="idref" href="CFEM.C.verif_matrix.html#matrix_imported_specs"><span class="id" title="definition">matrix_imported_specs</span></a> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#matrix_internal_specs"><span class="id" title="definition">matrix_internal_specs</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">destruct_it</span> <span class="id" title="var">B</span> ::= <br/>
+&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">B</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;| ?<span class="id" title="var">C</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="var">destruct_it</span> <span class="id" title="var">C</span><br/>
+&nbsp;| <span class="id" title="keyword">let</span> '<a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">x</span><a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a><span class="id" title="var">y</span><a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> := ?<span class="id" title="var">A</span> <span class="id" title="tactic">in</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="tactic">destruct</span> <span class="id" title="var">A</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">x</span> <span class="id" title="var">y</span>]<br/>
+&nbsp;| <span class="id" title="keyword">match</span> ?<span class="id" title="var">A</span> <span class="id" title="keyword">with</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="var">_</span> <span class="id" title="keyword">end</span> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="keyword">type</span> <span class="id" title="keyword">of</span> <span class="id" title="var">A</span> <span class="id" title="keyword">with</span> ?<span class="id" title="var">tA</span> ⇒ <span class="id" title="keyword">let</span> <span class="id" title="var">uA</span> := <span class="id" title="tactic">eval</span> <span class="id" title="tactic">hnf</span> <span class="id" title="tactic">in</span> <span class="id" title="var">tA</span> <span class="id" title="tactic">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">uA</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| @<a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Specif.html#sigT"><span class="id" title="inductive">sigT</span></a> <span class="id" title="var">_</span> (<span class="id" title="keyword">fun</span> <a id="x:1" class="idref" href="#x:1"><span class="id" title="binder"><span id="x:2" class="id">x</span></span></a> ⇒ <span class="id" title="var">_</span>) ⇒ <span class="id" title="tactic">destruct</span> <span class="id" title="var">A</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">x</span> <span class="id" title="var">A</span>] <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span> <span class="id" title="keyword">end</span><br/>
+&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">densemat_lemmas.destruct_it</span> <span class="id" title="var">B</span> ::= <br/>
+&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">B</span> <span class="id" title="keyword">with</span> <br/>
+&nbsp;| ?<span class="id" title="var">C</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="var">destruct_it</span> <span class="id" title="var">C</span><br/>
+&nbsp;| <span class="id" title="keyword">let</span> '<a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">x</span><a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a><span class="id" title="var">y</span><a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> := ?<span class="id" title="var">A</span> <span class="id" title="tactic">in</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="tactic">destruct</span> <span class="id" title="var">A</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">x</span> <span class="id" title="var">y</span>]<br/>
+&nbsp;| <span class="id" title="keyword">match</span> ?<span class="id" title="var">A</span> <span class="id" title="keyword">with</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="var">_</span> <span class="id" title="keyword">end</span> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="keyword">type</span> <span class="id" title="keyword">of</span> <span class="id" title="var">A</span> <span class="id" title="keyword">with</span> ?<span class="id" title="var">tA</span> ⇒ <span class="id" title="keyword">let</span> <span class="id" title="var">uA</span> := <span class="id" title="tactic">eval</span> <span class="id" title="tactic">hnf</span> <span class="id" title="tactic">in</span> <span class="id" title="var">tA</span> <span class="id" title="tactic">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">uA</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| @<a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Specif.html#sigT"><span class="id" title="inductive">sigT</span></a> <span class="id" title="var">_</span> (<span class="id" title="keyword">fun</span> <a id="x:3" class="idref" href="#x:3"><span class="id" title="binder"><span id="x:4" class="id">x</span></span></a> ⇒ <span class="id" title="var">_</span>) ⇒ <span class="id" title="tactic">destruct</span> <span class="id" title="var">A</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">x</span> <span class="id" title="var">A</span>] <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span> <span class="id" title="keyword">end</span><br/>
+&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_matrix_add" class="idref" href="#body_matrix_add"><span class="id" title="lemma">body_matrix_add</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_matrix_add"><span class="id" title="definition">f_matrix_add</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#matrix_add_spec"><span class="id" title="definition">matrix_add_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_casted_densemat_add" class="idref" href="#body_casted_densemat_add"><span class="id" title="lemma">body_casted_densemat_add</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_casted_densemat_add"><span class="id" title="definition">f_casted_densemat_add</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#casted_densemat_add_spec"><span class="id" title="definition">casted_densemat_add_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_matrix_clear" class="idref" href="#body_matrix_clear"><span class="id" title="lemma">body_matrix_clear</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_matrix_clear"><span class="id" title="definition">f_matrix_clear</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#matrix_clear_spec"><span class="id" title="definition">matrix_clear_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_casted_densemat_clear" class="idref" href="#body_casted_densemat_clear"><span class="id" title="lemma">body_casted_densemat_clear</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_casted_densemat_clear"><span class="id" title="definition">f_casted_densemat_clear</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#casted_densemat_clear_spec"><span class="id" title="definition">casted_densemat_clear_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_matrix_norm2" class="idref" href="#body_matrix_norm2"><span class="id" title="lemma">body_matrix_norm2</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_matrix_norm2"><span class="id" title="definition">f_matrix_norm2</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#matrix_norm2_spec"><span class="id" title="definition">matrix_norm2_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_matrix_norm" class="idref" href="#body_matrix_norm"><span class="id" title="lemma">body_matrix_norm</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_matrix_norm"><span class="id" title="definition">f_matrix_norm</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#matrix_norm_spec"><span class="id" title="definition">matrix_norm_spec</span></a>.<br/>
+<span class="id" title="keyword">Locate</span> <span class="id" title="var">sqrt_ff</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_casted_densemat_norm2" class="idref" href="#body_casted_densemat_norm2"><span class="id" title="lemma">body_casted_densemat_norm2</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_casted_densemat_norm2"><span class="id" title="definition">f_casted_densemat_norm2</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#casted_densemat_norm2_spec"><span class="id" title="definition">casted_densemat_norm2_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_matrix_print" class="idref" href="#body_matrix_print"><span class="id" title="lemma">body_matrix_print</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_matrix_print"><span class="id" title="definition">f_matrix_print</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#matrix_print_spec"><span class="id" title="definition">matrix_print_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_casted_densemat_print" class="idref" href="#body_casted_densemat_print"><span class="id" title="lemma">body_casted_densemat_print</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_casted_densemat_print"><span class="id" title="definition">f_casted_densemat_print</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#casted_densemat_print_spec"><span class="id" title="definition">casted_densemat_print_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_init_matrix_dense" class="idref" href="#body_init_matrix_dense"><span class="id" title="lemma">body_init_matrix_dense</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_matrix.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.matrix.html#f_init_matrix_dense"><span class="id" title="definition">f_init_matrix_dense</span></a> <a class="idref" href="CFEM.C.spec_matrix.html#init_matrix_dense_spec"><span class="id" title="definition">init_matrix_dense_spec</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">VST.floyd.VSU</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="matrixVSU" class="idref" href="#matrixVSU"><span class="id" title="definition">matrixVSU</span></a>: @<span class="id" title="definition">VSU</span> <span class="id" title="definition">NullExtension.Espec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.verif_matrix.html#matrix_E"><span class="id" title="definition">matrix_E</span></a> <a class="idref" href="CFEM.C.verif_matrix.html#matrix_imported_specs"><span class="id" title="definition">matrix_imported_specs</span></a> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">ltac</span>:(<span class="id" title="var">QPprog</span> <a class="idref" href="CFEM.C.matrix.html#prog"><span class="id" title="definition">prog</span></a>) <a class="idref" href="CFEM.C.spec_matrix.html#matrix_ASI"><span class="id" title="definition">matrix_ASI</span></a> (<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="method">TT</span>).<br/>
+
+<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="genindex.html">Index</a><hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>
