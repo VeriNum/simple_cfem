@@ -123,6 +123,10 @@ void assemble_vector(double* v, double* ve, int* ids, int ne)
     }
 }
 
+/**
+ * ## Whole-mesh  assembly
+ */
+
 // Assemble global residual and tangent stiffness (general)
 void fem_assemble(fem_t fe, double* R, matrix_t K)
 {
@@ -136,7 +140,7 @@ void fem_assemble(fem_t fe, double* R, matrix_t K)
     double* Ke = K ? double_calloc(nen*nen) : NULL;
 
     // Clear storage for assembly
-    if (R) memset(R, 0, fe->nactive * sizeof(double));
+    if (R) double_clear(R, fe->nactive);
     if (K) matrix_clear(K);
 
     // Assemble contributions

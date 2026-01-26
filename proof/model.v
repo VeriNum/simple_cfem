@@ -17,3 +17,24 @@ Definition matrix_add_to [n] (A: 'M[ftype t]_n) [ne] (ids: 'I_n ^ ne) (B: 'M[fty
  foldl (@F.addmx _ _ n n) A (map (fun '(i,j) => point_mx (Zconst t 0) (ids i) (ids j) (B i j)) (ord_enum2 ne ne)).
 
 End WithNaN.
+
+
+Module Shape.
+Require Import mathcomp.analysis.derive.
+From mathcomp Require Import interval.
+
+Definition scale_fn [T1 T2] (c: R) (f: T1 -> T2 -> R) (i: T1) (j: T2): R := (c * f i j)%Re.
+Axiom continuously_differentiable: forall [n], (('I_n->R) -> R) -> Prop.
+
+
+Record shape : Type := {
+  dim : nat;
+  nen: nat;
+  N: ('I_dim -> R) -> ('I_nen -> R);
+  X: 'I_nen -> 'I_dim -> R;
+  Ωref := { x : 'I_dim -> R | 
+                          exists α: 'I_nen -> {x | x \in  `[ 0 , 1 ]%Re}, \sum_i projT1 (α i) = 1
+                           /\ forall j, \sum_i projT1 (α i) * X i j = x j};
+   lagrangian: forall i j, N (X i) j = if i==j then 1 else 0;
+   diff: forall j: 'I_nen, continuously_differentiable (fun i => N i j)
+}.

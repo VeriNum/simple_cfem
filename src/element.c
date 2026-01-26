@@ -127,8 +127,8 @@ element_t malloc_poisson2d_element(void)
     int* elt = fe->mesh->elt + eltid*nen;
 
     // Clear element storage
-    if (Re) memset(Re, 0, nen*sizeof(double));
-    if (Ke) memset(Ke, 0, nen*nen*sizeof(double));
+    if (Re) double_clear(Re,nen);
+    if (Ke) densematn_clear(Ke,nen,nen);
 
     for (int k = 0; k < nquad; ++k) {
 
@@ -209,8 +209,8 @@ element_t malloc_poisson2d_element(void)
     int* elt = fe->mesh->elt + eltid*nen;
 
     // Clear element storage
-    if (Re) memset(Re, 0, nen*sizeof(double));
-    if (Ke) memset(Ke, 0, nen*nen*sizeof(double));
+    if (Re) double_clear(Re, nen);
+    if (Ke) densematn_clear(Ke, nen,nen);
 
     for (int k = 0; k < nquad; ++k) {
 

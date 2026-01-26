@@ -11,7 +11,7 @@
  * at one nodal point in a reference domain and zero at the others.
  * We want to be able to compute both the values of all shape functions
  * at a point in the domain and also their derivatives (stored as
- * a matris with $d$ columns for a $d$-dimensional reference domain).
+ * a matrix with $d$ columns for a $d$-dimensional reference domain).
  * Our shape function implementations all have the following interface,
  * where the output arguments `N` and `dN` are used to store the
  * shape function values and derivative values.  If a `NULL` is given

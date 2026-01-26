@@ -251,7 +251,7 @@ void mesh_to_spatial(mesh_t mesh, int eltid, double* xref,
 
     // Build x if requested
     if (x && N) {
-        memset(x, 0, d * sizeof(double));
+        double_clear(x,d);
         for (int k = 0; k < nshape; ++k)
             for (int i = 0; i < d; ++i)
                 x[i] += X[i+d*elt[k]] * N[k];
@@ -261,7 +261,7 @@ void mesh_to_spatial(mesh_t mesh, int eltid, double* xref,
     if (ipiv && J && dN) {
 
         // Form J
-        memset(J, 0, d * d * sizeof(double));
+        densematn_clear(J, d, d);
         for (int k = 0; k < nshape; ++k)
             for (int j = 0; j < d; ++j)
                 for (int i = 0; i < d; ++i)
