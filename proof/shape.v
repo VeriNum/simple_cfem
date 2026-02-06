@@ -66,14 +66,14 @@ End S.
 
 Import GRing.
 
-Module Shape.  (* Like second try, but rename variables to match Ern & Guermond *)
+Module Shape.
 Section S.
 Context {R : realType}.
 
 Record shape : Type := {
   d : nat;
   nsh: nat;
-  θ: 'rV_d -> 'rV_nsh;  (* nsh shape functions, each R^n->R *)
+  θ: 'rV_d -> 'rV_nsh;  (* nsh shape functions, each R^d->R *)
   vtx: 'M[R]_(nsh,d); 
   K  := convex_hull vtx;
   lagrangian: forall i j, θ (row i vtx) 0 j  = if i==j then 1 else 0;
@@ -399,8 +399,8 @@ end;
 rewrite /single /at00 !mxE;
 repeat match type of i with context [S (S ?A)] => change  (S (S ?A)) with (1 + S A)%nat in i end;
 repeat match type of j with context [S (S ?A)] => change  (S (S ?A)) with (1 + S A)%nat in j end;
-repeat case_splitP j; repeat case_splitP i; rewrite !ord1 !mxE /=;
-unfold split; repeat (destruct (ltnP _ _); try discriminate);
+repeat case_splitP j; repeat case_splitP i; 
+repeat (rewrite ?ord1 ?mxE /= /split; repeat (destruct (ltnP _ _); try discriminate));
 rewrite ?mxE /=; try nra.
 
 Definition shapes1dP1_function : 'rV_1 -> 'rV_(1 + 1) :=
@@ -420,6 +420,22 @@ Definition shapes1dP2_function : 'rV_1 -> 'rV_3 :=
 Definition shapes1dP2 : @Shape.shape R.
 apply (Shape.Build_shape 1 3 shapes1dP2_function shapes1dP2_vertices).
 - abstract prove_lagrangian.
+- abstract prove_continuously_differentiable.
+Defined.
+
+
+Definition shapes2dT1_vertices : 'M[R]_(3,2) := 
+     col_mx (row_mx (single 0) (single 0))
+          (col_mx (row_mx (single 1) (single 0))
+                  (row_mx (single 0) (single 1))).
+Definition shapes2dT1_function : 'rV[R]_2 -> 'rV[R]_3 :=
+  (fun x => row_mx (single (1 - x 0 0 - x 0 1))
+                      (row_mx (single (x 0 0))
+                                     (single (x 0 1)))).
+
+Definition shapes2dT1 : @Shape.shape R.
+apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_vertices).
+- prove_lagrangian.
 - abstract prove_continuously_differentiable.
 Defined.
 
