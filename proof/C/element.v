@@ -88,6 +88,8 @@ Definition _d : ident := $"d".
 Definition _dN : ident := $"dN".
 Definition _dR : ident := $"dR".
 Definition _degree : ident := $"degree".
+Definition _densematn_clear : ident := $"densematn_clear".
+Definition _double_clear : ident := $"double_clear".
 Definition _du : ident := $"du".
 Definition _e : ident := $"e".
 Definition _element_dR : ident := $"element_dR".
@@ -117,7 +119,6 @@ Definition _le : ident := $"le".
 Definition _main : ident := $"main".
 Definition _malloc_poisson1d_element : ident := $"malloc_poisson1d_element".
 Definition _malloc_poisson2d_element : ident := $"malloc_poisson2d_element".
-Definition _memset : ident := $"memset".
 Definition _mesh : ident := $"mesh".
 Definition _mesh_shapes : ident := $"mesh_shapes".
 Definition _mesh_t : ident := $"mesh_t".
@@ -481,25 +482,20 @@ Definition f_poisson1d_elt_dR := {|
           (Ssequence
             (Sifthenelse (Etempvar _Re (tptr tdouble))
               (Scall None
-                (Evar _memset (Tfunction
-                                ((tptr tvoid) :: tint :: tulong :: nil)
-                                (tptr tvoid) cc_default))
-                ((Etempvar _Re (tptr tdouble)) ::
-                 (Econst_int (Int.repr 0) tint) ::
-                 (Ebinop Omul (Etempvar _nen tint) (Esizeof tdouble tulong)
-                   tulong) :: nil))
+                (Evar _double_clear (Tfunction
+                                      ((tptr tdouble) :: tint :: nil) tvoid
+                                      cc_default))
+                ((Etempvar _Re (tptr tdouble)) :: (Etempvar _nen tint) ::
+                 nil))
               Sskip)
             (Ssequence
               (Sifthenelse (Etempvar _Ke (tptr tdouble))
                 (Scall None
-                  (Evar _memset (Tfunction
-                                  ((tptr tvoid) :: tint :: tulong :: nil)
-                                  (tptr tvoid) cc_default))
-                  ((Etempvar _Ke (tptr tdouble)) ::
-                   (Econst_int (Int.repr 0) tint) ::
-                   (Ebinop Omul
-                     (Ebinop Omul (Etempvar _nen tint) (Etempvar _nen tint)
-                       tint) (Esizeof tdouble tulong) tulong) :: nil))
+                  (Evar _densematn_clear (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            nil) tvoid cc_default))
+                  ((Etempvar _Ke (tptr tdouble)) :: (Etempvar _nen tint) ::
+                   (Etempvar _nen tint) :: nil))
                 Sskip)
               (Ssequence
                 (Sset _k (Econst_int (Int.repr 0) tint))
@@ -1079,25 +1075,18 @@ Definition f_poisson2d_elt_dR := {|
         (Ssequence
           (Sifthenelse (Etempvar _Re (tptr tdouble))
             (Scall None
-              (Evar _memset (Tfunction
-                              ((tptr tvoid) :: tint :: tulong :: nil)
-                              (tptr tvoid) cc_default))
-              ((Etempvar _Re (tptr tdouble)) ::
-               (Econst_int (Int.repr 0) tint) ::
-               (Ebinop Omul (Etempvar _nen tint) (Esizeof tdouble tulong)
-                 tulong) :: nil))
+              (Evar _double_clear (Tfunction ((tptr tdouble) :: tint :: nil)
+                                    tvoid cc_default))
+              ((Etempvar _Re (tptr tdouble)) :: (Etempvar _nen tint) :: nil))
             Sskip)
           (Ssequence
             (Sifthenelse (Etempvar _Ke (tptr tdouble))
               (Scall None
-                (Evar _memset (Tfunction
-                                ((tptr tvoid) :: tint :: tulong :: nil)
-                                (tptr tvoid) cc_default))
-                ((Etempvar _Ke (tptr tdouble)) ::
-                 (Econst_int (Int.repr 0) tint) ::
-                 (Ebinop Omul
-                   (Ebinop Omul (Etempvar _nen tint) (Etempvar _nen tint)
-                     tint) (Esizeof tdouble tulong) tulong) :: nil))
+                (Evar _densematn_clear (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          nil) tvoid cc_default))
+                ((Etempvar _Ke (tptr tdouble)) :: (Etempvar _nen tint) ::
+                 (Etempvar _nen tint) :: nil))
               Sskip)
             (Ssequence
               (Sset _k (Econst_int (Int.repr 0) tint))
@@ -1866,11 +1855,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_abort,
    Gfun(External (EF_external "abort" (mksignature nil AST.Xvoid cc_default))
      nil tvoid cc_default)) ::
- (_memset,
-   Gfun(External (EF_external "memset"
-                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xlong :: nil)
-                     AST.Xptr cc_default))
-     ((tptr tvoid) :: tint :: tulong :: nil) (tptr tvoid) cc_default)) ::
  (_shapes2dP1,
    Gfun(External (EF_external "shapes2dP1"
                    (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
@@ -1925,6 +1909,16 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_external "surely_malloc"
                    (mksignature (AST.Xlong :: nil) AST.Xptr cc_default))
      (tulong :: nil) (tptr tvoid) cc_default)) ::
+ (_double_clear,
+   Gfun(External (EF_external "double_clear"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tdouble) :: tint :: nil) tvoid
+     cc_default)) ::
+ (_densematn_clear,
+   Gfun(External (EF_external "densematn_clear"
+                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tdouble) :: tint :: tint :: nil) tvoid cc_default)) ::
  (_mesh_shapes,
    Gfun(External (EF_external "mesh_shapes"
                    (mksignature
@@ -1944,13 +1938,13 @@ Definition global_definitions : list (ident * globdef fundef type) :=
 Definition public_idents : list ident :=
 (_poisson2d_elt_dR :: _get_quad2d :: _poisson1d_elt_dR :: _simple_elt_free ::
  _malloc_poisson2d_element :: _malloc_poisson1d_element :: _element_free ::
- _element_dR :: _mesh_shapes :: _surely_malloc :: _hughes_weight ::
- _hughes_point :: _gauss2d_weight :: _gauss2d_point :: _gauss_weight ::
- _gauss_point :: _shapes2dT1 :: _shapes2dS2 :: _shapes2dP2 :: _shapes2dP1 ::
- _memset :: _abort :: _free :: _printf :: ___builtin_debug ::
- ___builtin_fmin :: ___builtin_fmax :: ___builtin_fnmsub ::
- ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
- ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
+ _element_dR :: _mesh_shapes :: _densematn_clear :: _double_clear ::
+ _surely_malloc :: _hughes_weight :: _hughes_point :: _gauss2d_weight ::
+ _gauss2d_point :: _gauss_weight :: _gauss_point :: _shapes2dT1 ::
+ _shapes2dS2 :: _shapes2dP2 :: _shapes2dP1 :: _abort :: _free :: _printf ::
+ ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
+ ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
+ ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
  ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
  ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
  ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::

@@ -1,7 +1,11 @@
+(** * CFEM.shape:  Lagrange shape functions, and some supporting theory *)
+
+(** Right now, this file has a melange of supporting definitions, useful lemmas, proof automation,
+  as well as the real-valued functional models of some shape functions from ../src/shapes.c 
+*)
 From mathcomp Require Import all_ssreflect ssralg ssrnum archimedean finfun.
 From mathcomp Require Import all_algebra all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory.
-
 
 Unset Implicit Arguments.
 Unset Strict Implicit.
@@ -435,7 +439,7 @@ Definition shapes2dT1_function : 'rV[R]_2 -> 'rV[R]_3 :=
 
 Definition shapes2dT1 : @Shape.shape R.
 apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_vertices).
-- prove_lagrangian.
+- abstract prove_lagrangian.
 - abstract prove_continuously_differentiable.
 Defined.
 
@@ -511,9 +515,6 @@ Hint Resolve injective_the_points : core.
 
 Definition lagrange_2 := lagrange 2 the_points.
 Definition lagrange_2_0 : {poly_2 R} := tnth lagrange_2 0.
-Check {poly_2 R}.
-Check polyn lagrange_2_0.
-
 
 Lemma sub_natmulE1: forall (x: R) (i j: nat), is_true (j<=i)%N -> add (natmul x i) (opp (natmul x j)) = (natmul x (subn i j)).
 Proof.

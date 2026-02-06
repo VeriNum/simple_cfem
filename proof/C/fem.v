@@ -102,6 +102,7 @@ Definition _data : ident := $"data".
 Definition _densemat_t : ident := $"densemat_t".
 Definition _densematn_get : ident := $"densematn_get".
 Definition _double_calloc : ident := $"double_calloc".
+Definition _double_clear : ident := $"double_clear".
 Definition _du_red : ident := $"du_red".
 Definition _element_dR : ident := $"element_dR".
 Definition _element_t : ident := $"element_t".
@@ -141,7 +142,6 @@ Definition _matrix_add : ident := $"matrix_add".
 Definition _matrix_clear : ident := $"matrix_clear".
 Definition _matrix_data_t : ident := $"matrix_data_t".
 Definition _matrix_t : ident := $"matrix_t".
-Definition _memset : ident := $"memset".
 Definition _mesh : ident := $"mesh".
 Definition _mesh_free : ident := $"mesh_free".
 Definition _mesh_print_elt : ident := $"mesh_print_elt".
@@ -901,13 +901,11 @@ Definition f_fem_assemble := {|
                       (Ederef (Etempvar _fe (tptr (Tstruct _fem_t noattr)))
                         (Tstruct _fem_t noattr)) _nactive tint))
                   (Scall None
-                    (Evar _memset (Tfunction
-                                    ((tptr tvoid) :: tint :: tulong :: nil)
-                                    (tptr tvoid) cc_default))
-                    ((Etempvar _R (tptr tdouble)) ::
-                     (Econst_int (Int.repr 0) tint) ::
-                     (Ebinop Omul (Etempvar _t'11 tint)
-                       (Esizeof tdouble tulong) tulong) :: nil)))
+                    (Evar _double_clear (Tfunction
+                                          ((tptr tdouble) :: tint :: nil)
+                                          tvoid cc_default))
+                    ((Etempvar _R (tptr tdouble)) :: (Etempvar _t'11 tint) ::
+                     nil)))
                 Sskip)
               (Ssequence
                 (Sifthenelse (Etempvar _K (tptr (Tstruct _matrix_t noattr)))
@@ -1789,11 +1787,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      ((tptr tschar) :: nil) tint
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (_free, Gfun(External EF_free ((tptr tvoid) :: nil) tvoid cc_default)) ::
- (_memset,
-   Gfun(External (EF_external "memset"
-                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xlong :: nil)
-                     AST.Xptr cc_default))
-     ((tptr tvoid) :: tint :: tulong :: nil) (tptr tvoid) cc_default)) ::
  (_surely_malloc,
    Gfun(External (EF_external "surely_malloc"
                    (mksignature (AST.Xlong :: nil) AST.Xptr cc_default))
@@ -1806,6 +1799,11 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_external "int_calloc"
                    (mksignature (AST.Xint :: nil) AST.Xptr cc_default))
      (tint :: nil) (tptr tint) cc_default)) ::
+ (_double_clear,
+   Gfun(External (EF_external "double_clear"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tdouble) :: tint :: nil) tvoid
+     cc_default)) ::
  (_densematn_get,
    Gfun(External (EF_external "densematn_get"
                    (mksignature
@@ -1867,8 +1865,8 @@ Definition public_idents : list ident :=
  _assemble_vector :: _assemble_matrix :: _fem_set_load :: _fem_update_U ::
  _fem_assign_ids :: _fem_free :: _fem_malloc :: _mesh_print_elt ::
  _mesh_free :: _element_dR :: _init_matrix_band :: _init_matrix_dense ::
- _matrix_clear :: _matrix_add :: _densematn_get :: _int_calloc ::
- _double_calloc :: _surely_malloc :: _memset :: _free :: _printf ::
+ _matrix_clear :: _matrix_add :: _densematn_get :: _double_clear ::
+ _int_calloc :: _double_calloc :: _surely_malloc :: _free :: _printf ::
  ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
  ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
  ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::

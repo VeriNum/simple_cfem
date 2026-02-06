@@ -96,10 +96,12 @@ Definition _d : ident := $"d".
 Definition _dN : ident := $"dN".
 Definition _dNk : ident := $"dNk".
 Definition _degree : ident := $"degree".
+Definition _densematn_clear : ident := $"densematn_clear".
 Definition _densematn_lufactor : ident := $"densematn_lufactor".
 Definition _densematn_lujac : ident := $"densematn_lujac".
 Definition _densematn_lusolveT : ident := $"densematn_lusolveT".
 Definition _double_calloc : ident := $"double_calloc".
+Definition _double_clear : ident := $"double_clear".
 Definition _elt : ident := $"elt".
 Definition _eltid : ident := $"eltid".
 Definition _free : ident := $"free".
@@ -124,7 +126,6 @@ Definition _k__1 : ident := $"k__1".
 Definition _k__2 : ident := $"k__2".
 Definition _main : ident := $"main".
 Definition _memcpy : ident := $"memcpy".
-Definition _memset : ident := $"memset".
 Definition _mesh : ident := $"mesh".
 Definition _mesh_block2d_P1 : ident := $"mesh_block2d_P1".
 Definition _mesh_block2d_P2 : ident := $"mesh_block2d_P2".
@@ -2054,13 +2055,10 @@ Definition f_mesh_to_spatial := {|
             (Sifthenelse (Etempvar _t'2 tint)
               (Ssequence
                 (Scall None
-                  (Evar _memset (Tfunction
-                                  ((tptr tvoid) :: tint :: tulong :: nil)
-                                  (tptr tvoid) cc_default))
-                  ((Etempvar _x (tptr tdouble)) ::
-                   (Econst_int (Int.repr 0) tint) ::
-                   (Ebinop Omul (Etempvar _d tint) (Esizeof tdouble tulong)
-                     tulong) :: nil))
+                  (Evar _double_clear (Tfunction
+                                        ((tptr tdouble) :: tint :: nil) tvoid
+                                        cc_default))
+                  ((Etempvar _x (tptr tdouble)) :: (Etempvar _d tint) :: nil))
                 (Ssequence
                   (Sset _k (Econst_int (Int.repr 0) tint))
                   (Sloop
@@ -2132,14 +2130,11 @@ Definition f_mesh_to_spatial := {|
             (Sifthenelse (Etempvar _t'4 tint)
               (Ssequence
                 (Scall None
-                  (Evar _memset (Tfunction
-                                  ((tptr tvoid) :: tint :: tulong :: nil)
-                                  (tptr tvoid) cc_default))
-                  ((Etempvar _J (tptr tdouble)) ::
-                   (Econst_int (Int.repr 0) tint) ::
-                   (Ebinop Omul
-                     (Ebinop Omul (Etempvar _d tint) (Etempvar _d tint) tint)
-                     (Esizeof tdouble tulong) tulong) :: nil))
+                  (Evar _densematn_clear (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            nil) tvoid cc_default))
+                  ((Etempvar _J (tptr tdouble)) :: (Etempvar _d tint) ::
+                   (Etempvar _d tint) :: nil))
                 (Ssequence
                   (Ssequence
                     (Sset _k__1 (Econst_int (Int.repr 0) tint))
@@ -2887,11 +2882,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      AST.Xptr cc_default))
      ((tptr tvoid) :: (tptr tvoid) :: tulong :: nil) (tptr tvoid)
      cc_default)) ::
- (_memset,
-   Gfun(External (EF_external "memset"
-                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xlong :: nil)
-                     AST.Xptr cc_default))
-     ((tptr tvoid) :: tint :: tulong :: nil) (tptr tvoid) cc_default)) ::
  (_surely_malloc,
    Gfun(External (EF_external "surely_malloc"
                    (mksignature (AST.Xlong :: nil) AST.Xptr cc_default))
@@ -2904,6 +2894,16 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_external "int_calloc"
                    (mksignature (AST.Xint :: nil) AST.Xptr cc_default))
      (tint :: nil) (tptr tint) cc_default)) ::
+ (_double_clear,
+   Gfun(External (EF_external "double_clear"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tdouble) :: tint :: nil) tvoid
+     cc_default)) ::
+ (_densematn_clear,
+   Gfun(External (EF_external "densematn_clear"
+                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tdouble) :: tint :: tint :: nil) tvoid cc_default)) ::
  (_densematn_lufactor,
    Gfun(External (EF_external "densematn_lufactor"
                    (mksignature (AST.Xptr :: AST.Xptr :: AST.Xint :: nil)
@@ -2981,11 +2981,12 @@ Definition public_idents : list ident :=
  _mesh_block2d_P2 :: _mesh_block2d_P1 :: _mesh_create1d :: _mesh_free ::
  _mesh_malloc :: _shapes2dT1 :: _shapes2dS2 :: _shapes2dP2 :: _shapes2dP1 ::
  _shapes1dP3 :: _shapes1dP2 :: _shapes1dP1 :: _densematn_lujac ::
- _densematn_lusolveT :: _densematn_lufactor :: _int_calloc ::
- _double_calloc :: _surely_malloc :: _memset :: _memcpy :: _abort :: _free ::
- _printf :: ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
- ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
- ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
+ _densematn_lusolveT :: _densematn_lufactor :: _densematn_clear ::
+ _double_clear :: _int_calloc :: _double_calloc :: _surely_malloc ::
+ _memcpy :: _abort :: _free :: _printf :: ___builtin_debug ::
+ ___builtin_fmin :: ___builtin_fmax :: ___builtin_fnmsub ::
+ ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
+ ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
  ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
  ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
  ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
