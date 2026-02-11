@@ -199,7 +199,8 @@ destruct (j==i); try discriminate.
 reflexivity.
 apply (@coord_continuous (Real.sort R)).
 }
-apply linear0.
+rewrite linear0.
+reflexivity.
 Qed.
 
 
@@ -454,7 +455,7 @@ Qed.
 Lemma const_mxE: forall {R}{m n: nat} (x: R) i j, @const_mx R m n x i j = x.
 Proof. intros; apply mxE. Qed.
 
-Lemma row01: forall {t} [n] (i: 'I_1) (A: 'M_(1,n)), @row t 1 n i A = A.
+Lemma row01: forall {t} [n] (i: 'I_1) (A: 'M[t]_(1,n)), @row t 1 n i A = A.
 Proof.
 intros.
 apply matrixP.
@@ -688,14 +689,13 @@ Qed.
 Section S.
 Context {R : realType}.
 
+Definition R_of_nat : nat ->  R  := @natmul  (Num_NumDomain__to__Algebra_BaseAddUMagma R) 1.
 
-
-Definition R_of_nat : nat ->  Nmodule.sort (reals_Real__to__GRing_Nmodule R)  := @natmul R 1.
+(*Definition R_of_nat : nat ->  Nmodule.sort (reals_Real__to__GRing_Nmodule R)  := @natmul  1.*)
 
 Lemma injective_R_of_nat : injective R_of_nat.
 Proof.
-rewrite /R_of_nat.
-apply mulrIn.
+apply (@mulrIn R).
 apply lt0r_neq0.
 change (is_true ((0 : Num.NumDomain.sort R) < (1 : Num.NumDomain.sort R))).
 apply ltr01.
@@ -703,7 +703,7 @@ Qed.
 
 Hint Resolve injective_R_of_nat : core.
 
-Definition the_points : nat -> Nmodule.sort (reals_Real__to__GRing_Nmodule R)  := fun i => -1 + natmul 2 i.
+Definition the_points : nat -> Nmodule.sort R  := fun i => -1 + natmul 2 i.
 Lemma injective_the_points: injective the_points.
 Proof.
 rewrite /the_points.
