@@ -11,4 +11,6 @@ C/spec_matrix.v
 C/verif_matrix.v
 C/nonexpansive.v
 model.v
+matrix_util.v
 shape.v
+shapefloat.v

@@ -6,6 +6,7 @@
 From mathcomp Require Import all_ssreflect ssralg ssrnum archimedean finfun.
 From mathcomp Require Import all_algebra all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory.
+Require Import CFEM.matrix_util.
 
 Unset Implicit Arguments.
 Unset Strict Implicit.
@@ -407,115 +408,6 @@ repeat case_splitP j; repeat case_splitP i;
 repeat (rewrite ?ord1 ?mxE /= /split; repeat (destruct (ltnP _ _); try discriminate));
 rewrite ?mxE /=; try nra.
 
-Fixpoint colmx_of_list {t: nmodType } (al: seq (Nmodule.sort t)) : 'cV[t]_(size al) :=
-  match al as l return 'cV_(size l) with
-  | [::] => const_mx 0
-  | x :: al => col_mx(@const_mx t 1 1 x) (colmx_of_list al)
-  end.
-
-Fixpoint rowmx_of_list {t: nmodType } (al: seq (Nmodule.sort t)) : 'rV[t]_(size al) :=
-  match al as l return 'rV_(size l) with
-  | [::] => const_mx 0
-  | x :: al => row_mx(@const_mx t 1 1 x) (rowmx_of_list al)
-  end.
-
-Fixpoint rowmx_of_listn {t: nmodType } [n] (al: seq (Nmodule.sort t)) : 'rV[t]_n.
-destruct n as [ | n].
-apply (const_mx 0).
-destruct al as [ | a al].
-apply (const_mx 0).
-change (n.+1) with (1+n).
-apply (row_mx (const_mx a) (@rowmx_of_listn t n al)).
-Defined.
-
-Fixpoint mx_of_listn {t: nmodType} [n: nat] (rl: seq (seq (Nmodule.sort t))) : 'M[t]_(size rl, n).
-destruct rl as [ | r rl].
-apply (const_mx 0).
-change (size (r::rl)) with (addn 1 (size rl)).
-apply col_mx.
-apply (rowmx_of_listn r).
-apply mx_of_listn.
-Defined.
-
-Definition mx_of_list  {t: nmodType} (rl: seq (seq (Nmodule.sort t))) : 'M[Nmodule.sort t]_(size rl, size (head [::] rl))
-  := mx_of_listn rl.
-
-Axiom NOT_REALLY: forall (P: Prop), P. 
-
-Lemma col_row: forall {t} [m n] (i: 'I_m) (j: 'I_n) A, 
-  @col t 1 n j (@row t m n i A) = @row t m 1 i (@col t m n j A).
-Proof.
-intros.
-apply /matrixP.
-intros x y.
-rewrite !mxE //.
-Qed.
-
-
-Lemma const_mxE: forall {R}{m n: nat} (x: R) i j, @const_mx R m n x i j = x.
-Proof. intros; apply mxE. Qed.
-
-Lemma row01: forall {t} [n] (i: 'I_1) (A: 'M[t]_(1,n)), @row t 1 n i A = A.
-Proof.
-intros.
-apply matrixP.
-intros i' j; rewrite !mxE. rewrite !ord1. auto.
-Qed.
-
-Ltac row_col_matrix_tac :=
-repeat
-match goal with
- | |- context [@row ?t _ _ (@lshift ?a ?b _) (col_mx _ _)] => rewrite (@rowKu t a b)
- | |- context [@row ?t _ _ (@rshift ?a ?b _) (col_mx _ _)] => rewrite (@rowKd t a b)
- | |- context [col ?j (row ?i (row_mx _ _))] => rewrite (col_row i j)
- | |- context [@col ?t ?a _ (@lshift ?b _ _) (row_mx _ _)] => rewrite (@colKl t  a b) 
- | |- context [@col ?t ?a _ (@rshift ?b _ _) (row_mx _ _)] => rewrite (@colKr t  a b) 
- | |- context [@row ?t _ _ ?c (@col_mx _ ?n1 ?n2 _ _ _)] => 
-      lazymatch c with @lshift n1 n2 _ => fail | _ => idtac end;
-     replace c with (@lshift n1 n2 (@Ordinal n1 (nat_of_ord c) erefl))
-    by (apply ord_inj; reflexivity)
- | |- context [@row ?t _ _ ?c (@col_mx _ ?n1 ?n2 _ _ _)] => 
-      lazymatch c with @rshift n1 n2 _ => fail | _ => idtac end;
-  replace c with (@rshift n1 n2 (@Ordinal n1 (nat_of_ord c - n1) erefl))
-    by (apply ord_inj; reflexivity)
- | |- context [@col ?t _ ?n ?c (@row_mx _ _ ?n1 ?n2 _ _)] => 
-      lazymatch c with @lshift n1 n2 _ => fail | _ => idtac end;
-     replace c with (@lshift n1 n2 (@Ordinal n1 (nat_of_ord c) erefl))
-    by (apply ord_inj; reflexivity)
- | |- context [@col ?t _ ?n ?c (@row_mx _ _ ?n1 ?n2 _ _)] => 
-      lazymatch c with @rshift n1 n2 _ => fail | _ => idtac end;
-  replace c with (@rshift n1 n2 (@Ordinal n1 (nat_of_ord c - n1) erefl))
-    by (apply ord_inj; reflexivity)
- | |- _ => rewrite col_const
- | |- _ => rewrite row_const
- | |- _ => rewrite const_mxE
- | |- _ => rewrite row01
-| |- context [fun_of_matrix (@row_mx _ _ ?n1 ?n2 _ _) ?i (@lshift _ _ _)] => rewrite (@row_mxEl _ _ n1 n2)
-| |- context [fun_of_matrix (@row_mx _ _ ?n1 ?n2 _ _) ?i (@rshift _ _ _)] => rewrite (@row_mxEr _ _ n1 n2)
-| |- context [fun_of_matrix (@row_mx _ _ ?n1 ?n2 _ _) ?i ?j] =>
-      lazymatch j with @lshift n1 n2 _ => fail | _ => idtac end;    
-    replace j with (@lshift n1 n2 (@Ordinal n1 (nat_of_ord j) erefl))
-       by (apply ord_inj; reflexivity; try lia);
-    rewrite (@row_mxEl _ _ n1 n2)
-| |- context [fun_of_matrix (@row_mx _ _ ?n1 ?n2 _ _) ?i ?j] =>
-      lazymatch j with @rshift n1 n2 _ => fail | _ => idtac end;    
-    replace j with (@rshift n1 n2 (@Ordinal n2 (nat_of_ord j - n1) erefl))
-       by (apply ord_inj; try reflexivity; lia);
-    rewrite (@row_mxEr _ _ n1 n2)
-| |- context [fun_of_matrix (@col_mx _ ?n1 ?n2 _ _ _) (@lshift _ _ _) ?j] => rewrite (@col_mxEu _ _ n1 n2)
-| |- context [fun_of_matrix (@col_mx _ ?n1 ?n2 _ _ _) (@rshift _ _ _) ?j] => rewrite (@col_mxEd _ _ n1 n2)
-| |- context [fun_of_matrix (@col_mx _ ?n1 ?n2 _ _ _) ?i ?j] =>
-      lazymatch j with @lshift n1 n2 _ => fail | _ => idtac end;    
-    replace j with (@lshift n1 n2 (@Ordinal n1 (nat_of_ord j) erefl))
-       by (apply ord_inj; try reflexivity; lia);
-    rewrite (@col_mxEu _ _ n1 n2)
-| |- context [fun_of_matrix (@col_mx _ ?n1 ?n2 _ _ _) ?i ?j] =>
-      lazymatch j with @rshift n1 n2 _ => fail | _ => idtac end;    
-    replace j with (@rshift n1 n2 (@Ordinal n2 (nat_of_ord j - n1) erefl))
-       by (apply ord_inj; try reflexivity; lia);
-    rewrite (@col_mxEd _ _ n1 n2)
-end.
-
 Ltac split_I_n := 
 repeat 
 match goal with i: 'I_(S (S ?A)) |- _ => 
@@ -542,11 +434,8 @@ try match goal with
 end;
 try match goal with |- context [ fun_of_matrix (?F (col _ (row _ _))) _ _ ] => rewrite /F end;
 revert j;
-repeat match goal with
- | |- context [col ?a (row ?b ?c)] => let x := fresh "x" in 
-   set x := col a (row b c) _ _; unfold mx_of_list in x; simpl in x
- | |- context [fun_of_matrix (@row ?t ?m ?n ?i (mx_of_list _)) _ _] => let x := fresh "x" in
-   set x := fun_of_matrix (@row t m n i _) _ _; unfold mx_of_list in x; simpl in x
+repeat match goal with |- context [fun_of_matrix (rowmx_of_list ?A) _ _] =>
+  let x := fresh "x" in set x := fun_of_matrix (rowmx_of_list A) _ _; unfold rowmx_of_list in x; simpl x
 end;
 repeat match goal with x := fun_of_matrix _ _ _ |- _ => revert x end;
 split_I_n;
@@ -564,7 +453,7 @@ Context {R : realType}.
 
 Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
     let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
-Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1] ; [:: 1]].
+Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
 
 Definition shapes1dP1 : @Shape.shape R.
 apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_vertices).
@@ -572,7 +461,7 @@ apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_vertices).
 - abstract prove_continuously_differentiable.
 Defined.
 
-Definition shapes1dP2_vertices : 'cV[R]_3 := mx_of_list [:: [:: -1] ; [:: 0]; [:: 1] ].
+Definition shapes1dP2_vertices : 'cV[R]_3 := mx_of_list [:: [:: -1:R] ; [:: 0]; [:: 1] ].
 Definition shapes1dP2_function (xm: 'rV_1) : 'rV_3 :=
     let x : R := xm 0 0 in rowmx_of_list [::   -(1/2)*(1-x)*x ;  (1-x)*(1+x);   (1/2)*x*(1+x)].
 
@@ -582,7 +471,7 @@ apply (Shape.Build_shape 1 3 shapes1dP2_function shapes1dP2_vertices).
 - abstract prove_continuously_differentiable.
 Defined.
 
-Definition shapes1dP3_vertices : 'cV[R]_4 := mx_of_list [::  [:: -1]; [:: -1/3]; [:: 1/3]; [:: 1]].
+Definition shapes1dP3_vertices : 'cV[R]_4 := mx_of_list [::  [:: -1:R]; [:: -1/3]; [:: 1/3]; [:: 1]].
 Definition shapes1dP3_function (xm: 'rV_1) : 'rV_4 :=
   let x: R := xm 0 0 in
    rowmx_of_list [::  -(1/16)*(1-x)*(1-3*x)*(1+3*x);  
@@ -597,7 +486,7 @@ apply (Shape.Build_shape 1 4 shapes1dP3_function shapes1dP3_vertices).
 Defined.
 
 Definition shapes2dP1_vertices : 'M[R]_(4,2) := 
-   mx_of_list [:: [:: -1; -1]; [:: 1; -1]; [:: 1;1]; [:: -1;1]].
+   mx_of_list [:: [:: -1:R; -1]; [:: 1; -1]; [:: 1;1]; [:: -1;1]].
 
 Definition shapes2dP1_function (xy: 'rV[R]_2) : 'rV[R]_4 :=
    let Nx : 'rV_2 := shapes1dP1_function (col 0 xy) in
@@ -611,7 +500,7 @@ apply (Shape.Build_shape 2 4 shapes2dP1_function shapes2dP1_vertices).
 Defined.
 
 Definition shapes2dP2_vertices : 'M[R]_(9,2) := 
-   mx_of_list [:: [:: -1;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]; [:: 0;0]].
+   mx_of_list [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]; [:: 0;0]].
 
 Definition shapes2dP2_function (xy: 'rV[R]_2) : 'rV[R]_9 :=
    let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
@@ -627,7 +516,7 @@ apply (Shape.Build_shape 2 9 shapes2dP2_function shapes2dP2_vertices).
 Defined.
 
 Definition shapes2dS2_vertices : 'M[R]_(8,2) := 
-   mx_of_list [:: [:: -1;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]].
+   mx_of_list [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]].
 
 Definition shapes2dS2_function (xy: 'rV[R]_2) : 'rV[R]_8 :=
    let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
@@ -643,7 +532,7 @@ apply (Shape.Build_shape 2 8 shapes2dS2_function shapes2dS2_vertices).
 Defined.
 
 Definition shapes2dT1_vertices : 'M[R]_(3,2) := 
-    mx_of_list [:: [:: 0; 0]; [:: 1; 0]; [:: 0; 1]].
+    mx_of_list [:: [:: 0:R; 0]; [:: 1; 0]; [:: 0; 1]].
 Definition shapes2dT1_function (xy: 'rV[R]_2) : 'rV[R]_3 :=
    let x : R := xy 0 0 in
    let y : R := xy 0 1 in
@@ -691,8 +580,6 @@ Context {R : realType}.
 
 Definition R_of_nat : nat ->  R  := @natmul  (Num_NumDomain__to__Algebra_BaseAddUMagma R) 1.
 
-(*Definition R_of_nat : nat ->  Nmodule.sort (reals_Real__to__GRing_Nmodule R)  := @natmul  1.*)
-
 Lemma injective_R_of_nat : injective R_of_nat.
 Proof.
 apply (@mulrIn R).
@@ -722,7 +609,6 @@ lra.
 Qed.
 
 Hint Resolve injective_the_points : core.
-
 
 Definition lagrange_2 := lagrange 2 the_points.
 Definition lagrange_2_0 : {poly_2 R} := tnth lagrange_2 0.
