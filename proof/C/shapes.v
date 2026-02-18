@@ -79,6 +79,8 @@ Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition _dN : ident := $"dN".
 Definition _dNx : ident := $"dNx".
 Definition _dNy : ident := $"dNy".
+Definition _densematn_get : ident := $"densematn_get".
+Definition _densematn_set : ident := $"densematn_set".
 Definition _main : ident := $"main".
 Definition _shapes1dP1 : ident := $"shapes1dP1".
 Definition _shapes1dP2 : ident := $"shapes1dP2".
@@ -150,48 +152,68 @@ Definition f_shapes1dP1 := {|
   fn_params := ((_N, (tptr tdouble)) :: (_dN, (tptr tdouble)) ::
                 (_xx, (tptr tdouble)) :: nil);
   fn_vars := nil;
-  fn_temps := ((_x, tdouble) :: nil);
+  fn_temps := ((_x, tdouble) :: (_t'1, tdouble) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _x
-    (Ederef
-      (Ebinop Oadd (Etempvar _xx (tptr tdouble))
-        (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
+  (Ssequence
+    (Scall (Some _t'1)
+      (Evar _densematn_get (Tfunction
+                             ((tptr tdouble) :: tint :: tint :: tint :: nil)
+                             tdouble cc_default))
+      ((Etempvar _xx (tptr tdouble)) :: (Econst_int (Int.repr 1) tint) ::
+       (Econst_int (Int.repr 0) tint) :: (Econst_int (Int.repr 0) tint) ::
+       nil))
+    (Sset _x (Etempvar _t'1 tdouble)))
   (Ssequence
     (Sifthenelse (Etempvar _N (tptr tdouble))
       (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar _N (tptr tdouble))
-              (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-          (Ebinop Omul
-            (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
-            (Ebinop Osub (Econst_int (Int.repr 1) tint) (Etempvar _x tdouble)
-              tdouble) tdouble))
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar _N (tptr tdouble))
-              (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-          (Ebinop Omul
-            (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
-            (Ebinop Oadd (Econst_int (Int.repr 1) tint) (Etempvar _x tdouble)
-              tdouble) tdouble)))
+        (Scall None
+          (Evar _densematn_set (Tfunction
+                                 ((tptr tdouble) :: tint :: tint :: tint ::
+                                  tdouble :: nil) tvoid cc_default))
+          ((Etempvar _N (tptr tdouble)) :: (Econst_int (Int.repr 1) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Ebinop Omul
+             (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
+             (Ebinop Osub (Econst_int (Int.repr 1) tint)
+               (Etempvar _x tdouble) tdouble) tdouble) :: nil))
+        (Scall None
+          (Evar _densematn_set (Tfunction
+                                 ((tptr tdouble) :: tint :: tint :: tint ::
+                                  tdouble :: nil) tvoid cc_default))
+          ((Etempvar _N (tptr tdouble)) :: (Econst_int (Int.repr 1) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Econst_int (Int.repr 1) tint) ::
+           (Ebinop Omul
+             (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
+             (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+               (Etempvar _x tdouble) tdouble) tdouble) :: nil)))
       Sskip)
     (Ssequence
       (Sifthenelse (Etempvar _dN (tptr tdouble))
         (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-            (Eunop Oneg
-              (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
-              tdouble))
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-            (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _dN (tptr tdouble)) ::
+             (Econst_int (Int.repr 2) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Eunop Oneg
+               (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
+               tdouble) :: nil))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _dN (tptr tdouble)) ::
+             (Econst_int (Int.repr 2) tint) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble) ::
+             nil)))
         Sskip)
       (Sreturn (Some (Econst_int (Int.repr 2) tint))))))
 |}.
@@ -202,79 +224,109 @@ Definition f_shapes1dP2 := {|
   fn_params := ((_N, (tptr tdouble)) :: (_dN, (tptr tdouble)) ::
                 (_xx, (tptr tdouble)) :: nil);
   fn_vars := nil;
-  fn_temps := ((_x, tdouble) :: nil);
+  fn_temps := ((_x, tdouble) :: (_t'1, tdouble) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _x
-    (Ederef
-      (Ebinop Oadd (Etempvar _xx (tptr tdouble))
-        (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
+  (Ssequence
+    (Scall (Some _t'1)
+      (Evar _densematn_get (Tfunction
+                             ((tptr tdouble) :: tint :: tint :: tint :: nil)
+                             tdouble cc_default))
+      ((Etempvar _xx (tptr tdouble)) :: (Econst_int (Int.repr 1) tint) ::
+       (Econst_int (Int.repr 0) tint) :: (Econst_int (Int.repr 0) tint) ::
+       nil))
+    (Sset _x (Etempvar _t'1 tdouble)))
   (Ssequence
     (Sifthenelse (Etempvar _N (tptr tdouble))
       (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar _N (tptr tdouble))
-              (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-          (Ebinop Omul
-            (Ebinop Omul
-              (Eunop Oneg
-                (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
-                tdouble)
-              (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                (Etempvar _x tdouble) tdouble) tdouble) (Etempvar _x tdouble)
-            tdouble))
+        (Scall None
+          (Evar _densematn_set (Tfunction
+                                 ((tptr tdouble) :: tint :: tint :: tint ::
+                                  tdouble :: nil) tvoid cc_default))
+          ((Etempvar _N (tptr tdouble)) :: (Econst_int (Int.repr 1) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Ebinop Omul
+             (Ebinop Omul
+               (Eunop Oneg
+                 (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
+                 tdouble)
+               (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                 (Etempvar _x tdouble) tdouble) tdouble)
+             (Etempvar _x tdouble) tdouble) :: nil))
         (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-            (Ebinop Omul
-              (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                (Etempvar _x tdouble) tdouble)
-              (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                (Etempvar _x tdouble) tdouble) tdouble))
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble)
-            (Ebinop Omul
-              (Ebinop Omul
-                (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
-                (Etempvar _x tdouble) tdouble)
-              (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                (Etempvar _x tdouble) tdouble) tdouble))))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _N (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Ebinop Omul
+               (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                 (Etempvar _x tdouble) tdouble)
+               (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                 (Etempvar _x tdouble) tdouble) tdouble) :: nil))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _N (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 2) tint) ::
+             (Ebinop Omul
+               (Ebinop Omul
+                 (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
+                 (Etempvar _x tdouble) tdouble)
+               (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                 (Etempvar _x tdouble) tdouble) tdouble) :: nil))))
       Sskip)
     (Ssequence
       (Sifthenelse (Etempvar _dN (tptr tdouble))
         (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-            (Ebinop Omul
-              (Eunop Oneg
-                (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
-                tdouble)
-              (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                (Ebinop Omul (Econst_int (Int.repr 2) tint)
-                  (Etempvar _x tdouble) tdouble) tdouble) tdouble))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _dN (tptr tdouble)) ::
+             (Econst_int (Int.repr 3) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Ebinop Omul
+               (Eunop Oneg
+                 (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
+                 tdouble)
+               (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                 (Ebinop Omul (Econst_int (Int.repr 2) tint)
+                   (Etempvar _x tdouble) tdouble) tdouble) tdouble) :: nil))
           (Ssequence
-            (Sassign
-              (Ederef
-                (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                  (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-              (Ebinop Omul (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
-                (Etempvar _x tdouble) tdouble))
-            (Sassign
-              (Ederef
-                (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                  (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble)
-              (Ebinop Omul
-                (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
-                (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                  (Ebinop Omul (Econst_int (Int.repr 2) tint)
-                    (Etempvar _x tdouble) tdouble) tdouble) tdouble))))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _dN (tptr tdouble)) ::
+               (Econst_int (Int.repr 3) tint) ::
+               (Econst_int (Int.repr 1) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Ebinop Omul (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
+                 (Etempvar _x tdouble) tdouble) :: nil))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _dN (tptr tdouble)) ::
+               (Econst_int (Int.repr 3) tint) ::
+               (Econst_int (Int.repr 2) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Ebinop Omul
+                 (Econst_float (Float.of_bits (Int64.repr 4602678819172646912)) tdouble)
+                 (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                   (Ebinop Omul (Econst_int (Int.repr 2) tint)
+                     (Etempvar _x tdouble) tdouble) tdouble) tdouble) :: nil))))
         Sskip)
       (Sreturn (Some (Econst_int (Int.repr 3) tint))))))
 |}.
@@ -285,155 +337,198 @@ Definition f_shapes1dP3 := {|
   fn_params := ((_N, (tptr tdouble)) :: (_dN, (tptr tdouble)) ::
                 (_xx, (tptr tdouble)) :: nil);
   fn_vars := nil;
-  fn_temps := ((_x, tdouble) :: nil);
+  fn_temps := ((_x, tdouble) :: (_t'1, tdouble) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _x
-    (Ederef
-      (Ebinop Oadd (Etempvar _xx (tptr tdouble))
-        (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
+  (Ssequence
+    (Scall (Some _t'1)
+      (Evar _densematn_get (Tfunction
+                             ((tptr tdouble) :: tint :: tint :: tint :: nil)
+                             tdouble cc_default))
+      ((Etempvar _xx (tptr tdouble)) :: (Econst_int (Int.repr 1) tint) ::
+       (Econst_int (Int.repr 0) tint) :: (Econst_int (Int.repr 0) tint) ::
+       nil))
+    (Sset _x (Etempvar _t'1 tdouble)))
   (Ssequence
     (Sifthenelse (Etempvar _N (tptr tdouble))
       (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar _N (tptr tdouble))
-              (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-          (Ebinop Omul
-            (Ebinop Omul
-              (Ebinop Omul
-                (Ebinop Odiv
-                  (Eunop Oneg
-                    (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
-                    tdouble) (Econst_int (Int.repr 16) tint) tdouble)
-                (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                  (Etempvar _x tdouble) tdouble) tdouble)
-              (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                (Ebinop Omul (Econst_int (Int.repr 3) tint)
-                  (Etempvar _x tdouble) tdouble) tdouble) tdouble)
-            (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-              (Ebinop Omul (Econst_int (Int.repr 3) tint)
-                (Etempvar _x tdouble) tdouble) tdouble) tdouble))
+        (Scall None
+          (Evar _densematn_set (Tfunction
+                                 ((tptr tdouble) :: tint :: tint :: tint ::
+                                  tdouble :: nil) tvoid cc_default))
+          ((Etempvar _N (tptr tdouble)) :: (Econst_int (Int.repr 1) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Ebinop Omul
+             (Ebinop Omul
+               (Ebinop Omul
+                 (Ebinop Odiv
+                   (Eunop Oneg
+                     (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
+                     tdouble) (Econst_int (Int.repr 16) tint) tdouble)
+                 (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                   (Etempvar _x tdouble) tdouble) tdouble)
+               (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                 (Ebinop Omul (Econst_int (Int.repr 3) tint)
+                   (Etempvar _x tdouble) tdouble) tdouble) tdouble)
+             (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+               (Ebinop Omul (Econst_int (Int.repr 3) tint)
+                 (Etempvar _x tdouble) tdouble) tdouble) tdouble) :: nil))
         (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-            (Ebinop Omul
-              (Ebinop Omul
-                (Ebinop Omul
-                  (Ebinop Odiv
-                    (Econst_float (Float.of_bits (Int64.repr 4621256167635550208)) tdouble)
-                    (Econst_int (Int.repr 16) tint) tdouble)
-                  (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                    (Etempvar _x tdouble) tdouble) tdouble)
-                (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                  (Ebinop Omul (Econst_int (Int.repr 3) tint)
-                    (Etempvar _x tdouble) tdouble) tdouble) tdouble)
-              (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                (Etempvar _x tdouble) tdouble) tdouble))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _N (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Ebinop Omul
+               (Ebinop Omul
+                 (Ebinop Omul
+                   (Ebinop Odiv
+                     (Econst_float (Float.of_bits (Int64.repr 4621256167635550208)) tdouble)
+                     (Econst_int (Int.repr 16) tint) tdouble)
+                   (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                     (Etempvar _x tdouble) tdouble) tdouble)
+                 (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                   (Ebinop Omul (Econst_int (Int.repr 3) tint)
+                     (Etempvar _x tdouble) tdouble) tdouble) tdouble)
+               (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                 (Etempvar _x tdouble) tdouble) tdouble) :: nil))
           (Ssequence
-            (Sassign
-              (Ederef
-                (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                  (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble)
-              (Ebinop Omul
-                (Ebinop Omul
-                  (Ebinop Omul
-                    (Ebinop Odiv
-                      (Econst_float (Float.of_bits (Int64.repr 4621256167635550208)) tdouble)
-                      (Econst_int (Int.repr 16) tint) tdouble)
-                    (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                      (Etempvar _x tdouble) tdouble) tdouble)
-                  (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                    (Ebinop Omul (Econst_int (Int.repr 3) tint)
-                      (Etempvar _x tdouble) tdouble) tdouble) tdouble)
-                (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                  (Etempvar _x tdouble) tdouble) tdouble))
-            (Sassign
-              (Ederef
-                (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                  (Econst_int (Int.repr 3) tint) (tptr tdouble)) tdouble)
-              (Ebinop Omul
-                (Ebinop Omul
-                  (Ebinop Omul
-                    (Ebinop Odiv
-                      (Eunop Oneg
-                        (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
-                        tdouble) (Econst_int (Int.repr 16) tint) tdouble)
-                    (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                      (Ebinop Omul (Econst_int (Int.repr 3) tint)
-                        (Etempvar _x tdouble) tdouble) tdouble) tdouble)
-                  (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                    (Ebinop Omul (Econst_int (Int.repr 3) tint)
-                      (Etempvar _x tdouble) tdouble) tdouble) tdouble)
-                (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                  (Etempvar _x tdouble) tdouble) tdouble)))))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _N (tptr tdouble)) ::
+               (Econst_int (Int.repr 1) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Econst_int (Int.repr 2) tint) ::
+               (Ebinop Omul
+                 (Ebinop Omul
+                   (Ebinop Omul
+                     (Ebinop Odiv
+                       (Econst_float (Float.of_bits (Int64.repr 4621256167635550208)) tdouble)
+                       (Econst_int (Int.repr 16) tint) tdouble)
+                     (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                       (Etempvar _x tdouble) tdouble) tdouble)
+                   (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                     (Ebinop Omul (Econst_int (Int.repr 3) tint)
+                       (Etempvar _x tdouble) tdouble) tdouble) tdouble)
+                 (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                   (Etempvar _x tdouble) tdouble) tdouble) :: nil))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _N (tptr tdouble)) ::
+               (Econst_int (Int.repr 1) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Econst_int (Int.repr 3) tint) ::
+               (Ebinop Omul
+                 (Ebinop Omul
+                   (Ebinop Omul
+                     (Ebinop Odiv
+                       (Eunop Oneg
+                         (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
+                         tdouble) (Econst_int (Int.repr 16) tint) tdouble)
+                     (Ebinop Osub (Econst_int (Int.repr 1) tint)
+                       (Ebinop Omul (Econst_int (Int.repr 3) tint)
+                         (Etempvar _x tdouble) tdouble) tdouble) tdouble)
+                   (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                     (Ebinop Omul (Econst_int (Int.repr 3) tint)
+                       (Etempvar _x tdouble) tdouble) tdouble) tdouble)
+                 (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                   (Etempvar _x tdouble) tdouble) tdouble) :: nil)))))
       Sskip)
     (Ssequence
       (Sifthenelse (Etempvar _dN (tptr tdouble))
         (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-            (Ebinop Omul
-              (Ebinop Odiv
-                (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
-                (Econst_int (Int.repr 16) tint) tdouble)
-              (Ebinop Oadd (Econst_int (Int.repr 1) tint)
-                (Ebinop Omul (Etempvar _x tdouble)
-                  (Ebinop Oadd (Econst_int (Int.repr 18) tint)
-                    (Ebinop Omul (Etempvar _x tdouble)
-                      (Eunop Oneg (Econst_int (Int.repr 27) tint) tint)
-                      tdouble) tdouble) tdouble) tdouble) tdouble))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _dN (tptr tdouble)) ::
+             (Econst_int (Int.repr 4) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Ebinop Omul
+               (Ebinop Odiv
+                 (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
+                 (Econst_int (Int.repr 16) tint) tdouble)
+               (Ebinop Oadd (Econst_int (Int.repr 1) tint)
+                 (Ebinop Omul (Etempvar _x tdouble)
+                   (Ebinop Oadd (Econst_int (Int.repr 18) tint)
+                     (Ebinop Omul (Etempvar _x tdouble)
+                       (Eunop Oneg (Econst_int (Int.repr 27) tint) tint)
+                       tdouble) tdouble) tdouble) tdouble) tdouble) :: nil))
           (Ssequence
-            (Sassign
-              (Ederef
-                (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                  (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-              (Ebinop Omul
-                (Ebinop Odiv
-                  (Econst_float (Float.of_bits (Int64.repr 4621256167635550208)) tdouble)
-                  (Econst_int (Int.repr 16) tint) tdouble)
-                (Ebinop Oadd (Eunop Oneg (Econst_int (Int.repr 3) tint) tint)
-                  (Ebinop Omul (Etempvar _x tdouble)
-                    (Ebinop Oadd
-                      (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
-                      (Ebinop Omul (Etempvar _x tdouble)
-                        (Econst_int (Int.repr 9) tint) tdouble) tdouble)
-                    tdouble) tdouble) tdouble))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _dN (tptr tdouble)) ::
+               (Econst_int (Int.repr 4) tint) ::
+               (Econst_int (Int.repr 1) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Ebinop Omul
+                 (Ebinop Odiv
+                   (Econst_float (Float.of_bits (Int64.repr 4621256167635550208)) tdouble)
+                   (Econst_int (Int.repr 16) tint) tdouble)
+                 (Ebinop Oadd
+                   (Eunop Oneg (Econst_int (Int.repr 3) tint) tint)
+                   (Ebinop Omul (Etempvar _x tdouble)
+                     (Ebinop Oadd
+                       (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
+                       (Ebinop Omul (Etempvar _x tdouble)
+                         (Econst_int (Int.repr 9) tint) tdouble) tdouble)
+                     tdouble) tdouble) tdouble) :: nil))
             (Ssequence
-              (Sassign
-                (Ederef
-                  (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                    (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble)
-                (Ebinop Omul
-                  (Ebinop Odiv
-                    (Econst_float (Float.of_bits (Int64.repr 4621256167635550208)) tdouble)
-                    (Econst_int (Int.repr 16) tint) tdouble)
-                  (Ebinop Oadd (Econst_int (Int.repr 3) tint)
-                    (Ebinop Omul (Etempvar _x tdouble)
-                      (Ebinop Oadd
-                        (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
-                        (Ebinop Omul (Etempvar _x tdouble)
-                          (Eunop Oneg (Econst_int (Int.repr 9) tint) tint)
-                          tdouble) tdouble) tdouble) tdouble) tdouble))
-              (Sassign
-                (Ederef
-                  (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                    (Econst_int (Int.repr 3) tint) (tptr tdouble)) tdouble)
-                (Ebinop Omul
-                  (Ebinop Odiv
-                    (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
-                    (Econst_int (Int.repr 16) tint) tdouble)
-                  (Ebinop Oadd
-                    (Eunop Oneg (Econst_int (Int.repr 1) tint) tint)
-                    (Ebinop Omul (Etempvar _x tdouble)
-                      (Ebinop Oadd (Econst_int (Int.repr 18) tint)
-                        (Ebinop Omul (Etempvar _x tdouble)
-                          (Econst_int (Int.repr 27) tint) tdouble) tdouble)
-                      tdouble) tdouble) tdouble)))))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _dN (tptr tdouble)) ::
+                 (Econst_int (Int.repr 4) tint) ::
+                 (Econst_int (Int.repr 2) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Ebinop Omul
+                   (Ebinop Odiv
+                     (Econst_float (Float.of_bits (Int64.repr 4621256167635550208)) tdouble)
+                     (Econst_int (Int.repr 16) tint) tdouble)
+                   (Ebinop Oadd (Econst_int (Int.repr 3) tint)
+                     (Ebinop Omul (Etempvar _x tdouble)
+                       (Ebinop Oadd
+                         (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
+                         (Ebinop Omul (Etempvar _x tdouble)
+                           (Eunop Oneg (Econst_int (Int.repr 9) tint) tint)
+                           tdouble) tdouble) tdouble) tdouble) tdouble) ::
+                 nil))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _dN (tptr tdouble)) ::
+                 (Econst_int (Int.repr 4) tint) ::
+                 (Econst_int (Int.repr 3) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Ebinop Omul
+                   (Ebinop Odiv
+                     (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
+                     (Econst_int (Int.repr 16) tint) tdouble)
+                   (Ebinop Oadd
+                     (Eunop Oneg (Econst_int (Int.repr 1) tint) tint)
+                     (Ebinop Omul (Etempvar _x tdouble)
+                       (Ebinop Oadd (Econst_int (Int.repr 18) tint)
+                         (Ebinop Omul (Etempvar _x tdouble)
+                           (Econst_int (Int.repr 27) tint) tdouble) tdouble)
+                       tdouble) tdouble) tdouble) :: nil)))))
         Sskip)
       (Sreturn (Some (Econst_int (Int.repr 4) tint))))))
 |}.
@@ -474,233 +569,383 @@ Definition f_shapes2dP1 := {|
       (Sifthenelse (Etempvar _N (tptr tdouble))
         (Ssequence
           (Ssequence
-            (Sset _t'23
-              (Ederef
-                (Ebinop Oadd (Evar _Nx (tarray tdouble 2))
-                  (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
             (Ssequence
-              (Sset _t'24
-                (Ederef
-                  (Ebinop Oadd (Evar _Ny (tarray tdouble 2))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-              (Sassign
-                (Ederef
-                  (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-                (Ebinop Omul (Etempvar _t'23 tdouble)
-                  (Etempvar _t'24 tdouble) tdouble))))
+              (Scall (Some _t'1)
+                (Evar _densematn_get (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: nil) tdouble cc_default))
+                ((Evar _Nx (tarray tdouble 2)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) :: nil))
+              (Scall (Some _t'2)
+                (Evar _densematn_get (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: nil) tdouble cc_default))
+                ((Evar _Ny (tarray tdouble 2)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) :: nil)))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _N (tptr tdouble)) ::
+               (Econst_int (Int.repr 1) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Ebinop Omul (Etempvar _t'1 tdouble) (Etempvar _t'2 tdouble)
+                 tdouble) :: nil)))
           (Ssequence
             (Ssequence
-              (Sset _t'21
-                (Ederef
-                  (Ebinop Oadd (Evar _Nx (tarray tdouble 2))
-                    (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble))
               (Ssequence
-                (Sset _t'22
-                  (Ederef
-                    (Ebinop Oadd (Evar _Ny (tarray tdouble 2))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                      (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-                  (Ebinop Omul (Etempvar _t'21 tdouble)
-                    (Etempvar _t'22 tdouble) tdouble))))
+                (Scall (Some _t'3)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Nx (tarray tdouble 2)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 1) tint) :: nil))
+                (Scall (Some _t'4)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Ny (tarray tdouble 2)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil)))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _N (tptr tdouble)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Ebinop Omul (Etempvar _t'3 tdouble) (Etempvar _t'4 tdouble)
+                   tdouble) :: nil)))
             (Ssequence
               (Ssequence
-                (Sset _t'19
-                  (Ederef
-                    (Ebinop Oadd (Evar _Nx (tarray tdouble 2))
-                      (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble))
                 (Ssequence
-                  (Sset _t'20
-                    (Ederef
-                      (Ebinop Oadd (Evar _Ny (tarray tdouble 2))
-                        (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                      tdouble))
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                        (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                      tdouble)
-                    (Ebinop Omul (Etempvar _t'19 tdouble)
-                      (Etempvar _t'20 tdouble) tdouble))))
+                  (Scall (Some _t'5)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Nx (tarray tdouble 2)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 1) tint) :: nil))
+                  (Scall (Some _t'6)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Ny (tarray tdouble 2)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 1) tint) :: nil)))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _N (tptr tdouble)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 2) tint) ::
+                   (Ebinop Omul (Etempvar _t'5 tdouble)
+                     (Etempvar _t'6 tdouble) tdouble) :: nil)))
               (Ssequence
-                (Sset _t'17
-                  (Ederef
-                    (Ebinop Oadd (Evar _Nx (tarray tdouble 2))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
                 (Ssequence
-                  (Sset _t'18
-                    (Ederef
-                      (Ebinop Oadd (Evar _Ny (tarray tdouble 2))
-                        (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                      tdouble))
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                        (Econst_int (Int.repr 3) tint) (tptr tdouble))
-                      tdouble)
-                    (Ebinop Omul (Etempvar _t'17 tdouble)
-                      (Etempvar _t'18 tdouble) tdouble)))))))
+                  (Scall (Some _t'7)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Nx (tarray tdouble 2)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil))
+                  (Scall (Some _t'8)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Ny (tarray tdouble 2)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 1) tint) :: nil)))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _N (tptr tdouble)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 3) tint) ::
+                   (Ebinop Omul (Etempvar _t'7 tdouble)
+                     (Etempvar _t'8 tdouble) tdouble) :: nil))))))
         Sskip)
       (Ssequence
         (Sifthenelse (Etempvar _dN (tptr tdouble))
           (Ssequence
             (Ssequence
-              (Sset _t'15
-                (Ederef
-                  (Ebinop Oadd (Evar _dNx (tarray tdouble 2))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
               (Ssequence
-                (Sset _t'16
-                  (Ederef
-                    (Ebinop Oadd (Evar _Ny (tarray tdouble 2))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-                  (Ebinop Omul (Etempvar _t'15 tdouble)
-                    (Etempvar _t'16 tdouble) tdouble))))
+                (Scall (Some _t'9)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _dNx (tarray tdouble 2)) ::
+                   (Econst_int (Int.repr 2) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil))
+                (Scall (Some _t'10)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Ny (tarray tdouble 2)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil)))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _dN (tptr tdouble)) ::
+                 (Econst_int (Int.repr 4) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Ebinop Omul (Etempvar _t'9 tdouble)
+                   (Etempvar _t'10 tdouble) tdouble) :: nil)))
             (Ssequence
               (Ssequence
-                (Sset _t'13
-                  (Ederef
-                    (Ebinop Oadd (Evar _Nx (tarray tdouble 2))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
                 (Ssequence
-                  (Sset _t'14
-                    (Ederef
-                      (Ebinop Oadd (Evar _dNy (tarray tdouble 2))
-                        (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                      tdouble))
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                        (Econst_int (Int.repr 4) tint) (tptr tdouble))
-                      tdouble)
-                    (Ebinop Omul (Etempvar _t'13 tdouble)
-                      (Etempvar _t'14 tdouble) tdouble))))
+                  (Scall (Some _t'11)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Nx (tarray tdouble 2)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil))
+                  (Scall (Some _t'12)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _dNy (tarray tdouble 2)) ::
+                     (Econst_int (Int.repr 2) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil)))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _dN (tptr tdouble)) ::
+                   (Econst_int (Int.repr 4) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Ebinop Omul (Etempvar _t'11 tdouble)
+                     (Etempvar _t'12 tdouble) tdouble) :: nil)))
               (Ssequence
                 (Ssequence
-                  (Sset _t'11
-                    (Ederef
-                      (Ebinop Oadd (Evar _dNx (tarray tdouble 2))
-                        (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                      tdouble))
                   (Ssequence
-                    (Sset _t'12
-                      (Ederef
-                        (Ebinop Oadd (Evar _Ny (tarray tdouble 2))
-                          (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                        tdouble))
-                    (Sassign
-                      (Ederef
-                        (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                          (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                        tdouble)
-                      (Ebinop Omul (Etempvar _t'11 tdouble)
-                        (Etempvar _t'12 tdouble) tdouble))))
+                    (Scall (Some _t'13)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _dNx (tarray tdouble 2)) ::
+                       (Econst_int (Int.repr 2) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) :: nil))
+                    (Scall (Some _t'14)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _Ny (tarray tdouble 2)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 0) tint) :: nil)))
+                  (Scall None
+                    (Evar _densematn_set (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: tdouble :: nil) tvoid
+                                           cc_default))
+                    ((Etempvar _dN (tptr tdouble)) ::
+                     (Econst_int (Int.repr 4) tint) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Ebinop Omul (Etempvar _t'13 tdouble)
+                       (Etempvar _t'14 tdouble) tdouble) :: nil)))
                 (Ssequence
                   (Ssequence
-                    (Sset _t'9
-                      (Ederef
-                        (Ebinop Oadd (Evar _Nx (tarray tdouble 2))
-                          (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                        tdouble))
                     (Ssequence
-                      (Sset _t'10
-                        (Ederef
-                          (Ebinop Oadd (Evar _dNy (tarray tdouble 2))
-                            (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                          tdouble))
-                      (Sassign
-                        (Ederef
-                          (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                            (Econst_int (Int.repr 5) tint) (tptr tdouble))
-                          tdouble)
-                        (Ebinop Omul (Etempvar _t'9 tdouble)
-                          (Etempvar _t'10 tdouble) tdouble))))
+                      (Scall (Some _t'15)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _Nx (tarray tdouble 2)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 1) tint) :: nil))
+                      (Scall (Some _t'16)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _dNy (tarray tdouble 2)) ::
+                         (Econst_int (Int.repr 2) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 0) tint) :: nil)))
+                    (Scall None
+                      (Evar _densematn_set (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: tdouble :: nil)
+                                             tvoid cc_default))
+                      ((Etempvar _dN (tptr tdouble)) ::
+                       (Econst_int (Int.repr 4) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Ebinop Omul (Etempvar _t'15 tdouble)
+                         (Etempvar _t'16 tdouble) tdouble) :: nil)))
                   (Ssequence
                     (Ssequence
-                      (Sset _t'7
-                        (Ederef
-                          (Ebinop Oadd (Evar _dNx (tarray tdouble 2))
-                            (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                          tdouble))
                       (Ssequence
-                        (Sset _t'8
-                          (Ederef
-                            (Ebinop Oadd (Evar _Ny (tarray tdouble 2))
-                              (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                            tdouble))
-                        (Sassign
-                          (Ederef
-                            (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                              (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                            tdouble)
-                          (Ebinop Omul (Etempvar _t'7 tdouble)
-                            (Etempvar _t'8 tdouble) tdouble))))
+                        (Scall (Some _t'17)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _dNx (tarray tdouble 2)) ::
+                           (Econst_int (Int.repr 2) tint) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) :: nil))
+                        (Scall (Some _t'18)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _Ny (tarray tdouble 2)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 1) tint) :: nil)))
+                      (Scall None
+                        (Evar _densematn_set (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: tdouble ::
+                                                nil) tvoid cc_default))
+                        ((Etempvar _dN (tptr tdouble)) ::
+                         (Econst_int (Int.repr 4) tint) ::
+                         (Econst_int (Int.repr 2) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Ebinop Omul (Etempvar _t'17 tdouble)
+                           (Etempvar _t'18 tdouble) tdouble) :: nil)))
                     (Ssequence
                       (Ssequence
-                        (Sset _t'5
-                          (Ederef
-                            (Ebinop Oadd (Evar _Nx (tarray tdouble 2))
-                              (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                            tdouble))
                         (Ssequence
-                          (Sset _t'6
-                            (Ederef
-                              (Ebinop Oadd (Evar _dNy (tarray tdouble 2))
-                                (Econst_int (Int.repr 1) tint)
-                                (tptr tdouble)) tdouble))
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                (Econst_int (Int.repr 6) tint)
-                                (tptr tdouble)) tdouble)
-                            (Ebinop Omul (Etempvar _t'5 tdouble)
-                              (Etempvar _t'6 tdouble) tdouble))))
+                          (Scall (Some _t'19)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Nx (tarray tdouble 2)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 1) tint) :: nil))
+                          (Scall (Some _t'20)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _dNy (tarray tdouble 2)) ::
+                             (Econst_int (Int.repr 2) tint) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) :: nil)))
+                        (Scall None
+                          (Evar _densematn_set (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: tdouble ::
+                                                  nil) tvoid cc_default))
+                          ((Etempvar _dN (tptr tdouble)) ::
+                           (Econst_int (Int.repr 4) tint) ::
+                           (Econst_int (Int.repr 2) tint) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Ebinop Omul (Etempvar _t'19 tdouble)
+                             (Etempvar _t'20 tdouble) tdouble) :: nil)))
                       (Ssequence
                         (Ssequence
-                          (Sset _t'3
-                            (Ederef
-                              (Ebinop Oadd (Evar _dNx (tarray tdouble 2))
-                                (Econst_int (Int.repr 0) tint)
-                                (tptr tdouble)) tdouble))
                           (Ssequence
-                            (Sset _t'4
-                              (Ederef
-                                (Ebinop Oadd (Evar _Ny (tarray tdouble 2))
-                                  (Econst_int (Int.repr 1) tint)
-                                  (tptr tdouble)) tdouble))
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                  (Econst_int (Int.repr 3) tint)
-                                  (tptr tdouble)) tdouble)
-                              (Ebinop Omul (Etempvar _t'3 tdouble)
-                                (Etempvar _t'4 tdouble) tdouble))))
+                            (Scall (Some _t'21)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _dNx (tarray tdouble 2)) ::
+                               (Econst_int (Int.repr 2) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 0) tint) :: nil))
+                            (Scall (Some _t'22)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _Ny (tarray tdouble 2)) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 1) tint) :: nil)))
+                          (Scall None
+                            (Evar _densematn_set (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint ::
+                                                    tdouble :: nil) tvoid
+                                                   cc_default))
+                            ((Etempvar _dN (tptr tdouble)) ::
+                             (Econst_int (Int.repr 4) tint) ::
+                             (Econst_int (Int.repr 3) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Ebinop Omul (Etempvar _t'21 tdouble)
+                               (Etempvar _t'22 tdouble) tdouble) :: nil)))
                         (Ssequence
-                          (Sset _t'1
-                            (Ederef
-                              (Ebinop Oadd (Evar _Nx (tarray tdouble 2))
-                                (Econst_int (Int.repr 0) tint)
-                                (tptr tdouble)) tdouble))
                           (Ssequence
-                            (Sset _t'2
-                              (Ederef
-                                (Ebinop Oadd (Evar _dNy (tarray tdouble 2))
-                                  (Econst_int (Int.repr 1) tint)
-                                  (tptr tdouble)) tdouble))
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                  (Econst_int (Int.repr 7) tint)
-                                  (tptr tdouble)) tdouble)
-                              (Ebinop Omul (Etempvar _t'1 tdouble)
-                                (Etempvar _t'2 tdouble) tdouble)))))))))))
+                            (Scall (Some _t'23)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _Nx (tarray tdouble 2)) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 0) tint) :: nil))
+                            (Scall (Some _t'24)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _dNy (tarray tdouble 2)) ::
+                               (Econst_int (Int.repr 2) tint) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) :: nil)))
+                          (Scall None
+                            (Evar _densematn_set (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint ::
+                                                    tdouble :: nil) tvoid
+                                                   cc_default))
+                            ((Etempvar _dN (tptr tdouble)) ::
+                             (Econst_int (Int.repr 4) tint) ::
+                             (Econst_int (Int.repr 3) tint) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Ebinop Omul (Etempvar _t'23 tdouble)
+                               (Etempvar _t'24 tdouble) tdouble) :: nil))))))))))
           Sskip)
         (Sreturn (Some (Econst_int (Int.repr 4) tint)))))))
 |}.
@@ -751,578 +996,975 @@ Definition f_shapes2dP2 := {|
       (Sifthenelse (Etempvar _N (tptr tdouble))
         (Ssequence
           (Ssequence
-            (Sset _t'53
-              (Ederef
-                (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                  (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
             (Ssequence
-              (Sset _t'54
-                (Ederef
-                  (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-              (Sassign
-                (Ederef
-                  (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-                (Ebinop Omul (Etempvar _t'53 tdouble)
-                  (Etempvar _t'54 tdouble) tdouble))))
+              (Scall (Some _t'1)
+                (Evar _densematn_get (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: nil) tdouble cc_default))
+                ((Evar _Nx (tarray tdouble 3)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) :: nil))
+              (Scall (Some _t'2)
+                (Evar _densematn_get (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: nil) tdouble cc_default))
+                ((Evar _Ny (tarray tdouble 3)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) :: nil)))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _N (tptr tdouble)) ::
+               (Econst_int (Int.repr 1) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Ebinop Omul (Etempvar _t'1 tdouble) (Etempvar _t'2 tdouble)
+                 tdouble) :: nil)))
           (Ssequence
             (Ssequence
-              (Sset _t'51
-                (Ederef
-                  (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                    (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble))
               (Ssequence
-                (Sset _t'52
-                  (Ederef
-                    (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                      (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-                  (Ebinop Omul (Etempvar _t'51 tdouble)
-                    (Etempvar _t'52 tdouble) tdouble))))
+                (Scall (Some _t'3)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Nx (tarray tdouble 3)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 1) tint) :: nil))
+                (Scall (Some _t'4)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Ny (tarray tdouble 3)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil)))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _N (tptr tdouble)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Ebinop Omul (Etempvar _t'3 tdouble) (Etempvar _t'4 tdouble)
+                   tdouble) :: nil)))
             (Ssequence
               (Ssequence
-                (Sset _t'49
-                  (Ederef
-                    (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                      (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble))
                 (Ssequence
-                  (Sset _t'50
-                    (Ederef
-                      (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                        (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                      tdouble))
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                        (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                      tdouble)
-                    (Ebinop Omul (Etempvar _t'49 tdouble)
-                      (Etempvar _t'50 tdouble) tdouble))))
+                  (Scall (Some _t'5)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Nx (tarray tdouble 3)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 2) tint) :: nil))
+                  (Scall (Some _t'6)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Ny (tarray tdouble 3)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil)))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _N (tptr tdouble)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 2) tint) ::
+                   (Ebinop Omul (Etempvar _t'5 tdouble)
+                     (Etempvar _t'6 tdouble) tdouble) :: nil)))
               (Ssequence
                 (Ssequence
-                  (Sset _t'47
-                    (Ederef
-                      (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                        (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                      tdouble))
                   (Ssequence
-                    (Sset _t'48
-                      (Ederef
-                        (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                          (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                        tdouble))
-                    (Sassign
-                      (Ederef
-                        (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                          (Econst_int (Int.repr 3) tint) (tptr tdouble))
-                        tdouble)
-                      (Ebinop Omul (Etempvar _t'47 tdouble)
-                        (Etempvar _t'48 tdouble) tdouble))))
+                    (Scall (Some _t'7)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _Nx (tarray tdouble 3)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 2) tint) :: nil))
+                    (Scall (Some _t'8)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _Ny (tarray tdouble 3)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 1) tint) :: nil)))
+                  (Scall None
+                    (Evar _densematn_set (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: tdouble :: nil) tvoid
+                                           cc_default))
+                    ((Etempvar _N (tptr tdouble)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 3) tint) ::
+                     (Ebinop Omul (Etempvar _t'7 tdouble)
+                       (Etempvar _t'8 tdouble) tdouble) :: nil)))
                 (Ssequence
                   (Ssequence
-                    (Sset _t'45
-                      (Ederef
-                        (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                          (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                        tdouble))
                     (Ssequence
-                      (Sset _t'46
-                        (Ederef
-                          (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                            (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                          tdouble))
-                      (Sassign
-                        (Ederef
-                          (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                            (Econst_int (Int.repr 4) tint) (tptr tdouble))
-                          tdouble)
-                        (Ebinop Omul (Etempvar _t'45 tdouble)
-                          (Etempvar _t'46 tdouble) tdouble))))
+                      (Scall (Some _t'9)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _Nx (tarray tdouble 3)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 2) tint) :: nil))
+                      (Scall (Some _t'10)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _Ny (tarray tdouble 3)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 2) tint) :: nil)))
+                    (Scall None
+                      (Evar _densematn_set (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: tdouble :: nil)
+                                             tvoid cc_default))
+                      ((Etempvar _N (tptr tdouble)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 4) tint) ::
+                       (Ebinop Omul (Etempvar _t'9 tdouble)
+                         (Etempvar _t'10 tdouble) tdouble) :: nil)))
                   (Ssequence
                     (Ssequence
-                      (Sset _t'43
-                        (Ederef
-                          (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                            (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                          tdouble))
                       (Ssequence
-                        (Sset _t'44
-                          (Ederef
-                            (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                              (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                            tdouble))
-                        (Sassign
-                          (Ederef
-                            (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                              (Econst_int (Int.repr 5) tint) (tptr tdouble))
-                            tdouble)
-                          (Ebinop Omul (Etempvar _t'43 tdouble)
-                            (Etempvar _t'44 tdouble) tdouble))))
+                        (Scall (Some _t'11)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _Nx (tarray tdouble 3)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 1) tint) :: nil))
+                        (Scall (Some _t'12)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _Ny (tarray tdouble 3)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 2) tint) :: nil)))
+                      (Scall None
+                        (Evar _densematn_set (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: tdouble ::
+                                                nil) tvoid cc_default))
+                        ((Etempvar _N (tptr tdouble)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 5) tint) ::
+                         (Ebinop Omul (Etempvar _t'11 tdouble)
+                           (Etempvar _t'12 tdouble) tdouble) :: nil)))
                     (Ssequence
                       (Ssequence
-                        (Sset _t'41
-                          (Ederef
-                            (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                              (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                            tdouble))
                         (Ssequence
-                          (Sset _t'42
-                            (Ederef
-                              (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                                (Econst_int (Int.repr 2) tint)
-                                (tptr tdouble)) tdouble))
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                                (Econst_int (Int.repr 6) tint)
-                                (tptr tdouble)) tdouble)
-                            (Ebinop Omul (Etempvar _t'41 tdouble)
-                              (Etempvar _t'42 tdouble) tdouble))))
+                          (Scall (Some _t'13)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Nx (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 0) tint) :: nil))
+                          (Scall (Some _t'14)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Ny (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 2) tint) :: nil)))
+                        (Scall None
+                          (Evar _densematn_set (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: tdouble ::
+                                                  nil) tvoid cc_default))
+                          ((Etempvar _N (tptr tdouble)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 6) tint) ::
+                           (Ebinop Omul (Etempvar _t'13 tdouble)
+                             (Etempvar _t'14 tdouble) tdouble) :: nil)))
                       (Ssequence
                         (Ssequence
-                          (Sset _t'39
-                            (Ederef
-                              (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                                (Econst_int (Int.repr 0) tint)
-                                (tptr tdouble)) tdouble))
                           (Ssequence
-                            (Sset _t'40
-                              (Ederef
-                                (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                                  (Econst_int (Int.repr 1) tint)
-                                  (tptr tdouble)) tdouble))
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                                  (Econst_int (Int.repr 7) tint)
-                                  (tptr tdouble)) tdouble)
-                              (Ebinop Omul (Etempvar _t'39 tdouble)
-                                (Etempvar _t'40 tdouble) tdouble))))
+                            (Scall (Some _t'15)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _Nx (tarray tdouble 3)) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 0) tint) :: nil))
+                            (Scall (Some _t'16)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _Ny (tarray tdouble 3)) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 1) tint) :: nil)))
+                          (Scall None
+                            (Evar _densematn_set (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint ::
+                                                    tdouble :: nil) tvoid
+                                                   cc_default))
+                            ((Etempvar _N (tptr tdouble)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 7) tint) ::
+                             (Ebinop Omul (Etempvar _t'15 tdouble)
+                               (Etempvar _t'16 tdouble) tdouble) :: nil)))
                         (Ssequence
-                          (Sset _t'37
-                            (Ederef
-                              (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                                (Econst_int (Int.repr 1) tint)
-                                (tptr tdouble)) tdouble))
                           (Ssequence
-                            (Sset _t'38
-                              (Ederef
-                                (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                                  (Econst_int (Int.repr 1) tint)
-                                  (tptr tdouble)) tdouble))
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                                  (Econst_int (Int.repr 8) tint)
-                                  (tptr tdouble)) tdouble)
-                              (Ebinop Omul (Etempvar _t'37 tdouble)
-                                (Etempvar _t'38 tdouble) tdouble))))))))))))
+                            (Scall (Some _t'17)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _Nx (tarray tdouble 3)) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 1) tint) :: nil))
+                            (Scall (Some _t'18)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _Ny (tarray tdouble 3)) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 1) tint) :: nil)))
+                          (Scall None
+                            (Evar _densematn_set (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint ::
+                                                    tdouble :: nil) tvoid
+                                                   cc_default))
+                            ((Etempvar _N (tptr tdouble)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 8) tint) ::
+                             (Ebinop Omul (Etempvar _t'17 tdouble)
+                               (Etempvar _t'18 tdouble) tdouble) :: nil)))))))))))
         Sskip)
       (Ssequence
         (Sifthenelse (Etempvar _dN (tptr tdouble))
           (Ssequence
             (Ssequence
-              (Sset _t'35
-                (Ederef
-                  (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
               (Ssequence
-                (Sset _t'36
-                  (Ederef
-                    (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-                  (Ebinop Omul (Etempvar _t'35 tdouble)
-                    (Etempvar _t'36 tdouble) tdouble))))
+                (Scall (Some _t'19)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _dNx (tarray tdouble 3)) ::
+                   (Econst_int (Int.repr 3) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil))
+                (Scall (Some _t'20)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Ny (tarray tdouble 3)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil)))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _dN (tptr tdouble)) ::
+                 (Econst_int (Int.repr 9) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Ebinop Omul (Etempvar _t'19 tdouble)
+                   (Etempvar _t'20 tdouble) tdouble) :: nil)))
             (Ssequence
               (Ssequence
-                (Sset _t'33
-                  (Ederef
-                    (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
                 (Ssequence
-                  (Sset _t'34
-                    (Ederef
-                      (Ebinop Oadd (Evar _dNy (tarray tdouble 3))
-                        (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                      tdouble))
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                        (Econst_int (Int.repr 9) tint) (tptr tdouble))
-                      tdouble)
-                    (Ebinop Omul (Etempvar _t'33 tdouble)
-                      (Etempvar _t'34 tdouble) tdouble))))
+                  (Scall (Some _t'21)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Nx (tarray tdouble 3)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil))
+                  (Scall (Some _t'22)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _dNy (tarray tdouble 3)) ::
+                     (Econst_int (Int.repr 3) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil)))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _dN (tptr tdouble)) ::
+                   (Econst_int (Int.repr 9) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Ebinop Omul (Etempvar _t'21 tdouble)
+                     (Etempvar _t'22 tdouble) tdouble) :: nil)))
               (Ssequence
                 (Ssequence
-                  (Sset _t'31
-                    (Ederef
-                      (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                        (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                      tdouble))
                   (Ssequence
-                    (Sset _t'32
-                      (Ederef
-                        (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                          (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                        tdouble))
-                    (Sassign
-                      (Ederef
-                        (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                          (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                        tdouble)
-                      (Ebinop Omul (Etempvar _t'31 tdouble)
-                        (Etempvar _t'32 tdouble) tdouble))))
+                    (Scall (Some _t'23)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _dNx (tarray tdouble 3)) ::
+                       (Econst_int (Int.repr 3) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) :: nil))
+                    (Scall (Some _t'24)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _Ny (tarray tdouble 3)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 0) tint) :: nil)))
+                  (Scall None
+                    (Evar _densematn_set (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: tdouble :: nil) tvoid
+                                           cc_default))
+                    ((Etempvar _dN (tptr tdouble)) ::
+                     (Econst_int (Int.repr 9) tint) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Ebinop Omul (Etempvar _t'23 tdouble)
+                       (Etempvar _t'24 tdouble) tdouble) :: nil)))
                 (Ssequence
                   (Ssequence
-                    (Sset _t'29
-                      (Ederef
-                        (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                          (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                        tdouble))
                     (Ssequence
-                      (Sset _t'30
-                        (Ederef
-                          (Ebinop Oadd (Evar _dNy (tarray tdouble 3))
-                            (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                          tdouble))
-                      (Sassign
-                        (Ederef
-                          (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                            (Econst_int (Int.repr 10) tint) (tptr tdouble))
-                          tdouble)
-                        (Ebinop Omul (Etempvar _t'29 tdouble)
-                          (Etempvar _t'30 tdouble) tdouble))))
+                      (Scall (Some _t'25)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _Nx (tarray tdouble 3)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 1) tint) :: nil))
+                      (Scall (Some _t'26)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _dNy (tarray tdouble 3)) ::
+                         (Econst_int (Int.repr 3) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 0) tint) :: nil)))
+                    (Scall None
+                      (Evar _densematn_set (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: tdouble :: nil)
+                                             tvoid cc_default))
+                      ((Etempvar _dN (tptr tdouble)) ::
+                       (Econst_int (Int.repr 9) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Ebinop Omul (Etempvar _t'25 tdouble)
+                         (Etempvar _t'26 tdouble) tdouble) :: nil)))
                   (Ssequence
                     (Ssequence
-                      (Sset _t'27
-                        (Ederef
-                          (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                            (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                          tdouble))
                       (Ssequence
-                        (Sset _t'28
-                          (Ederef
-                            (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                              (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                            tdouble))
-                        (Sassign
-                          (Ederef
-                            (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                              (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                            tdouble)
-                          (Ebinop Omul (Etempvar _t'27 tdouble)
-                            (Etempvar _t'28 tdouble) tdouble))))
+                        (Scall (Some _t'27)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _dNx (tarray tdouble 3)) ::
+                           (Econst_int (Int.repr 3) tint) ::
+                           (Econst_int (Int.repr 2) tint) ::
+                           (Econst_int (Int.repr 0) tint) :: nil))
+                        (Scall (Some _t'28)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _Ny (tarray tdouble 3)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 0) tint) :: nil)))
+                      (Scall None
+                        (Evar _densematn_set (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: tdouble ::
+                                                nil) tvoid cc_default))
+                        ((Etempvar _dN (tptr tdouble)) ::
+                         (Econst_int (Int.repr 9) tint) ::
+                         (Econst_int (Int.repr 2) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Ebinop Omul (Etempvar _t'27 tdouble)
+                           (Etempvar _t'28 tdouble) tdouble) :: nil)))
                     (Ssequence
                       (Ssequence
-                        (Sset _t'25
-                          (Ederef
-                            (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                              (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                            tdouble))
                         (Ssequence
-                          (Sset _t'26
-                            (Ederef
-                              (Ebinop Oadd (Evar _dNy (tarray tdouble 3))
-                                (Econst_int (Int.repr 0) tint)
-                                (tptr tdouble)) tdouble))
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                (Econst_int (Int.repr 11) tint)
-                                (tptr tdouble)) tdouble)
-                            (Ebinop Omul (Etempvar _t'25 tdouble)
-                              (Etempvar _t'26 tdouble) tdouble))))
+                          (Scall (Some _t'29)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Nx (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 2) tint) :: nil))
+                          (Scall (Some _t'30)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _dNy (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 3) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 0) tint) :: nil)))
+                        (Scall None
+                          (Evar _densematn_set (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: tdouble ::
+                                                  nil) tvoid cc_default))
+                          ((Etempvar _dN (tptr tdouble)) ::
+                           (Econst_int (Int.repr 9) tint) ::
+                           (Econst_int (Int.repr 2) tint) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Ebinop Omul (Etempvar _t'29 tdouble)
+                             (Etempvar _t'30 tdouble) tdouble) :: nil)))
                       (Ssequence
                         (Ssequence
-                          (Sset _t'23
-                            (Ederef
-                              (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                                (Econst_int (Int.repr 2) tint)
-                                (tptr tdouble)) tdouble))
                           (Ssequence
-                            (Sset _t'24
-                              (Ederef
-                                (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                                  (Econst_int (Int.repr 1) tint)
-                                  (tptr tdouble)) tdouble))
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                  (Econst_int (Int.repr 3) tint)
-                                  (tptr tdouble)) tdouble)
-                              (Ebinop Omul (Etempvar _t'23 tdouble)
-                                (Etempvar _t'24 tdouble) tdouble))))
+                            (Scall (Some _t'31)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _dNx (tarray tdouble 3)) ::
+                               (Econst_int (Int.repr 3) tint) ::
+                               (Econst_int (Int.repr 2) tint) ::
+                               (Econst_int (Int.repr 0) tint) :: nil))
+                            (Scall (Some _t'32)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _Ny (tarray tdouble 3)) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 1) tint) :: nil)))
+                          (Scall None
+                            (Evar _densematn_set (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint ::
+                                                    tdouble :: nil) tvoid
+                                                   cc_default))
+                            ((Etempvar _dN (tptr tdouble)) ::
+                             (Econst_int (Int.repr 9) tint) ::
+                             (Econst_int (Int.repr 3) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Ebinop Omul (Etempvar _t'31 tdouble)
+                               (Etempvar _t'32 tdouble) tdouble) :: nil)))
                         (Ssequence
                           (Ssequence
-                            (Sset _t'21
-                              (Ederef
-                                (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                                  (Econst_int (Int.repr 2) tint)
-                                  (tptr tdouble)) tdouble))
                             (Ssequence
-                              (Sset _t'22
-                                (Ederef
-                                  (Ebinop Oadd (Evar _dNy (tarray tdouble 3))
-                                    (Econst_int (Int.repr 1) tint)
-                                    (tptr tdouble)) tdouble))
-                              (Sassign
-                                (Ederef
-                                  (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                    (Econst_int (Int.repr 12) tint)
-                                    (tptr tdouble)) tdouble)
-                                (Ebinop Omul (Etempvar _t'21 tdouble)
-                                  (Etempvar _t'22 tdouble) tdouble))))
+                              (Scall (Some _t'33)
+                                (Evar _densematn_get (Tfunction
+                                                       ((tptr tdouble) ::
+                                                        tint :: tint ::
+                                                        tint :: nil) tdouble
+                                                       cc_default))
+                                ((Evar _Nx (tarray tdouble 3)) ::
+                                 (Econst_int (Int.repr 1) tint) ::
+                                 (Econst_int (Int.repr 0) tint) ::
+                                 (Econst_int (Int.repr 2) tint) :: nil))
+                              (Scall (Some _t'34)
+                                (Evar _densematn_get (Tfunction
+                                                       ((tptr tdouble) ::
+                                                        tint :: tint ::
+                                                        tint :: nil) tdouble
+                                                       cc_default))
+                                ((Evar _dNy (tarray tdouble 3)) ::
+                                 (Econst_int (Int.repr 3) tint) ::
+                                 (Econst_int (Int.repr 1) tint) ::
+                                 (Econst_int (Int.repr 0) tint) :: nil)))
+                            (Scall None
+                              (Evar _densematn_set (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      tdouble :: nil) tvoid
+                                                     cc_default))
+                              ((Etempvar _dN (tptr tdouble)) ::
+                               (Econst_int (Int.repr 9) tint) ::
+                               (Econst_int (Int.repr 3) tint) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Ebinop Omul (Etempvar _t'33 tdouble)
+                                 (Etempvar _t'34 tdouble) tdouble) :: nil)))
                           (Ssequence
                             (Ssequence
-                              (Sset _t'19
-                                (Ederef
-                                  (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                                    (Econst_int (Int.repr 2) tint)
-                                    (tptr tdouble)) tdouble))
                               (Ssequence
-                                (Sset _t'20
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Evar _Ny (tarray tdouble 3))
-                                      (Econst_int (Int.repr 2) tint)
-                                      (tptr tdouble)) tdouble))
-                                (Sassign
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Etempvar _dN (tptr tdouble))
-                                      (Econst_int (Int.repr 4) tint)
-                                      (tptr tdouble)) tdouble)
-                                  (Ebinop Omul (Etempvar _t'19 tdouble)
-                                    (Etempvar _t'20 tdouble) tdouble))))
+                                (Scall (Some _t'35)
+                                  (Evar _densematn_get (Tfunction
+                                                         ((tptr tdouble) ::
+                                                          tint :: tint ::
+                                                          tint :: nil)
+                                                         tdouble cc_default))
+                                  ((Evar _dNx (tarray tdouble 3)) ::
+                                   (Econst_int (Int.repr 3) tint) ::
+                                   (Econst_int (Int.repr 2) tint) ::
+                                   (Econst_int (Int.repr 0) tint) :: nil))
+                                (Scall (Some _t'36)
+                                  (Evar _densematn_get (Tfunction
+                                                         ((tptr tdouble) ::
+                                                          tint :: tint ::
+                                                          tint :: nil)
+                                                         tdouble cc_default))
+                                  ((Evar _Ny (tarray tdouble 3)) ::
+                                   (Econst_int (Int.repr 1) tint) ::
+                                   (Econst_int (Int.repr 0) tint) ::
+                                   (Econst_int (Int.repr 2) tint) :: nil)))
+                              (Scall None
+                                (Evar _densematn_set (Tfunction
+                                                       ((tptr tdouble) ::
+                                                        tint :: tint ::
+                                                        tint :: tdouble ::
+                                                        nil) tvoid
+                                                       cc_default))
+                                ((Etempvar _dN (tptr tdouble)) ::
+                                 (Econst_int (Int.repr 9) tint) ::
+                                 (Econst_int (Int.repr 4) tint) ::
+                                 (Econst_int (Int.repr 0) tint) ::
+                                 (Ebinop Omul (Etempvar _t'35 tdouble)
+                                   (Etempvar _t'36 tdouble) tdouble) :: nil)))
                             (Ssequence
                               (Ssequence
-                                (Sset _t'17
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Evar _Nx (tarray tdouble 3))
-                                      (Econst_int (Int.repr 2) tint)
-                                      (tptr tdouble)) tdouble))
                                 (Ssequence
-                                  (Sset _t'18
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Evar _dNy (tarray tdouble 3))
-                                        (Econst_int (Int.repr 2) tint)
-                                        (tptr tdouble)) tdouble))
-                                  (Sassign
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Etempvar _dN (tptr tdouble))
-                                        (Econst_int (Int.repr 13) tint)
-                                        (tptr tdouble)) tdouble)
-                                    (Ebinop Omul (Etempvar _t'17 tdouble)
-                                      (Etempvar _t'18 tdouble) tdouble))))
+                                  (Scall (Some _t'37)
+                                    (Evar _densematn_get (Tfunction
+                                                           ((tptr tdouble) ::
+                                                            tint :: tint ::
+                                                            tint :: nil)
+                                                           tdouble
+                                                           cc_default))
+                                    ((Evar _Nx (tarray tdouble 3)) ::
+                                     (Econst_int (Int.repr 1) tint) ::
+                                     (Econst_int (Int.repr 0) tint) ::
+                                     (Econst_int (Int.repr 2) tint) :: nil))
+                                  (Scall (Some _t'38)
+                                    (Evar _densematn_get (Tfunction
+                                                           ((tptr tdouble) ::
+                                                            tint :: tint ::
+                                                            tint :: nil)
+                                                           tdouble
+                                                           cc_default))
+                                    ((Evar _dNy (tarray tdouble 3)) ::
+                                     (Econst_int (Int.repr 3) tint) ::
+                                     (Econst_int (Int.repr 2) tint) ::
+                                     (Econst_int (Int.repr 0) tint) :: nil)))
+                                (Scall None
+                                  (Evar _densematn_set (Tfunction
+                                                         ((tptr tdouble) ::
+                                                          tint :: tint ::
+                                                          tint :: tdouble ::
+                                                          nil) tvoid
+                                                         cc_default))
+                                  ((Etempvar _dN (tptr tdouble)) ::
+                                   (Econst_int (Int.repr 9) tint) ::
+                                   (Econst_int (Int.repr 4) tint) ::
+                                   (Econst_int (Int.repr 1) tint) ::
+                                   (Ebinop Omul (Etempvar _t'37 tdouble)
+                                     (Etempvar _t'38 tdouble) tdouble) ::
+                                   nil)))
                               (Ssequence
                                 (Ssequence
-                                  (Sset _t'15
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Evar _dNx (tarray tdouble 3))
-                                        (Econst_int (Int.repr 1) tint)
-                                        (tptr tdouble)) tdouble))
                                   (Ssequence
-                                    (Sset _t'16
-                                      (Ederef
-                                        (Ebinop Oadd
-                                          (Evar _Ny (tarray tdouble 3))
-                                          (Econst_int (Int.repr 2) tint)
-                                          (tptr tdouble)) tdouble))
-                                    (Sassign
-                                      (Ederef
-                                        (Ebinop Oadd
-                                          (Etempvar _dN (tptr tdouble))
-                                          (Econst_int (Int.repr 5) tint)
-                                          (tptr tdouble)) tdouble)
-                                      (Ebinop Omul (Etempvar _t'15 tdouble)
-                                        (Etempvar _t'16 tdouble) tdouble))))
+                                    (Scall (Some _t'39)
+                                      (Evar _densematn_get (Tfunction
+                                                             ((tptr tdouble) ::
+                                                              tint :: tint ::
+                                                              tint :: nil)
+                                                             tdouble
+                                                             cc_default))
+                                      ((Evar _dNx (tarray tdouble 3)) ::
+                                       (Econst_int (Int.repr 3) tint) ::
+                                       (Econst_int (Int.repr 1) tint) ::
+                                       (Econst_int (Int.repr 0) tint) :: nil))
+                                    (Scall (Some _t'40)
+                                      (Evar _densematn_get (Tfunction
+                                                             ((tptr tdouble) ::
+                                                              tint :: tint ::
+                                                              tint :: nil)
+                                                             tdouble
+                                                             cc_default))
+                                      ((Evar _Ny (tarray tdouble 3)) ::
+                                       (Econst_int (Int.repr 1) tint) ::
+                                       (Econst_int (Int.repr 0) tint) ::
+                                       (Econst_int (Int.repr 1) tint) :: nil)))
+                                  (Scall None
+                                    (Evar _densematn_set (Tfunction
+                                                           ((tptr tdouble) ::
+                                                            tint :: tint ::
+                                                            tint ::
+                                                            tdouble :: nil)
+                                                           tvoid cc_default))
+                                    ((Etempvar _dN (tptr tdouble)) ::
+                                     (Econst_int (Int.repr 9) tint) ::
+                                     (Econst_int (Int.repr 5) tint) ::
+                                     (Econst_int (Int.repr 0) tint) ::
+                                     (Ebinop Omul (Etempvar _t'39 tdouble)
+                                       (Etempvar _t'40 tdouble) tdouble) ::
+                                     nil)))
                                 (Ssequence
                                   (Ssequence
-                                    (Sset _t'13
-                                      (Ederef
-                                        (Ebinop Oadd
-                                          (Evar _Nx (tarray tdouble 3))
-                                          (Econst_int (Int.repr 1) tint)
-                                          (tptr tdouble)) tdouble))
                                     (Ssequence
-                                      (Sset _t'14
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Evar _dNy (tarray tdouble 3))
-                                            (Econst_int (Int.repr 2) tint)
-                                            (tptr tdouble)) tdouble))
-                                      (Sassign
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Etempvar _dN (tptr tdouble))
-                                            (Econst_int (Int.repr 14) tint)
-                                            (tptr tdouble)) tdouble)
-                                        (Ebinop Omul (Etempvar _t'13 tdouble)
-                                          (Etempvar _t'14 tdouble) tdouble))))
+                                      (Scall (Some _t'41)
+                                        (Evar _densematn_get (Tfunction
+                                                               ((tptr tdouble) ::
+                                                                tint ::
+                                                                tint ::
+                                                                tint :: nil)
+                                                               tdouble
+                                                               cc_default))
+                                        ((Evar _Nx (tarray tdouble 3)) ::
+                                         (Econst_int (Int.repr 1) tint) ::
+                                         (Econst_int (Int.repr 0) tint) ::
+                                         (Econst_int (Int.repr 2) tint) ::
+                                         nil))
+                                      (Scall (Some _t'42)
+                                        (Evar _densematn_get (Tfunction
+                                                               ((tptr tdouble) ::
+                                                                tint ::
+                                                                tint ::
+                                                                tint :: nil)
+                                                               tdouble
+                                                               cc_default))
+                                        ((Evar _dNy (tarray tdouble 3)) ::
+                                         (Econst_int (Int.repr 3) tint) ::
+                                         (Econst_int (Int.repr 2) tint) ::
+                                         (Econst_int (Int.repr 0) tint) ::
+                                         nil)))
+                                    (Scall None
+                                      (Evar _densematn_set (Tfunction
+                                                             ((tptr tdouble) ::
+                                                              tint :: tint ::
+                                                              tint ::
+                                                              tdouble :: nil)
+                                                             tvoid
+                                                             cc_default))
+                                      ((Etempvar _dN (tptr tdouble)) ::
+                                       (Econst_int (Int.repr 9) tint) ::
+                                       (Econst_int (Int.repr 5) tint) ::
+                                       (Econst_int (Int.repr 1) tint) ::
+                                       (Ebinop Omul (Etempvar _t'41 tdouble)
+                                         (Etempvar _t'42 tdouble) tdouble) ::
+                                       nil)))
                                   (Ssequence
                                     (Ssequence
-                                      (Sset _t'11
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Evar _dNx (tarray tdouble 3))
-                                            (Econst_int (Int.repr 0) tint)
-                                            (tptr tdouble)) tdouble))
                                       (Ssequence
-                                        (Sset _t'12
-                                          (Ederef
-                                            (Ebinop Oadd
-                                              (Evar _Ny (tarray tdouble 3))
-                                              (Econst_int (Int.repr 2) tint)
-                                              (tptr tdouble)) tdouble))
-                                        (Sassign
-                                          (Ederef
-                                            (Ebinop Oadd
-                                              (Etempvar _dN (tptr tdouble))
-                                              (Econst_int (Int.repr 6) tint)
-                                              (tptr tdouble)) tdouble)
-                                          (Ebinop Omul
-                                            (Etempvar _t'11 tdouble)
-                                            (Etempvar _t'12 tdouble) tdouble))))
+                                        (Scall (Some _t'43)
+                                          (Evar _densematn_get (Tfunction
+                                                                 ((tptr tdouble) ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  nil)
+                                                                 tdouble
+                                                                 cc_default))
+                                          ((Evar _dNx (tarray tdouble 3)) ::
+                                           (Econst_int (Int.repr 3) tint) ::
+                                           (Econst_int (Int.repr 0) tint) ::
+                                           (Econst_int (Int.repr 0) tint) ::
+                                           nil))
+                                        (Scall (Some _t'44)
+                                          (Evar _densematn_get (Tfunction
+                                                                 ((tptr tdouble) ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  nil)
+                                                                 tdouble
+                                                                 cc_default))
+                                          ((Evar _Ny (tarray tdouble 3)) ::
+                                           (Econst_int (Int.repr 1) tint) ::
+                                           (Econst_int (Int.repr 0) tint) ::
+                                           (Econst_int (Int.repr 2) tint) ::
+                                           nil)))
+                                      (Scall None
+                                        (Evar _densematn_set (Tfunction
+                                                               ((tptr tdouble) ::
+                                                                tint ::
+                                                                tint ::
+                                                                tint ::
+                                                                tdouble ::
+                                                                nil) tvoid
+                                                               cc_default))
+                                        ((Etempvar _dN (tptr tdouble)) ::
+                                         (Econst_int (Int.repr 9) tint) ::
+                                         (Econst_int (Int.repr 6) tint) ::
+                                         (Econst_int (Int.repr 0) tint) ::
+                                         (Ebinop Omul
+                                           (Etempvar _t'43 tdouble)
+                                           (Etempvar _t'44 tdouble) tdouble) ::
+                                         nil)))
                                     (Ssequence
                                       (Ssequence
-                                        (Sset _t'9
-                                          (Ederef
-                                            (Ebinop Oadd
-                                              (Evar _Nx (tarray tdouble 3))
-                                              (Econst_int (Int.repr 0) tint)
-                                              (tptr tdouble)) tdouble))
                                         (Ssequence
-                                          (Sset _t'10
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Evar _dNy (tarray tdouble 3))
-                                                (Econst_int (Int.repr 2) tint)
-                                                (tptr tdouble)) tdouble))
-                                          (Sassign
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Etempvar _dN (tptr tdouble))
-                                                (Econst_int (Int.repr 15) tint)
-                                                (tptr tdouble)) tdouble)
-                                            (Ebinop Omul
-                                              (Etempvar _t'9 tdouble)
-                                              (Etempvar _t'10 tdouble)
-                                              tdouble))))
+                                          (Scall (Some _t'45)
+                                            (Evar _densematn_get (Tfunction
+                                                                   ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                   tdouble
+                                                                   cc_default))
+                                            ((Evar _Nx (tarray tdouble 3)) ::
+                                             (Econst_int (Int.repr 1) tint) ::
+                                             (Econst_int (Int.repr 0) tint) ::
+                                             (Econst_int (Int.repr 0) tint) ::
+                                             nil))
+                                          (Scall (Some _t'46)
+                                            (Evar _densematn_get (Tfunction
+                                                                   ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                   tdouble
+                                                                   cc_default))
+                                            ((Evar _dNy (tarray tdouble 3)) ::
+                                             (Econst_int (Int.repr 3) tint) ::
+                                             (Econst_int (Int.repr 2) tint) ::
+                                             (Econst_int (Int.repr 0) tint) ::
+                                             nil)))
+                                        (Scall None
+                                          (Evar _densematn_set (Tfunction
+                                                                 ((tptr tdouble) ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  tdouble ::
+                                                                  nil) tvoid
+                                                                 cc_default))
+                                          ((Etempvar _dN (tptr tdouble)) ::
+                                           (Econst_int (Int.repr 9) tint) ::
+                                           (Econst_int (Int.repr 6) tint) ::
+                                           (Econst_int (Int.repr 1) tint) ::
+                                           (Ebinop Omul
+                                             (Etempvar _t'45 tdouble)
+                                             (Etempvar _t'46 tdouble)
+                                             tdouble) :: nil)))
                                       (Ssequence
                                         (Ssequence
-                                          (Sset _t'7
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Evar _dNx (tarray tdouble 3))
-                                                (Econst_int (Int.repr 0) tint)
-                                                (tptr tdouble)) tdouble))
                                           (Ssequence
-                                            (Sset _t'8
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Evar _Ny (tarray tdouble 3))
-                                                  (Econst_int (Int.repr 1) tint)
-                                                  (tptr tdouble)) tdouble))
-                                            (Sassign
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Etempvar _dN (tptr tdouble))
-                                                  (Econst_int (Int.repr 7) tint)
-                                                  (tptr tdouble)) tdouble)
-                                              (Ebinop Omul
-                                                (Etempvar _t'7 tdouble)
-                                                (Etempvar _t'8 tdouble)
-                                                tdouble))))
+                                            (Scall (Some _t'47)
+                                              (Evar _densematn_get (Tfunction
+                                                                    ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                    tdouble
+                                                                    cc_default))
+                                              ((Evar _dNx (tarray tdouble 3)) ::
+                                               (Econst_int (Int.repr 3) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               nil))
+                                            (Scall (Some _t'48)
+                                              (Evar _densematn_get (Tfunction
+                                                                    ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                    tdouble
+                                                                    cc_default))
+                                              ((Evar _Ny (tarray tdouble 3)) ::
+                                               (Econst_int (Int.repr 1) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               (Econst_int (Int.repr 1) tint) ::
+                                               nil)))
+                                          (Scall None
+                                            (Evar _densematn_set (Tfunction
+                                                                   ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tdouble ::
+                                                                    nil)
+                                                                   tvoid
+                                                                   cc_default))
+                                            ((Etempvar _dN (tptr tdouble)) ::
+                                             (Econst_int (Int.repr 9) tint) ::
+                                             (Econst_int (Int.repr 7) tint) ::
+                                             (Econst_int (Int.repr 0) tint) ::
+                                             (Ebinop Omul
+                                               (Etempvar _t'47 tdouble)
+                                               (Etempvar _t'48 tdouble)
+                                               tdouble) :: nil)))
                                         (Ssequence
                                           (Ssequence
-                                            (Sset _t'5
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Evar _Nx (tarray tdouble 3))
-                                                  (Econst_int (Int.repr 0) tint)
-                                                  (tptr tdouble)) tdouble))
                                             (Ssequence
-                                              (Sset _t'6
-                                                (Ederef
-                                                  (Ebinop Oadd
-                                                    (Evar _dNy (tarray tdouble 3))
-                                                    (Econst_int (Int.repr 1) tint)
-                                                    (tptr tdouble)) tdouble))
-                                              (Sassign
-                                                (Ederef
-                                                  (Ebinop Oadd
-                                                    (Etempvar _dN (tptr tdouble))
-                                                    (Econst_int (Int.repr 16) tint)
-                                                    (tptr tdouble)) tdouble)
-                                                (Ebinop Omul
-                                                  (Etempvar _t'5 tdouble)
-                                                  (Etempvar _t'6 tdouble)
-                                                  tdouble))))
+                                              (Scall (Some _t'49)
+                                                (Evar _densematn_get 
+                                                (Tfunction
+                                                  ((tptr tdouble) :: tint ::
+                                                   tint :: tint :: nil)
+                                                  tdouble cc_default))
+                                                ((Evar _Nx (tarray tdouble 3)) ::
+                                                 (Econst_int (Int.repr 1) tint) ::
+                                                 (Econst_int (Int.repr 0) tint) ::
+                                                 (Econst_int (Int.repr 0) tint) ::
+                                                 nil))
+                                              (Scall (Some _t'50)
+                                                (Evar _densematn_get 
+                                                (Tfunction
+                                                  ((tptr tdouble) :: tint ::
+                                                   tint :: tint :: nil)
+                                                  tdouble cc_default))
+                                                ((Evar _dNy (tarray tdouble 3)) ::
+                                                 (Econst_int (Int.repr 3) tint) ::
+                                                 (Econst_int (Int.repr 1) tint) ::
+                                                 (Econst_int (Int.repr 0) tint) ::
+                                                 nil)))
+                                            (Scall None
+                                              (Evar _densematn_set (Tfunction
+                                                                    ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tdouble ::
+                                                                    nil)
+                                                                    tvoid
+                                                                    cc_default))
+                                              ((Etempvar _dN (tptr tdouble)) ::
+                                               (Econst_int (Int.repr 9) tint) ::
+                                               (Econst_int (Int.repr 7) tint) ::
+                                               (Econst_int (Int.repr 1) tint) ::
+                                               (Ebinop Omul
+                                                 (Etempvar _t'49 tdouble)
+                                                 (Etempvar _t'50 tdouble)
+                                                 tdouble) :: nil)))
                                           (Ssequence
                                             (Ssequence
-                                              (Sset _t'3
-                                                (Ederef
-                                                  (Ebinop Oadd
-                                                    (Evar _dNx (tarray tdouble 3))
-                                                    (Econst_int (Int.repr 1) tint)
-                                                    (tptr tdouble)) tdouble))
                                               (Ssequence
-                                                (Sset _t'4
-                                                  (Ederef
-                                                    (Ebinop Oadd
-                                                      (Evar _Ny (tarray tdouble 3))
-                                                      (Econst_int (Int.repr 1) tint)
-                                                      (tptr tdouble))
-                                                    tdouble))
-                                                (Sassign
-                                                  (Ederef
-                                                    (Ebinop Oadd
-                                                      (Etempvar _dN (tptr tdouble))
-                                                      (Econst_int (Int.repr 8) tint)
-                                                      (tptr tdouble))
-                                                    tdouble)
-                                                  (Ebinop Omul
-                                                    (Etempvar _t'3 tdouble)
-                                                    (Etempvar _t'4 tdouble)
-                                                    tdouble))))
+                                                (Scall (Some _t'51)
+                                                  (Evar _densematn_get 
+                                                  (Tfunction
+                                                    ((tptr tdouble) ::
+                                                     tint :: tint :: tint ::
+                                                     nil) tdouble cc_default))
+                                                  ((Evar _dNx (tarray tdouble 3)) ::
+                                                   (Econst_int (Int.repr 3) tint) ::
+                                                   (Econst_int (Int.repr 1) tint) ::
+                                                   (Econst_int (Int.repr 0) tint) ::
+                                                   nil))
+                                                (Scall (Some _t'52)
+                                                  (Evar _densematn_get 
+                                                  (Tfunction
+                                                    ((tptr tdouble) ::
+                                                     tint :: tint :: tint ::
+                                                     nil) tdouble cc_default))
+                                                  ((Evar _Ny (tarray tdouble 3)) ::
+                                                   (Econst_int (Int.repr 1) tint) ::
+                                                   (Econst_int (Int.repr 0) tint) ::
+                                                   (Econst_int (Int.repr 1) tint) ::
+                                                   nil)))
+                                              (Scall None
+                                                (Evar _densematn_set 
+                                                (Tfunction
+                                                  ((tptr tdouble) :: tint ::
+                                                   tint :: tint :: tdouble ::
+                                                   nil) tvoid cc_default))
+                                                ((Etempvar _dN (tptr tdouble)) ::
+                                                 (Econst_int (Int.repr 9) tint) ::
+                                                 (Econst_int (Int.repr 8) tint) ::
+                                                 (Econst_int (Int.repr 0) tint) ::
+                                                 (Ebinop Omul
+                                                   (Etempvar _t'51 tdouble)
+                                                   (Etempvar _t'52 tdouble)
+                                                   tdouble) :: nil)))
                                             (Ssequence
-                                              (Sset _t'1
-                                                (Ederef
-                                                  (Ebinop Oadd
-                                                    (Evar _Nx (tarray tdouble 3))
-                                                    (Econst_int (Int.repr 1) tint)
-                                                    (tptr tdouble)) tdouble))
                                               (Ssequence
-                                                (Sset _t'2
-                                                  (Ederef
-                                                    (Ebinop Oadd
-                                                      (Evar _dNy (tarray tdouble 3))
-                                                      (Econst_int (Int.repr 1) tint)
-                                                      (tptr tdouble))
-                                                    tdouble))
-                                                (Sassign
-                                                  (Ederef
-                                                    (Ebinop Oadd
-                                                      (Etempvar _dN (tptr tdouble))
-                                                      (Econst_int (Int.repr 17) tint)
-                                                      (tptr tdouble))
-                                                    tdouble)
-                                                  (Ebinop Omul
-                                                    (Etempvar _t'1 tdouble)
-                                                    (Etempvar _t'2 tdouble)
-                                                    tdouble)))))))))))))))))))))
+                                                (Scall (Some _t'53)
+                                                  (Evar _densematn_get 
+                                                  (Tfunction
+                                                    ((tptr tdouble) ::
+                                                     tint :: tint :: tint ::
+                                                     nil) tdouble cc_default))
+                                                  ((Evar _Nx (tarray tdouble 3)) ::
+                                                   (Econst_int (Int.repr 1) tint) ::
+                                                   (Econst_int (Int.repr 0) tint) ::
+                                                   (Econst_int (Int.repr 1) tint) ::
+                                                   nil))
+                                                (Scall (Some _t'54)
+                                                  (Evar _densematn_get 
+                                                  (Tfunction
+                                                    ((tptr tdouble) ::
+                                                     tint :: tint :: tint ::
+                                                     nil) tdouble cc_default))
+                                                  ((Evar _dNy (tarray tdouble 3)) ::
+                                                   (Econst_int (Int.repr 3) tint) ::
+                                                   (Econst_int (Int.repr 1) tint) ::
+                                                   (Econst_int (Int.repr 0) tint) ::
+                                                   nil)))
+                                              (Scall None
+                                                (Evar _densematn_set 
+                                                (Tfunction
+                                                  ((tptr tdouble) :: tint ::
+                                                   tint :: tint :: tdouble ::
+                                                   nil) tvoid cc_default))
+                                                ((Etempvar _dN (tptr tdouble)) ::
+                                                 (Econst_int (Int.repr 9) tint) ::
+                                                 (Econst_int (Int.repr 8) tint) ::
+                                                 (Econst_int (Int.repr 1) tint) ::
+                                                 (Ebinop Omul
+                                                   (Etempvar _t'53 tdouble)
+                                                   (Etempvar _t'54 tdouble)
+                                                   tdouble) :: nil))))))))))))))))))))
           Sskip)
         (Sreturn (Some (Econst_int (Int.repr 9) tint)))))))
 |}.
@@ -1371,504 +2013,865 @@ Definition f_shapes2dS2 := {|
       (Sifthenelse (Etempvar _N (tptr tdouble))
         (Ssequence
           (Ssequence
-            (Sset _t'47
-              (Ederef
-                (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                  (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
             (Ssequence
-              (Sset _t'48
-                (Ederef
-                  (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-              (Sassign
-                (Ederef
-                  (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-                (Ebinop Omul (Etempvar _t'47 tdouble)
-                  (Etempvar _t'48 tdouble) tdouble))))
+              (Scall (Some _t'1)
+                (Evar _densematn_get (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: nil) tdouble cc_default))
+                ((Evar _Nx (tarray tdouble 3)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) :: nil))
+              (Scall (Some _t'2)
+                (Evar _densematn_get (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: nil) tdouble cc_default))
+                ((Evar _Ny (tarray tdouble 3)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) :: nil)))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _N (tptr tdouble)) ::
+               (Econst_int (Int.repr 1) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Ebinop Omul (Etempvar _t'1 tdouble) (Etempvar _t'2 tdouble)
+                 tdouble) :: nil)))
           (Ssequence
             (Ssequence
-              (Sset _t'45
-                (Ederef
-                  (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                    (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble))
               (Ssequence
-                (Sset _t'46
-                  (Ederef
-                    (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                      (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-                  (Ebinop Omul (Etempvar _t'45 tdouble)
-                    (Etempvar _t'46 tdouble) tdouble))))
+                (Scall (Some _t'3)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Nx (tarray tdouble 3)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 1) tint) :: nil))
+                (Scall (Some _t'4)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Ny (tarray tdouble 3)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil)))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _N (tptr tdouble)) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Ebinop Omul (Etempvar _t'3 tdouble) (Etempvar _t'4 tdouble)
+                   tdouble) :: nil)))
             (Ssequence
               (Ssequence
-                (Sset _t'43
-                  (Ederef
-                    (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                      (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble))
                 (Ssequence
-                  (Sset _t'44
-                    (Ederef
-                      (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                        (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                      tdouble))
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                        (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                      tdouble)
-                    (Ebinop Omul (Etempvar _t'43 tdouble)
-                      (Etempvar _t'44 tdouble) tdouble))))
+                  (Scall (Some _t'5)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Nx (tarray tdouble 3)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 2) tint) :: nil))
+                  (Scall (Some _t'6)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Ny (tarray tdouble 3)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil)))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _N (tptr tdouble)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 2) tint) ::
+                   (Ebinop Omul (Etempvar _t'5 tdouble)
+                     (Etempvar _t'6 tdouble) tdouble) :: nil)))
               (Ssequence
                 (Ssequence
-                  (Sset _t'41
-                    (Ederef
-                      (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                        (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                      tdouble))
                   (Ssequence
-                    (Sset _t'42
-                      (Ederef
-                        (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                          (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                        tdouble))
-                    (Sassign
-                      (Ederef
-                        (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                          (Econst_int (Int.repr 3) tint) (tptr tdouble))
-                        tdouble)
-                      (Ebinop Omul (Etempvar _t'41 tdouble)
-                        (Etempvar _t'42 tdouble) tdouble))))
+                    (Scall (Some _t'7)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _Nx (tarray tdouble 3)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 2) tint) :: nil))
+                    (Scall (Some _t'8)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _Ny (tarray tdouble 3)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 1) tint) :: nil)))
+                  (Scall None
+                    (Evar _densematn_set (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: tdouble :: nil) tvoid
+                                           cc_default))
+                    ((Etempvar _N (tptr tdouble)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 3) tint) ::
+                     (Ebinop Omul (Etempvar _t'7 tdouble)
+                       (Etempvar _t'8 tdouble) tdouble) :: nil)))
                 (Ssequence
                   (Ssequence
-                    (Sset _t'39
-                      (Ederef
-                        (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                          (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                        tdouble))
                     (Ssequence
-                      (Sset _t'40
-                        (Ederef
-                          (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                            (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                          tdouble))
-                      (Sassign
-                        (Ederef
-                          (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                            (Econst_int (Int.repr 4) tint) (tptr tdouble))
-                          tdouble)
-                        (Ebinop Omul (Etempvar _t'39 tdouble)
-                          (Etempvar _t'40 tdouble) tdouble))))
+                      (Scall (Some _t'9)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _Nx (tarray tdouble 3)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 2) tint) :: nil))
+                      (Scall (Some _t'10)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _Ny (tarray tdouble 3)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 2) tint) :: nil)))
+                    (Scall None
+                      (Evar _densematn_set (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: tdouble :: nil)
+                                             tvoid cc_default))
+                      ((Etempvar _N (tptr tdouble)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 4) tint) ::
+                       (Ebinop Omul (Etempvar _t'9 tdouble)
+                         (Etempvar _t'10 tdouble) tdouble) :: nil)))
                   (Ssequence
                     (Ssequence
-                      (Sset _t'37
-                        (Ederef
-                          (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                            (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                          tdouble))
                       (Ssequence
-                        (Sset _t'38
-                          (Ederef
-                            (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                              (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                            tdouble))
-                        (Sassign
-                          (Ederef
-                            (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                              (Econst_int (Int.repr 5) tint) (tptr tdouble))
-                            tdouble)
-                          (Ebinop Omul (Etempvar _t'37 tdouble)
-                            (Etempvar _t'38 tdouble) tdouble))))
+                        (Scall (Some _t'11)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _Nx (tarray tdouble 3)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 1) tint) :: nil))
+                        (Scall (Some _t'12)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _Ny (tarray tdouble 3)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 2) tint) :: nil)))
+                      (Scall None
+                        (Evar _densematn_set (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: tdouble ::
+                                                nil) tvoid cc_default))
+                        ((Etempvar _N (tptr tdouble)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 5) tint) ::
+                         (Ebinop Omul (Etempvar _t'11 tdouble)
+                           (Etempvar _t'12 tdouble) tdouble) :: nil)))
                     (Ssequence
                       (Ssequence
-                        (Sset _t'35
-                          (Ederef
-                            (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                              (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                            tdouble))
                         (Ssequence
-                          (Sset _t'36
-                            (Ederef
-                              (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                                (Econst_int (Int.repr 2) tint)
-                                (tptr tdouble)) tdouble))
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                                (Econst_int (Int.repr 6) tint)
-                                (tptr tdouble)) tdouble)
-                            (Ebinop Omul (Etempvar _t'35 tdouble)
-                              (Etempvar _t'36 tdouble) tdouble))))
+                          (Scall (Some _t'13)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Nx (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 0) tint) :: nil))
+                          (Scall (Some _t'14)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Ny (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 2) tint) :: nil)))
+                        (Scall None
+                          (Evar _densematn_set (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: tdouble ::
+                                                  nil) tvoid cc_default))
+                          ((Etempvar _N (tptr tdouble)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 6) tint) ::
+                           (Ebinop Omul (Etempvar _t'13 tdouble)
+                             (Etempvar _t'14 tdouble) tdouble) :: nil)))
                       (Ssequence
-                        (Sset _t'33
-                          (Ederef
-                            (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                              (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                            tdouble))
                         (Ssequence
-                          (Sset _t'34
-                            (Ederef
-                              (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                                (Econst_int (Int.repr 1) tint)
-                                (tptr tdouble)) tdouble))
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                                (Econst_int (Int.repr 7) tint)
-                                (tptr tdouble)) tdouble)
-                            (Ebinop Omul (Etempvar _t'33 tdouble)
-                              (Etempvar _t'34 tdouble) tdouble)))))))))))
+                          (Scall (Some _t'15)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Nx (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 0) tint) :: nil))
+                          (Scall (Some _t'16)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Ny (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 1) tint) :: nil)))
+                        (Scall None
+                          (Evar _densematn_set (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: tdouble ::
+                                                  nil) tvoid cc_default))
+                          ((Etempvar _N (tptr tdouble)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 7) tint) ::
+                           (Ebinop Omul (Etempvar _t'15 tdouble)
+                             (Etempvar _t'16 tdouble) tdouble) :: nil))))))))))
         Sskip)
       (Ssequence
         (Sifthenelse (Etempvar _dN (tptr tdouble))
           (Ssequence
             (Ssequence
-              (Sset _t'31
-                (Ederef
-                  (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                    (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
               (Ssequence
-                (Sset _t'32
-                  (Ederef
-                    (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-                  (Ebinop Omul (Etempvar _t'31 tdouble)
-                    (Etempvar _t'32 tdouble) tdouble))))
+                (Scall (Some _t'17)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _dNx (tarray tdouble 3)) ::
+                   (Econst_int (Int.repr 3) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil))
+                (Scall (Some _t'18)
+                  (Evar _densematn_get (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: nil) tdouble cc_default))
+                  ((Evar _Ny (tarray tdouble 3)) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 0) tint) :: nil)))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _dN (tptr tdouble)) ::
+                 (Econst_int (Int.repr 8) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Econst_int (Int.repr 0) tint) ::
+                 (Ebinop Omul (Etempvar _t'17 tdouble)
+                   (Etempvar _t'18 tdouble) tdouble) :: nil)))
             (Ssequence
               (Ssequence
-                (Sset _t'29
-                  (Ederef
-                    (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                      (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
                 (Ssequence
-                  (Sset _t'30
-                    (Ederef
-                      (Ebinop Oadd (Evar _dNy (tarray tdouble 3))
-                        (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                      tdouble))
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                        (Econst_int (Int.repr 8) tint) (tptr tdouble))
-                      tdouble)
-                    (Ebinop Omul (Etempvar _t'29 tdouble)
-                      (Etempvar _t'30 tdouble) tdouble))))
+                  (Scall (Some _t'19)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _Nx (tarray tdouble 3)) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil))
+                  (Scall (Some _t'20)
+                    (Evar _densematn_get (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: nil) tdouble cc_default))
+                    ((Evar _dNy (tarray tdouble 3)) ::
+                     (Econst_int (Int.repr 3) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Econst_int (Int.repr 0) tint) :: nil)))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _dN (tptr tdouble)) ::
+                   (Econst_int (Int.repr 8) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Ebinop Omul (Etempvar _t'19 tdouble)
+                     (Etempvar _t'20 tdouble) tdouble) :: nil)))
               (Ssequence
                 (Ssequence
-                  (Sset _t'27
-                    (Ederef
-                      (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                        (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                      tdouble))
                   (Ssequence
-                    (Sset _t'28
-                      (Ederef
-                        (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                          (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                        tdouble))
-                    (Sassign
-                      (Ederef
-                        (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                          (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                        tdouble)
-                      (Ebinop Omul (Etempvar _t'27 tdouble)
-                        (Etempvar _t'28 tdouble) tdouble))))
+                    (Scall (Some _t'21)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _dNx (tarray tdouble 3)) ::
+                       (Econst_int (Int.repr 3) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) :: nil))
+                    (Scall (Some _t'22)
+                      (Evar _densematn_get (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: nil) tdouble
+                                             cc_default))
+                      ((Evar _Ny (tarray tdouble 3)) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 0) tint) ::
+                       (Econst_int (Int.repr 0) tint) :: nil)))
+                  (Scall None
+                    (Evar _densematn_set (Tfunction
+                                           ((tptr tdouble) :: tint :: tint ::
+                                            tint :: tdouble :: nil) tvoid
+                                           cc_default))
+                    ((Etempvar _dN (tptr tdouble)) ::
+                     (Econst_int (Int.repr 8) tint) ::
+                     (Econst_int (Int.repr 1) tint) ::
+                     (Econst_int (Int.repr 0) tint) ::
+                     (Ebinop Omul (Etempvar _t'21 tdouble)
+                       (Etempvar _t'22 tdouble) tdouble) :: nil)))
                 (Ssequence
                   (Ssequence
-                    (Sset _t'25
-                      (Ederef
-                        (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                          (Econst_int (Int.repr 1) tint) (tptr tdouble))
-                        tdouble))
                     (Ssequence
-                      (Sset _t'26
-                        (Ederef
-                          (Ebinop Oadd (Evar _dNy (tarray tdouble 3))
-                            (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                          tdouble))
-                      (Sassign
-                        (Ederef
-                          (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                            (Econst_int (Int.repr 9) tint) (tptr tdouble))
-                          tdouble)
-                        (Ebinop Omul (Etempvar _t'25 tdouble)
-                          (Etempvar _t'26 tdouble) tdouble))))
+                      (Scall (Some _t'23)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _Nx (tarray tdouble 3)) ::
+                         (Econst_int (Int.repr 1) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 1) tint) :: nil))
+                      (Scall (Some _t'24)
+                        (Evar _densematn_get (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: nil) tdouble
+                                               cc_default))
+                        ((Evar _dNy (tarray tdouble 3)) ::
+                         (Econst_int (Int.repr 3) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Econst_int (Int.repr 0) tint) :: nil)))
+                    (Scall None
+                      (Evar _densematn_set (Tfunction
+                                             ((tptr tdouble) :: tint ::
+                                              tint :: tint :: tdouble :: nil)
+                                             tvoid cc_default))
+                      ((Etempvar _dN (tptr tdouble)) ::
+                       (Econst_int (Int.repr 8) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Econst_int (Int.repr 1) tint) ::
+                       (Ebinop Omul (Etempvar _t'23 tdouble)
+                         (Etempvar _t'24 tdouble) tdouble) :: nil)))
                   (Ssequence
                     (Ssequence
-                      (Sset _t'23
-                        (Ederef
-                          (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                            (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                          tdouble))
                       (Ssequence
-                        (Sset _t'24
-                          (Ederef
-                            (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                              (Econst_int (Int.repr 0) tint) (tptr tdouble))
-                            tdouble))
-                        (Sassign
-                          (Ederef
-                            (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                              (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                            tdouble)
-                          (Ebinop Omul (Etempvar _t'23 tdouble)
-                            (Etempvar _t'24 tdouble) tdouble))))
+                        (Scall (Some _t'25)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _dNx (tarray tdouble 3)) ::
+                           (Econst_int (Int.repr 3) tint) ::
+                           (Econst_int (Int.repr 2) tint) ::
+                           (Econst_int (Int.repr 0) tint) :: nil))
+                        (Scall (Some _t'26)
+                          (Evar _densematn_get (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: nil)
+                                                 tdouble cc_default))
+                          ((Evar _Ny (tarray tdouble 3)) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Econst_int (Int.repr 0) tint) ::
+                           (Econst_int (Int.repr 0) tint) :: nil)))
+                      (Scall None
+                        (Evar _densematn_set (Tfunction
+                                               ((tptr tdouble) :: tint ::
+                                                tint :: tint :: tdouble ::
+                                                nil) tvoid cc_default))
+                        ((Etempvar _dN (tptr tdouble)) ::
+                         (Econst_int (Int.repr 8) tint) ::
+                         (Econst_int (Int.repr 2) tint) ::
+                         (Econst_int (Int.repr 0) tint) ::
+                         (Ebinop Omul (Etempvar _t'25 tdouble)
+                           (Etempvar _t'26 tdouble) tdouble) :: nil)))
                     (Ssequence
                       (Ssequence
-                        (Sset _t'21
-                          (Ederef
-                            (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                              (Econst_int (Int.repr 2) tint) (tptr tdouble))
-                            tdouble))
                         (Ssequence
-                          (Sset _t'22
-                            (Ederef
-                              (Ebinop Oadd (Evar _dNy (tarray tdouble 3))
-                                (Econst_int (Int.repr 0) tint)
-                                (tptr tdouble)) tdouble))
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                (Econst_int (Int.repr 10) tint)
-                                (tptr tdouble)) tdouble)
-                            (Ebinop Omul (Etempvar _t'21 tdouble)
-                              (Etempvar _t'22 tdouble) tdouble))))
+                          (Scall (Some _t'27)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _Nx (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 1) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 2) tint) :: nil))
+                          (Scall (Some _t'28)
+                            (Evar _densematn_get (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint :: nil)
+                                                   tdouble cc_default))
+                            ((Evar _dNy (tarray tdouble 3)) ::
+                             (Econst_int (Int.repr 3) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Econst_int (Int.repr 0) tint) :: nil)))
+                        (Scall None
+                          (Evar _densematn_set (Tfunction
+                                                 ((tptr tdouble) :: tint ::
+                                                  tint :: tint :: tdouble ::
+                                                  nil) tvoid cc_default))
+                          ((Etempvar _dN (tptr tdouble)) ::
+                           (Econst_int (Int.repr 8) tint) ::
+                           (Econst_int (Int.repr 2) tint) ::
+                           (Econst_int (Int.repr 1) tint) ::
+                           (Ebinop Omul (Etempvar _t'27 tdouble)
+                             (Etempvar _t'28 tdouble) tdouble) :: nil)))
                       (Ssequence
                         (Ssequence
-                          (Sset _t'19
-                            (Ederef
-                              (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                                (Econst_int (Int.repr 2) tint)
-                                (tptr tdouble)) tdouble))
                           (Ssequence
-                            (Sset _t'20
-                              (Ederef
-                                (Ebinop Oadd (Evar _Ny (tarray tdouble 3))
-                                  (Econst_int (Int.repr 1) tint)
-                                  (tptr tdouble)) tdouble))
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                  (Econst_int (Int.repr 3) tint)
-                                  (tptr tdouble)) tdouble)
-                              (Ebinop Omul (Etempvar _t'19 tdouble)
-                                (Etempvar _t'20 tdouble) tdouble))))
+                            (Scall (Some _t'29)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _dNx (tarray tdouble 3)) ::
+                               (Econst_int (Int.repr 3) tint) ::
+                               (Econst_int (Int.repr 2) tint) ::
+                               (Econst_int (Int.repr 0) tint) :: nil))
+                            (Scall (Some _t'30)
+                              (Evar _densematn_get (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      nil) tdouble
+                                                     cc_default))
+                              ((Evar _Ny (tarray tdouble 3)) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Econst_int (Int.repr 0) tint) ::
+                               (Econst_int (Int.repr 1) tint) :: nil)))
+                          (Scall None
+                            (Evar _densematn_set (Tfunction
+                                                   ((tptr tdouble) :: tint ::
+                                                    tint :: tint ::
+                                                    tdouble :: nil) tvoid
+                                                   cc_default))
+                            ((Etempvar _dN (tptr tdouble)) ::
+                             (Econst_int (Int.repr 8) tint) ::
+                             (Econst_int (Int.repr 3) tint) ::
+                             (Econst_int (Int.repr 0) tint) ::
+                             (Ebinop Omul (Etempvar _t'29 tdouble)
+                               (Etempvar _t'30 tdouble) tdouble) :: nil)))
                         (Ssequence
                           (Ssequence
-                            (Sset _t'17
-                              (Ederef
-                                (Ebinop Oadd (Evar _Nx (tarray tdouble 3))
-                                  (Econst_int (Int.repr 2) tint)
-                                  (tptr tdouble)) tdouble))
                             (Ssequence
-                              (Sset _t'18
-                                (Ederef
-                                  (Ebinop Oadd (Evar _dNy (tarray tdouble 3))
-                                    (Econst_int (Int.repr 1) tint)
-                                    (tptr tdouble)) tdouble))
-                              (Sassign
-                                (Ederef
-                                  (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                                    (Econst_int (Int.repr 11) tint)
-                                    (tptr tdouble)) tdouble)
-                                (Ebinop Omul (Etempvar _t'17 tdouble)
-                                  (Etempvar _t'18 tdouble) tdouble))))
+                              (Scall (Some _t'31)
+                                (Evar _densematn_get (Tfunction
+                                                       ((tptr tdouble) ::
+                                                        tint :: tint ::
+                                                        tint :: nil) tdouble
+                                                       cc_default))
+                                ((Evar _Nx (tarray tdouble 3)) ::
+                                 (Econst_int (Int.repr 1) tint) ::
+                                 (Econst_int (Int.repr 0) tint) ::
+                                 (Econst_int (Int.repr 2) tint) :: nil))
+                              (Scall (Some _t'32)
+                                (Evar _densematn_get (Tfunction
+                                                       ((tptr tdouble) ::
+                                                        tint :: tint ::
+                                                        tint :: nil) tdouble
+                                                       cc_default))
+                                ((Evar _dNy (tarray tdouble 3)) ::
+                                 (Econst_int (Int.repr 3) tint) ::
+                                 (Econst_int (Int.repr 1) tint) ::
+                                 (Econst_int (Int.repr 0) tint) :: nil)))
+                            (Scall None
+                              (Evar _densematn_set (Tfunction
+                                                     ((tptr tdouble) ::
+                                                      tint :: tint :: tint ::
+                                                      tdouble :: nil) tvoid
+                                                     cc_default))
+                              ((Etempvar _dN (tptr tdouble)) ::
+                               (Econst_int (Int.repr 8) tint) ::
+                               (Econst_int (Int.repr 3) tint) ::
+                               (Econst_int (Int.repr 1) tint) ::
+                               (Ebinop Omul (Etempvar _t'31 tdouble)
+                                 (Etempvar _t'32 tdouble) tdouble) :: nil)))
                           (Ssequence
                             (Ssequence
-                              (Sset _t'15
-                                (Ederef
-                                  (Ebinop Oadd (Evar _dNx (tarray tdouble 3))
-                                    (Econst_int (Int.repr 2) tint)
-                                    (tptr tdouble)) tdouble))
                               (Ssequence
-                                (Sset _t'16
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Evar _Ny (tarray tdouble 3))
-                                      (Econst_int (Int.repr 2) tint)
-                                      (tptr tdouble)) tdouble))
-                                (Sassign
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Etempvar _dN (tptr tdouble))
-                                      (Econst_int (Int.repr 4) tint)
-                                      (tptr tdouble)) tdouble)
-                                  (Ebinop Omul (Etempvar _t'15 tdouble)
-                                    (Etempvar _t'16 tdouble) tdouble))))
+                                (Scall (Some _t'33)
+                                  (Evar _densematn_get (Tfunction
+                                                         ((tptr tdouble) ::
+                                                          tint :: tint ::
+                                                          tint :: nil)
+                                                         tdouble cc_default))
+                                  ((Evar _dNx (tarray tdouble 3)) ::
+                                   (Econst_int (Int.repr 3) tint) ::
+                                   (Econst_int (Int.repr 2) tint) ::
+                                   (Econst_int (Int.repr 0) tint) :: nil))
+                                (Scall (Some _t'34)
+                                  (Evar _densematn_get (Tfunction
+                                                         ((tptr tdouble) ::
+                                                          tint :: tint ::
+                                                          tint :: nil)
+                                                         tdouble cc_default))
+                                  ((Evar _Ny (tarray tdouble 3)) ::
+                                   (Econst_int (Int.repr 1) tint) ::
+                                   (Econst_int (Int.repr 0) tint) ::
+                                   (Econst_int (Int.repr 2) tint) :: nil)))
+                              (Scall None
+                                (Evar _densematn_set (Tfunction
+                                                       ((tptr tdouble) ::
+                                                        tint :: tint ::
+                                                        tint :: tdouble ::
+                                                        nil) tvoid
+                                                       cc_default))
+                                ((Etempvar _dN (tptr tdouble)) ::
+                                 (Econst_int (Int.repr 8) tint) ::
+                                 (Econst_int (Int.repr 4) tint) ::
+                                 (Econst_int (Int.repr 0) tint) ::
+                                 (Ebinop Omul (Etempvar _t'33 tdouble)
+                                   (Etempvar _t'34 tdouble) tdouble) :: nil)))
                             (Ssequence
                               (Ssequence
-                                (Sset _t'13
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Evar _Nx (tarray tdouble 3))
-                                      (Econst_int (Int.repr 2) tint)
-                                      (tptr tdouble)) tdouble))
                                 (Ssequence
-                                  (Sset _t'14
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Evar _dNy (tarray tdouble 3))
-                                        (Econst_int (Int.repr 2) tint)
-                                        (tptr tdouble)) tdouble))
-                                  (Sassign
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Etempvar _dN (tptr tdouble))
-                                        (Econst_int (Int.repr 12) tint)
-                                        (tptr tdouble)) tdouble)
-                                    (Ebinop Omul (Etempvar _t'13 tdouble)
-                                      (Etempvar _t'14 tdouble) tdouble))))
+                                  (Scall (Some _t'35)
+                                    (Evar _densematn_get (Tfunction
+                                                           ((tptr tdouble) ::
+                                                            tint :: tint ::
+                                                            tint :: nil)
+                                                           tdouble
+                                                           cc_default))
+                                    ((Evar _Nx (tarray tdouble 3)) ::
+                                     (Econst_int (Int.repr 1) tint) ::
+                                     (Econst_int (Int.repr 0) tint) ::
+                                     (Econst_int (Int.repr 2) tint) :: nil))
+                                  (Scall (Some _t'36)
+                                    (Evar _densematn_get (Tfunction
+                                                           ((tptr tdouble) ::
+                                                            tint :: tint ::
+                                                            tint :: nil)
+                                                           tdouble
+                                                           cc_default))
+                                    ((Evar _dNy (tarray tdouble 3)) ::
+                                     (Econst_int (Int.repr 3) tint) ::
+                                     (Econst_int (Int.repr 2) tint) ::
+                                     (Econst_int (Int.repr 0) tint) :: nil)))
+                                (Scall None
+                                  (Evar _densematn_set (Tfunction
+                                                         ((tptr tdouble) ::
+                                                          tint :: tint ::
+                                                          tint :: tdouble ::
+                                                          nil) tvoid
+                                                         cc_default))
+                                  ((Etempvar _dN (tptr tdouble)) ::
+                                   (Econst_int (Int.repr 8) tint) ::
+                                   (Econst_int (Int.repr 4) tint) ::
+                                   (Econst_int (Int.repr 1) tint) ::
+                                   (Ebinop Omul (Etempvar _t'35 tdouble)
+                                     (Etempvar _t'36 tdouble) tdouble) ::
+                                   nil)))
                               (Ssequence
                                 (Ssequence
-                                  (Sset _t'11
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Evar _dNx (tarray tdouble 3))
-                                        (Econst_int (Int.repr 1) tint)
-                                        (tptr tdouble)) tdouble))
                                   (Ssequence
-                                    (Sset _t'12
-                                      (Ederef
-                                        (Ebinop Oadd
-                                          (Evar _Ny (tarray tdouble 3))
-                                          (Econst_int (Int.repr 2) tint)
-                                          (tptr tdouble)) tdouble))
-                                    (Sassign
-                                      (Ederef
-                                        (Ebinop Oadd
-                                          (Etempvar _dN (tptr tdouble))
-                                          (Econst_int (Int.repr 5) tint)
-                                          (tptr tdouble)) tdouble)
-                                      (Ebinop Omul (Etempvar _t'11 tdouble)
-                                        (Etempvar _t'12 tdouble) tdouble))))
+                                    (Scall (Some _t'37)
+                                      (Evar _densematn_get (Tfunction
+                                                             ((tptr tdouble) ::
+                                                              tint :: tint ::
+                                                              tint :: nil)
+                                                             tdouble
+                                                             cc_default))
+                                      ((Evar _dNx (tarray tdouble 3)) ::
+                                       (Econst_int (Int.repr 3) tint) ::
+                                       (Econst_int (Int.repr 1) tint) ::
+                                       (Econst_int (Int.repr 0) tint) :: nil))
+                                    (Scall (Some _t'38)
+                                      (Evar _densematn_get (Tfunction
+                                                             ((tptr tdouble) ::
+                                                              tint :: tint ::
+                                                              tint :: nil)
+                                                             tdouble
+                                                             cc_default))
+                                      ((Evar _Ny (tarray tdouble 3)) ::
+                                       (Econst_int (Int.repr 1) tint) ::
+                                       (Econst_int (Int.repr 0) tint) ::
+                                       (Econst_int (Int.repr 1) tint) :: nil)))
+                                  (Scall None
+                                    (Evar _densematn_set (Tfunction
+                                                           ((tptr tdouble) ::
+                                                            tint :: tint ::
+                                                            tint ::
+                                                            tdouble :: nil)
+                                                           tvoid cc_default))
+                                    ((Etempvar _dN (tptr tdouble)) ::
+                                     (Econst_int (Int.repr 8) tint) ::
+                                     (Econst_int (Int.repr 5) tint) ::
+                                     (Econst_int (Int.repr 0) tint) ::
+                                     (Ebinop Omul (Etempvar _t'37 tdouble)
+                                       (Etempvar _t'38 tdouble) tdouble) ::
+                                     nil)))
                                 (Ssequence
                                   (Ssequence
-                                    (Sset _t'9
-                                      (Ederef
-                                        (Ebinop Oadd
-                                          (Evar _Nx (tarray tdouble 3))
-                                          (Econst_int (Int.repr 1) tint)
-                                          (tptr tdouble)) tdouble))
                                     (Ssequence
-                                      (Sset _t'10
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Evar _dNy (tarray tdouble 3))
-                                            (Econst_int (Int.repr 2) tint)
-                                            (tptr tdouble)) tdouble))
-                                      (Sassign
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Etempvar _dN (tptr tdouble))
-                                            (Econst_int (Int.repr 13) tint)
-                                            (tptr tdouble)) tdouble)
-                                        (Ebinop Omul (Etempvar _t'9 tdouble)
-                                          (Etempvar _t'10 tdouble) tdouble))))
+                                      (Scall (Some _t'39)
+                                        (Evar _densematn_get (Tfunction
+                                                               ((tptr tdouble) ::
+                                                                tint ::
+                                                                tint ::
+                                                                tint :: nil)
+                                                               tdouble
+                                                               cc_default))
+                                        ((Evar _Nx (tarray tdouble 3)) ::
+                                         (Econst_int (Int.repr 1) tint) ::
+                                         (Econst_int (Int.repr 0) tint) ::
+                                         (Econst_int (Int.repr 2) tint) ::
+                                         nil))
+                                      (Scall (Some _t'40)
+                                        (Evar _densematn_get (Tfunction
+                                                               ((tptr tdouble) ::
+                                                                tint ::
+                                                                tint ::
+                                                                tint :: nil)
+                                                               tdouble
+                                                               cc_default))
+                                        ((Evar _dNy (tarray tdouble 3)) ::
+                                         (Econst_int (Int.repr 3) tint) ::
+                                         (Econst_int (Int.repr 2) tint) ::
+                                         (Econst_int (Int.repr 0) tint) ::
+                                         nil)))
+                                    (Scall None
+                                      (Evar _densematn_set (Tfunction
+                                                             ((tptr tdouble) ::
+                                                              tint :: tint ::
+                                                              tint ::
+                                                              tdouble :: nil)
+                                                             tvoid
+                                                             cc_default))
+                                      ((Etempvar _dN (tptr tdouble)) ::
+                                       (Econst_int (Int.repr 8) tint) ::
+                                       (Econst_int (Int.repr 5) tint) ::
+                                       (Econst_int (Int.repr 1) tint) ::
+                                       (Ebinop Omul (Etempvar _t'39 tdouble)
+                                         (Etempvar _t'40 tdouble) tdouble) ::
+                                       nil)))
                                   (Ssequence
                                     (Ssequence
-                                      (Sset _t'7
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Evar _dNx (tarray tdouble 3))
-                                            (Econst_int (Int.repr 0) tint)
-                                            (tptr tdouble)) tdouble))
                                       (Ssequence
-                                        (Sset _t'8
-                                          (Ederef
-                                            (Ebinop Oadd
-                                              (Evar _Ny (tarray tdouble 3))
-                                              (Econst_int (Int.repr 2) tint)
-                                              (tptr tdouble)) tdouble))
-                                        (Sassign
-                                          (Ederef
-                                            (Ebinop Oadd
-                                              (Etempvar _dN (tptr tdouble))
-                                              (Econst_int (Int.repr 6) tint)
-                                              (tptr tdouble)) tdouble)
-                                          (Ebinop Omul
-                                            (Etempvar _t'7 tdouble)
-                                            (Etempvar _t'8 tdouble) tdouble))))
+                                        (Scall (Some _t'41)
+                                          (Evar _densematn_get (Tfunction
+                                                                 ((tptr tdouble) ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  nil)
+                                                                 tdouble
+                                                                 cc_default))
+                                          ((Evar _dNx (tarray tdouble 3)) ::
+                                           (Econst_int (Int.repr 3) tint) ::
+                                           (Econst_int (Int.repr 0) tint) ::
+                                           (Econst_int (Int.repr 0) tint) ::
+                                           nil))
+                                        (Scall (Some _t'42)
+                                          (Evar _densematn_get (Tfunction
+                                                                 ((tptr tdouble) ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  nil)
+                                                                 tdouble
+                                                                 cc_default))
+                                          ((Evar _Ny (tarray tdouble 3)) ::
+                                           (Econst_int (Int.repr 1) tint) ::
+                                           (Econst_int (Int.repr 0) tint) ::
+                                           (Econst_int (Int.repr 2) tint) ::
+                                           nil)))
+                                      (Scall None
+                                        (Evar _densematn_set (Tfunction
+                                                               ((tptr tdouble) ::
+                                                                tint ::
+                                                                tint ::
+                                                                tint ::
+                                                                tdouble ::
+                                                                nil) tvoid
+                                                               cc_default))
+                                        ((Etempvar _dN (tptr tdouble)) ::
+                                         (Econst_int (Int.repr 8) tint) ::
+                                         (Econst_int (Int.repr 6) tint) ::
+                                         (Econst_int (Int.repr 0) tint) ::
+                                         (Ebinop Omul
+                                           (Etempvar _t'41 tdouble)
+                                           (Etempvar _t'42 tdouble) tdouble) ::
+                                         nil)))
                                     (Ssequence
                                       (Ssequence
-                                        (Sset _t'5
-                                          (Ederef
-                                            (Ebinop Oadd
-                                              (Evar _Nx (tarray tdouble 3))
-                                              (Econst_int (Int.repr 0) tint)
-                                              (tptr tdouble)) tdouble))
                                         (Ssequence
-                                          (Sset _t'6
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Evar _dNy (tarray tdouble 3))
-                                                (Econst_int (Int.repr 2) tint)
-                                                (tptr tdouble)) tdouble))
-                                          (Sassign
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Etempvar _dN (tptr tdouble))
-                                                (Econst_int (Int.repr 14) tint)
-                                                (tptr tdouble)) tdouble)
-                                            (Ebinop Omul
-                                              (Etempvar _t'5 tdouble)
-                                              (Etempvar _t'6 tdouble)
-                                              tdouble))))
+                                          (Scall (Some _t'43)
+                                            (Evar _densematn_get (Tfunction
+                                                                   ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                   tdouble
+                                                                   cc_default))
+                                            ((Evar _Nx (tarray tdouble 3)) ::
+                                             (Econst_int (Int.repr 1) tint) ::
+                                             (Econst_int (Int.repr 0) tint) ::
+                                             (Econst_int (Int.repr 0) tint) ::
+                                             nil))
+                                          (Scall (Some _t'44)
+                                            (Evar _densematn_get (Tfunction
+                                                                   ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                   tdouble
+                                                                   cc_default))
+                                            ((Evar _dNy (tarray tdouble 3)) ::
+                                             (Econst_int (Int.repr 3) tint) ::
+                                             (Econst_int (Int.repr 2) tint) ::
+                                             (Econst_int (Int.repr 0) tint) ::
+                                             nil)))
+                                        (Scall None
+                                          (Evar _densematn_set (Tfunction
+                                                                 ((tptr tdouble) ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  tint ::
+                                                                  tdouble ::
+                                                                  nil) tvoid
+                                                                 cc_default))
+                                          ((Etempvar _dN (tptr tdouble)) ::
+                                           (Econst_int (Int.repr 8) tint) ::
+                                           (Econst_int (Int.repr 6) tint) ::
+                                           (Econst_int (Int.repr 1) tint) ::
+                                           (Ebinop Omul
+                                             (Etempvar _t'43 tdouble)
+                                             (Etempvar _t'44 tdouble)
+                                             tdouble) :: nil)))
                                       (Ssequence
                                         (Ssequence
-                                          (Sset _t'3
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Evar _dNx (tarray tdouble 3))
-                                                (Econst_int (Int.repr 0) tint)
-                                                (tptr tdouble)) tdouble))
                                           (Ssequence
-                                            (Sset _t'4
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Evar _Ny (tarray tdouble 3))
-                                                  (Econst_int (Int.repr 1) tint)
-                                                  (tptr tdouble)) tdouble))
-                                            (Sassign
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Etempvar _dN (tptr tdouble))
-                                                  (Econst_int (Int.repr 7) tint)
-                                                  (tptr tdouble)) tdouble)
-                                              (Ebinop Omul
-                                                (Etempvar _t'3 tdouble)
-                                                (Etempvar _t'4 tdouble)
-                                                tdouble))))
+                                            (Scall (Some _t'45)
+                                              (Evar _densematn_get (Tfunction
+                                                                    ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                    tdouble
+                                                                    cc_default))
+                                              ((Evar _dNx (tarray tdouble 3)) ::
+                                               (Econst_int (Int.repr 3) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               nil))
+                                            (Scall (Some _t'46)
+                                              (Evar _densematn_get (Tfunction
+                                                                    ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                    tdouble
+                                                                    cc_default))
+                                              ((Evar _Ny (tarray tdouble 3)) ::
+                                               (Econst_int (Int.repr 1) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               (Econst_int (Int.repr 1) tint) ::
+                                               nil)))
+                                          (Scall None
+                                            (Evar _densematn_set (Tfunction
+                                                                   ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tdouble ::
+                                                                    nil)
+                                                                   tvoid
+                                                                   cc_default))
+                                            ((Etempvar _dN (tptr tdouble)) ::
+                                             (Econst_int (Int.repr 8) tint) ::
+                                             (Econst_int (Int.repr 7) tint) ::
+                                             (Econst_int (Int.repr 0) tint) ::
+                                             (Ebinop Omul
+                                               (Etempvar _t'45 tdouble)
+                                               (Etempvar _t'46 tdouble)
+                                               tdouble) :: nil)))
                                         (Ssequence
-                                          (Sset _t'1
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Evar _Nx (tarray tdouble 3))
-                                                (Econst_int (Int.repr 0) tint)
-                                                (tptr tdouble)) tdouble))
                                           (Ssequence
-                                            (Sset _t'2
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Evar _dNy (tarray tdouble 3))
-                                                  (Econst_int (Int.repr 1) tint)
-                                                  (tptr tdouble)) tdouble))
-                                            (Sassign
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Etempvar _dN (tptr tdouble))
-                                                  (Econst_int (Int.repr 15) tint)
-                                                  (tptr tdouble)) tdouble)
-                                              (Ebinop Omul
-                                                (Etempvar _t'1 tdouble)
-                                                (Etempvar _t'2 tdouble)
-                                                tdouble)))))))))))))))))))
+                                            (Scall (Some _t'47)
+                                              (Evar _densematn_get (Tfunction
+                                                                    ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                    tdouble
+                                                                    cc_default))
+                                              ((Evar _Nx (tarray tdouble 3)) ::
+                                               (Econst_int (Int.repr 1) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               nil))
+                                            (Scall (Some _t'48)
+                                              (Evar _densematn_get (Tfunction
+                                                                    ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    nil)
+                                                                    tdouble
+                                                                    cc_default))
+                                              ((Evar _dNy (tarray tdouble 3)) ::
+                                               (Econst_int (Int.repr 3) tint) ::
+                                               (Econst_int (Int.repr 1) tint) ::
+                                               (Econst_int (Int.repr 0) tint) ::
+                                               nil)))
+                                          (Scall None
+                                            (Evar _densematn_set (Tfunction
+                                                                   ((tptr tdouble) ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tint ::
+                                                                    tdouble ::
+                                                                    nil)
+                                                                   tvoid
+                                                                   cc_default))
+                                            ((Etempvar _dN (tptr tdouble)) ::
+                                             (Econst_int (Int.repr 8) tint) ::
+                                             (Econst_int (Int.repr 7) tint) ::
+                                             (Econst_int (Int.repr 1) tint) ::
+                                             (Ebinop Omul
+                                               (Etempvar _t'47 tdouble)
+                                               (Etempvar _t'48 tdouble)
+                                               tdouble) :: nil))))))))))))))))))
           Sskip)
         (Sreturn (Some (Econst_int (Int.repr 8) tint)))))))
 |}.
@@ -1886,86 +2889,144 @@ Definition f_shapes2dT1 := {|
   (Sifthenelse (Etempvar _N (tptr tdouble))
     (Ssequence
       (Ssequence
-        (Sset _t'3
-          (Ederef
-            (Ebinop Oadd (Etempvar _x (tptr tdouble))
-              (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
         (Ssequence
-          (Sset _t'4
-            (Ederef
-              (Ebinop Oadd (Etempvar _x (tptr tdouble))
-                (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble))
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-            (Ebinop Osub
-              (Ebinop Osub (Econst_int (Int.repr 1) tint)
-                (Etempvar _t'3 tdouble) tdouble) (Etempvar _t'4 tdouble)
-              tdouble))))
+          (Scall (Some _t'1)
+            (Evar _densematn_get (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    nil) tdouble cc_default))
+            ((Etempvar _x (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 0) tint) :: nil))
+          (Scall (Some _t'2)
+            (Evar _densematn_get (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    nil) tdouble cc_default))
+            ((Etempvar _x (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 1) tint) :: nil)))
+        (Scall None
+          (Evar _densematn_set (Tfunction
+                                 ((tptr tdouble) :: tint :: tint :: tint ::
+                                  tdouble :: nil) tvoid cc_default))
+          ((Etempvar _N (tptr tdouble)) :: (Econst_int (Int.repr 1) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Ebinop Osub
+             (Ebinop Osub (Econst_int (Int.repr 1) tint)
+               (Etempvar _t'1 tdouble) tdouble) (Etempvar _t'2 tdouble)
+             tdouble) :: nil)))
       (Ssequence
         (Ssequence
-          (Sset _t'2
-            (Ederef
-              (Ebinop Oadd (Etempvar _x (tptr tdouble))
-                (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble))
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-            (Etempvar _t'2 tdouble)))
+          (Scall (Some _t'3)
+            (Evar _densematn_get (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    nil) tdouble cc_default))
+            ((Etempvar _x (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 0) tint) :: nil))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _N (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 1) tint) :: (Etempvar _t'3 tdouble) ::
+             nil)))
         (Ssequence
-          (Sset _t'1
-            (Ederef
-              (Ebinop Oadd (Etempvar _x (tptr tdouble))
-                (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble))
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _N (tptr tdouble))
-                (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble)
-            (Etempvar _t'1 tdouble)))))
+          (Scall (Some _t'4)
+            (Evar _densematn_get (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    nil) tdouble cc_default))
+            ((Etempvar _x (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 1) tint) :: nil))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _N (tptr tdouble)) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 2) tint) :: (Etempvar _t'4 tdouble) ::
+             nil)))))
     Sskip)
   (Ssequence
     (Sifthenelse (Etempvar _dN (tptr tdouble))
       (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-              (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-          (Eunop Oneg
-            (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
-            tdouble))
+        (Scall None
+          (Evar _densematn_set (Tfunction
+                                 ((tptr tdouble) :: tint :: tint :: tint ::
+                                  tdouble :: nil) tvoid cc_default))
+          ((Etempvar _dN (tptr tdouble)) :: (Econst_int (Int.repr 3) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Econst_int (Int.repr 0) tint) ::
+           (Eunop Oneg
+             (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
+             tdouble) :: nil))
         (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                (Econst_int (Int.repr 3) tint) (tptr tdouble)) tdouble)
-            (Eunop Oneg
-              (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
-              tdouble))
+          (Scall None
+            (Evar _densematn_set (Tfunction
+                                   ((tptr tdouble) :: tint :: tint :: tint ::
+                                    tdouble :: nil) tvoid cc_default))
+            ((Etempvar _dN (tptr tdouble)) ::
+             (Econst_int (Int.repr 3) tint) ::
+             (Econst_int (Int.repr 0) tint) ::
+             (Econst_int (Int.repr 1) tint) ::
+             (Eunop Oneg
+               (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)
+               tdouble) :: nil))
           (Ssequence
-            (Sassign
-              (Ederef
-                (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                  (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-              (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble))
+            (Scall None
+              (Evar _densematn_set (Tfunction
+                                     ((tptr tdouble) :: tint :: tint ::
+                                      tint :: tdouble :: nil) tvoid
+                                     cc_default))
+              ((Etempvar _dN (tptr tdouble)) ::
+               (Econst_int (Int.repr 3) tint) ::
+               (Econst_int (Int.repr 1) tint) ::
+               (Econst_int (Int.repr 0) tint) ::
+               (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble) ::
+               nil))
             (Ssequence
-              (Sassign
-                (Ederef
-                  (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                    (Econst_int (Int.repr 4) tint) (tptr tdouble)) tdouble)
-                (Econst_float (Float.of_bits (Int64.repr 0)) tdouble))
+              (Scall None
+                (Evar _densematn_set (Tfunction
+                                       ((tptr tdouble) :: tint :: tint ::
+                                        tint :: tdouble :: nil) tvoid
+                                       cc_default))
+                ((Etempvar _dN (tptr tdouble)) ::
+                 (Econst_int (Int.repr 3) tint) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_int (Int.repr 1) tint) ::
+                 (Econst_float (Float.of_bits (Int64.repr 0)) tdouble) ::
+                 nil))
               (Ssequence
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                      (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble)
-                  (Econst_float (Float.of_bits (Int64.repr 0)) tdouble))
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Etempvar _dN (tptr tdouble))
-                      (Econst_int (Int.repr 5) tint) (tptr tdouble)) tdouble)
-                  (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble)))))))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _dN (tptr tdouble)) ::
+                   (Econst_int (Int.repr 3) tint) ::
+                   (Econst_int (Int.repr 2) tint) ::
+                   (Econst_int (Int.repr 0) tint) ::
+                   (Econst_float (Float.of_bits (Int64.repr 0)) tdouble) ::
+                   nil))
+                (Scall None
+                  (Evar _densematn_set (Tfunction
+                                         ((tptr tdouble) :: tint :: tint ::
+                                          tint :: tdouble :: nil) tvoid
+                                         cc_default))
+                  ((Etempvar _dN (tptr tdouble)) ::
+                   (Econst_int (Int.repr 3) tint) ::
+                   (Econst_int (Int.repr 2) tint) ::
+                   (Econst_int (Int.repr 1) tint) ::
+                   (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble) ::
+                   nil)))))))
       Sskip)
     (Sreturn (Some (Econst_int (Int.repr 3) tint)))))
 |}.
@@ -2217,7 +3278,19 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
      (tint :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
- (_shapes1dP1, Gfun(Internal f_shapes1dP1)) ::
+ (_densematn_get,
+   Gfun(External (EF_external "densematn_get"
+                   (mksignature
+                     (AST.Xptr :: AST.Xint :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xfloat cc_default))
+     ((tptr tdouble) :: tint :: tint :: tint :: nil) tdouble cc_default)) ::
+ (_densematn_set,
+   Gfun(External (EF_external "densematn_set"
+                   (mksignature
+                     (AST.Xptr :: AST.Xint :: AST.Xint :: AST.Xint ::
+                      AST.Xfloat :: nil) AST.Xvoid cc_default))
+     ((tptr tdouble) :: tint :: tint :: tint :: tdouble :: nil) tvoid
+     cc_default)) :: (_shapes1dP1, Gfun(Internal f_shapes1dP1)) ::
  (_shapes1dP2, Gfun(Internal f_shapes1dP2)) ::
  (_shapes1dP3, Gfun(Internal f_shapes1dP3)) ::
  (_shapes2dP1, Gfun(Internal f_shapes2dP1)) ::
@@ -2227,25 +3300,25 @@ Definition global_definitions : list (ident * globdef fundef type) :=
 
 Definition public_idents : list ident :=
 (_shapes2dT1 :: _shapes2dS2 :: _shapes2dP2 :: _shapes2dP1 :: _shapes1dP3 ::
- _shapes1dP2 :: _shapes1dP1 :: ___builtin_debug :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_clsll ::
- ___builtin_clsl :: ___builtin_cls :: ___builtin_expect ::
- ___builtin_unreachable :: ___builtin_va_end :: ___builtin_va_copy ::
- ___builtin_va_arg :: ___builtin_va_start :: ___builtin_membar ::
- ___builtin_annot_intval :: ___builtin_annot :: ___builtin_sel ::
- ___builtin_memcpy_aligned :: ___builtin_sqrt :: ___builtin_fsqrt ::
- ___builtin_fabsf :: ___builtin_fabs :: ___builtin_ctzll ::
- ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll :: ___builtin_clzl ::
- ___builtin_clz :: ___builtin_bswap16 :: ___builtin_bswap32 ::
- ___builtin_bswap :: ___builtin_bswap64 :: ___compcert_i64_umulh ::
- ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
- ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
- ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
- ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
- ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
- ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
- nil).
+ _shapes1dP2 :: _shapes1dP1 :: _densematn_set :: _densematn_get ::
+ ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
+ ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
+ ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
+ ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
+ ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
+ ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
+ ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
+ ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
+ ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
+ ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
+ ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___compcert_va_composite :: ___compcert_va_float64 ::
+ ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.
