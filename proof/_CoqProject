@@ -11,7 +11,11 @@ C/spec_matrix.v
 C/verif_matrix.v
 C/nonexpansive.v
 C/spec_shapes.v
-C/verif_shapes.v
+C/verif_shapes_base.v
+C/verif_shapes1d.v
+C/verif_shapes2d.v
+C/verif_shapes2dP2.v
+C/VSU_shapes.v
 model.v
 matrix_util.v
 shape.v

@@ -1641,7 +1641,7 @@ Definition f_shapes2dP2 := {|
                                       ((Evar _Ny (tarray tdouble 3)) ::
                                        (Econst_int (Int.repr 1) tint) ::
                                        (Econst_int (Int.repr 0) tint) ::
-                                       (Econst_int (Int.repr 1) tint) :: nil)))
+                                       (Econst_int (Int.repr 2) tint) :: nil)))
                                   (Scall None
                                     (Evar _densematn_set (Tfunction
                                                            ((tptr tdouble) ::
@@ -1670,7 +1670,7 @@ Definition f_shapes2dP2 := {|
                                         ((Evar _Nx (tarray tdouble 3)) ::
                                          (Econst_int (Int.repr 1) tint) ::
                                          (Econst_int (Int.repr 0) tint) ::
-                                         (Econst_int (Int.repr 2) tint) ::
+                                         (Econst_int (Int.repr 1) tint) ::
                                          nil))
                                       (Scall (Some _t'42)
                                         (Evar _densematn_get (Tfunction
@@ -2620,7 +2620,7 @@ Definition f_shapes2dS2 := {|
                                       ((Evar _Ny (tarray tdouble 3)) ::
                                        (Econst_int (Int.repr 1) tint) ::
                                        (Econst_int (Int.repr 0) tint) ::
-                                       (Econst_int (Int.repr 1) tint) :: nil)))
+                                       (Econst_int (Int.repr 2) tint) :: nil)))
                                   (Scall None
                                     (Evar _densematn_set (Tfunction
                                                            ((tptr tdouble) ::
@@ -2649,7 +2649,7 @@ Definition f_shapes2dS2 := {|
                                         ((Evar _Nx (tarray tdouble 3)) ::
                                          (Econst_int (Int.repr 1) tint) ::
                                          (Econst_int (Int.repr 0) tint) ::
-                                         (Econst_int (Int.repr 2) tint) ::
+                                         (Econst_int (Int.repr 1) tint) ::
                                          nil))
                                       (Scall (Some _t'40)
                                         (Evar _densematn_get (Tfunction

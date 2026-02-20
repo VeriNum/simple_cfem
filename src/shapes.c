@@ -101,8 +101,8 @@ int shapes2dP2(double* N, double* dN, double* x)
       densematn_set(dN,9,3,1, densematn_get(Nx,1,0,2) * densematn_get(dNy,3,1,0) );
       densematn_set(dN,9,4,0, densematn_get(dNx,3,2,0)* densematn_get(Ny,1,0,2) );
       densematn_set(dN,9,4,1, densematn_get(Nx,1,0,2) * densematn_get(dNy,3,2,0) );
-      densematn_set(dN,9,5,0, densematn_get(dNx,3,1,0)* densematn_get(Ny,1,0,1) );
-      densematn_set(dN,9,5,1, densematn_get(Nx,1,0,2) * densematn_get(dNy,3,2,0) );
+      densematn_set(dN,9,5,0, densematn_get(dNx,3,1,0)* densematn_get(Ny,1,0,2) );
+      densematn_set(dN,9,5,1, densematn_get(Nx,1,0,1) * densematn_get(dNy,3,2,0) );
       densematn_set(dN,9,6,0, densematn_get(dNx,3,0,0)* densematn_get(Ny,1,0,2) );
       densematn_set(dN,9,6,1, densematn_get(Nx,1,0,0) * densematn_get(dNy,3,2,0) );
       densematn_set(dN,9,7,0, densematn_get(dNx,3,0,0)* densematn_get(Ny,1,0,1) );
@@ -139,8 +139,8 @@ int shapes2dS2(double* N, double* dN, double* x)
       densematn_set(dN,8,3,1, densematn_get(Nx,1,0,2) * densematn_get(dNy,3,1,0) );
       densematn_set(dN,8,4,0, densematn_get(dNx,3,2,0)* densematn_get(Ny,1,0,2) );
       densematn_set(dN,8,4,1, densematn_get(Nx,1,0,2) * densematn_get(dNy,3,2,0) );
-      densematn_set(dN,8,5,0, densematn_get(dNx,3,1,0)* densematn_get(Ny,1,0,1) );
-      densematn_set(dN,8,5,1, densematn_get(Nx,1,0,2) * densematn_get(dNy,3,2,0) );
+      densematn_set(dN,8,5,0, densematn_get(dNx,3,1,0)* densematn_get(Ny,1,0,2) );
+      densematn_set(dN,8,5,1, densematn_get(Nx,1,0,1) * densematn_get(dNy,3,2,0) );
       densematn_set(dN,8,6,0, densematn_get(dNx,3,0,0)* densematn_get(Ny,1,0,2) );
       densematn_set(dN,8,6,1, densematn_get(Nx,1,0,0) * densematn_get(dNy,3,2,0) );
       densematn_set(dN,8,7,0, densematn_get(dNx,3,0,0)* densematn_get(Ny,1,0,1) );

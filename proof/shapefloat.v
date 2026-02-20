@@ -101,7 +101,7 @@ Definition shapes2dP2_float (xm: 'rV[ftype Tdouble]_2) : 'rV[ftype Tdouble]_9 :=
    let Ny := shapes1dP2_float (col 1 xm) 0 in
    rowmx_of_list [:: Nx 0%R * Ny 0%R; Nx 1%R * Ny 0%R;  Nx 2%R * Ny 0%R; 
                               Nx 2%R * Ny 1%R; Nx 2%R * Ny 2%R; Nx 1%R * Ny 2%R;
-                              Nx 0%R * Ny 2%R; Nx 0%R * Ny 1%R; Nx 1%R * Ny 2%R]%F64.
+                              Nx 0%R * Ny 2%R; Nx 0%R * Ny 1%R; Nx 1%R * Ny 1%R]%F64.
 
 Definition shapes2dP2_fderiv (xm: 'rV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(9,2) :=
    let Nx := shapes1dP2_float (col 0 xm) 0 in

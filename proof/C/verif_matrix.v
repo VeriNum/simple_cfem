@@ -136,7 +136,6 @@ rename X into A.
 pose (X := existT _ (m,n) A :  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn)}%type).
 forward_call (obj, sho, sh, X, inst).
 forward_call.
-Locate sqrt_ff.
 forward.
 entailer!!.
 change (val_of_float ?A) with (Vfloat A).
