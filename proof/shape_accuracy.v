@@ -162,87 +162,179 @@ lazymatch f with
  | _ => let g := eval red in f in red_to_rowmx g
 end.
 
-(*
-Ltac nthtac n L :=
- match n with
- | O => match L with ?A :: _ => A end
- | S ?n' => match L with _ :: ?A => nthtac n' A end
- end.
-*)
+Lemma split_shift1 [m j]: lt j m -> is_true (ssrnat.leq (S j) m).
+Proof. lia. Qed.
 
-Ltac simplify_mx A :=
- match A with
-  |  context C [fun_of_matrix (const_mx ?x) _ _] => 
-            let g := context C [x] in
-            simplify_mx g 
-  | context C [fun_of_matrix ?F ?X] =>
-     lazymatch F with (fun _ => _) =>  idtac end;
-     let a := constr:(F X) in let a := eval cbv beta in a in 
-     let g := context C [a] in
-     simplify_mx g
-  | context C [fun_of_matrix (rowmx_of_list ?L) _ ?k] =>
-     let k' := constr:(nat_of_ord k) in let k' := eval compute in k' in 
-     let a := constr:(nth k' L (Zconst Tdouble 0)) in
-     let a := eval cbv beta fix match delta [nth] in a in 
-     let g := context C [a] in simplify_mx g
-  | context C [@row _ ?k _ _ ?E] => unify k 1%nat; let g := context C [E] in simplify_mx g
-  | context C [@col _ _ ?k _ ?E] => unify k 1%nat; let g := context C [E] in simplify_mx g
-  | context C [row ?k (@col_mx _ ?m1 ?m2 _ ?E ?F)] =>
-     let k' := constr:(nat_of_ord k) in let a := constr:(Nat.ltb k' m1) in let a := eval compute in a in 
-     match a with
-     | true => let i := constr:(@Ordinal m1 k' (eq_refl _)) in let g := context C [row i E] in simplify_mx g
-     |false => let i0 := constr:((k'-m1)%nat) in let i0 := eval compute in i0 in
-                    let i := constr:(@Ordinal m2 i0 (eq_refl _)) in let g := context C [row i F] in simplify_mx g
-    end
-  | context C [col ?k (@row_mx _ _ ?n1 ?n2 ?E ?F)] =>
-     let k' := constr:(nat_of_ord k) in let a := constr:(Nat.ltb k' n1) in let a := eval compute in a in 
-     match a with
-     | true => let i := constr:(@Ordinal n1 k' (eq_refl _)) in let g := context C [row i E] in simplify_mx g
-     |false => let i0 := constr:((k'-n1)%nat) in let i0 := eval compute in i0 in
-                    let i := constr:(@Ordinal n2 i0 (eq_refl _)) in let g := context C [row i F] in simplify_mx g
-    end
-  | context C [fun_of_matrix (@row_mx _ _ ?n1 ?n2 ?E ?F) ?i ?k] =>
-     let k' := constr:(nat_of_ord k) in let k' := eval compute in k' in
-      let a := constr:(Nat.ltb k' n1) in let a := eval compute in a in 
-     match a with
-     | true => let g := context C [E i (@Ordinal n1 k' (eq_refl _))] in simplify_mx g
-     |false => let i0 := constr:((k'-n1)%nat) in let i0 := eval compute in i0 in
-                     let g := context C [F i (@Ordinal n2 i0 (eq_refl _))] in simplify_mx g
-     end
-  | context C [fun_of_matrix (@col_mx _ ?m1 ?m2 _ ?E ?F) ?k ?j] =>
-     let k' := constr:(nat_of_ord k) in let k' := eval compute in k' in
-      let a := constr:(Nat.ltb k' m1) in let a := eval compute in a in 
-     match a with
-     | true => let g := context C [E (@Ordinal m1 k' (eq_refl _)) j] in simplify_mx g
-     |false => let i0 := constr:((k'-m1)%nat) in let i0 := eval compute in i0 in
-                     let g := context C [F (@Ordinal m2 i0 (eq_refl _)) j] in simplify_mx g
-     end
-  |  context C [fun_of_matrix (const_mx ?a) _ ?k] => 
-      unify (nat_of_ord k) 0%nat;
-       let g := context C [a] in simplify_mx g
-  | context [@rowmx_of_list] => let g := eval cbv beta fix match delta [rowmx_of_list] in A in simplify_mx g
-  | _ => let f := changeStdLibToCore A in exact f
-  end.
 
-Ltac matrix_expression f i j := 
-let f := red_to_rowmx f in
-let f := eval cbv beta delta [shapes1dP1_float] in f in
-let f := eval cbv zeta in f in 
-let f := changeStdLibToCore f in
-match type of f with @matrix _ ?m ?n => 
- let A := constr:(fun_of_matrix f (@Ordinal m i (eq_refl _)) (@Ordinal n j (eq_refl _))) in
- simplify_mx A
-end.
+Lemma split_shift2 [m n] [j: 'I_(m+n)] : not (lt (nat_of_ord j) m) -> is_true (ssrnat.leq (S (nat_of_ord j - m)) n).
+Proof. intros. pose proof (ltn_ord j). lia. Qed.
 
-Local Definition test_1dP1_0 (x: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes1dP1_float (rowmx_of_list [x])) 0%nat 0%nat).
+Definition split_shift [m n] (j: 'I_(m+n)) :=
+   match Compare_dec.lt_dec j m
+   with left H => @lshift m n (@Ordinal _ (nat_of_ord j) (split_shift1 H))
+         | right H => @rshift m n (@Ordinal _ (nat_of_ord j - m) (split_shift2 H))
+   end.
 
-Goal test_1dP1_0 = (fun x : ftype Tdouble => (0.5 * (1 - x))%F64). reflexivity. Abort.
+Lemma split_shift_eq: forall [m n] (j: 'I_(m+n)), j = split_shift j.
+Proof.
+intros.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); apply ord_inj; simpl; auto.
+lia.
+Qed.
 
-Local Definition test_2dP1_0 (x y: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes2dP1_float (rowmx_of_list [x;y])) 0%nat 0%nat).
+Lemma row_mxE: forall [T: Type][m n1 n2: nat] (A1: 'M[T]_(m,n1)) (A2: 'M[T]_(m,n2)) (i: 'I_m) (j: 'I_(n1+n2)),
+    row_mx A1 A2 i j = 
+    match Compare_dec.lt_dec (nat_of_ord j) n1
+    with left H => A1 i  (@Ordinal n1 (nat_of_ord j) (split_shift1 H))
+         | right H => A2 i (@Ordinal n2 (nat_of_ord j - n1) (split_shift2 H))
+     end.
+Proof.
+intros.
+pose proof (split_shift_eq j).
+rewrite H at 1.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); simpl.
+apply row_mxEl.
+apply row_mxEr.
+Qed.
 
-Goal test_2dP1_0 = (fun x y : ftype Tdouble => (0.5 * (1 - x) * (0.5 * (1 - y)))%F64). reflexivity. Abort.
+
+Lemma col_mxE: forall [T: Type][m1 m2 n: nat] (A1: 'M[T]_(m1,n)) (A2: 'M[T]_(m2,n)) (i: 'I_(m1+m2)) (j: 'I_n),
+    col_mx A1 A2 i j = 
+    match Compare_dec.lt_dec (nat_of_ord i) m1
+    with left H => A1 (@Ordinal m1 (nat_of_ord i) (split_shift1 H)) j
+         | right H => A2 (@Ordinal m2 (nat_of_ord i - m1) (split_shift2 H)) j
+     end.
+Proof.
+intros.
+pose proof (split_shift_eq i).
+rewrite H at 1.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); simpl.
+apply col_mxEu.
+apply col_mxEd.
+Qed.
+
+Lemma row_0_1: forall [T: Type] [n: nat] (A: 'M[T]_(1,n)) i, row i A = A.
+Proof.
+intros.
+rewrite ord1. clear i.
+apply matrixP. intros i j.
+unfold row.
+rewrite mxE.
+f_equal.
+symmetry; apply ord1.
+Qed.
+
+Lemma col_0_1: forall [T: Type] [n: nat] (A: 'M[T]_(n,1)) j, col j A = A.
+Proof.
+intros.
+rewrite ord1.  clear j.
+apply matrixP. intros i j.
+unfold col.
+rewrite mxE.
+f_equal.
+symmetry; apply ord1.
+Qed.
+
+
+Lemma row_col_E: forall [T: Type] [m1 m2 n] (A: 'M[T]_(m1,n)) (B: 'M[T]_(m2,n)) (i: 'I_(m1+m2)),
+      row i (col_mx A B) =
+    match Compare_dec.lt_dec (nat_of_ord i) m1
+    with left H => row (@Ordinal m1 (nat_of_ord i) (split_shift1 H)) A
+         | right H => row (@Ordinal m2 (nat_of_ord i - m1) (split_shift2 H)) B
+     end.
+Proof.
+intros.
+pose proof (split_shift_eq i).
+rewrite H at 1.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); simpl.
+rewrite <- row_usubmx, col_mxKu. auto.
+rewrite <- row_dsubmx, col_mxKd. auto.
+Qed.
+
+Lemma col_row_E: forall [T: Type] [m n1 n2] (A: 'M[T]_(m,n1)) (B: 'M[T]_(m,n2)) (j: 'I_(n1+n2)),
+      col j (row_mx A B) =
+    match Compare_dec.lt_dec (nat_of_ord j) n1
+    with left H => col (@Ordinal n1 (nat_of_ord j) (split_shift1 H)) A
+         | right H => col (@Ordinal n2 (nat_of_ord j - n1) (split_shift2 H)) B
+     end.
+Proof.
+intros.
+pose proof (split_shift_eq j).
+rewrite H at 1.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); simpl.
+rewrite <- col_lsubmx, row_mxKl. auto.
+rewrite <- col_rsubmx, row_mxKr. auto.
+Qed.
+
+Ltac rewrite_matrix := 
+repeat
+match goal with
+  | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 _ _) ?i ?j ] =>
+             rewrite (@row_mxE T m n1 n2);
+              let H := fresh in 
+               destruct (Compare_dec.lt_dec (nat_of_ord _) n1) as [H | H];
+               simpl in H; simpl nat_of_ord;
+               [try (exfalso; clear - H; lia); try (replace (@split_shift1 _ _ H) with (eq_refl true) by apply proof_irr; clear H)
+              | try (exfalso; clear - H; lia); 
+                try (replace (@split_shift2 n1 n2 (@Ordinal _ _ (@eq_refl bool (ssrnat.leq _ _))) H) with (eq_refl true) by apply proof_irr ; clear H)] 
+  | |- context [fun_of_matrix (@col_mx ?T ?m1 ?m2 ?n _ _) ?i ?j ] =>
+             rewrite (@col_mxE T m1 m2 n);
+              let H := fresh in 
+               destruct (Compare_dec.lt_dec (nat_of_ord _) m1) as [H | H];
+               simpl in H; simpl nat_of_ord;
+               [try (exfalso; clear - H; lia); try (replace (@split_shift1 _ _ H) with (eq_refl true) by apply proof_irr; clear H)
+              | try (exfalso; clear - H; lia); 
+                try (replace (@split_shift2 m1 m2 (@Ordinal _ _ (@eq_refl bool (ssrnat.leq _ _))) H) with (eq_refl true) by apply proof_irr ; clear H)] 
+   | |- context [@col ?T' ?m' ?n' ?j (@row_mx ?T ?m ?n1 ?n2 ?A ?B)] =>
+             change m' with m; change n' with (n1+n2)%nat; change T' with T;
+             rewrite (@col_row_E T m n1 n2 A B j);
+              let H := fresh in 
+               destruct (Compare_dec.lt_dec (nat_of_ord _) n1) as [H | H];
+               simpl in H; simpl nat_of_ord;
+               [try (exfalso; clear - H; lia); try (replace (@split_shift1 _ _ H) with (eq_refl true) by apply proof_irr; clear H)
+              | try (exfalso; clear - H; lia); 
+                try (replace (@split_shift2 n1 n2 (@Ordinal _ _ (@eq_refl bool (ssrnat.leq _ _))) H) with (eq_refl true) by apply proof_irr ; clear H)] 
+   | |- context [@row ?T' ?m' ?n' ?j (@col_mx ?T ?m1 ?m2 ?n ?A ?B)] =>
+             change m' with (m1+m2)%nat; change n' with n; change T' with T;
+             rewrite (@row_col_E T m1 m2 n A B j);
+              let H := fresh in 
+               destruct (Compare_dec.lt_dec (nat_of_ord _) m1) as [H | H];
+               simpl in H; simpl nat_of_ord;
+               [try (exfalso; clear - H; lia); try (replace (@split_shift1 _ _ H) with (eq_refl true) by apply proof_irr; clear H)
+              | try (exfalso; clear - H; lia); 
+                try (replace (@split_shift2 m1 m2 (@Ordinal _ _ (@eq_refl bool (ssrnat.leq _ _))) H) with (eq_refl true) by apply proof_irr ; clear H)] 
+  | |- _ => rewrite const_mxE
+  | |- _ => rewrite row_0_1
+  | |- _ => rewrite col_0_1
+  | |- _ => rewrite row_col_E
+  | |- _ => rewrite col_row_E
+  | i: 'I_1 |- _ =>  let H := fresh in assert (H := ord1 i); simpl in H; subst i
+  | H: 'I__ |- _ => progress simpl in H
+  | H: ~(nat_of_ord _ < _)%nat |- _ => simpl in H
+  | _ => lia
+       end.
+
+Ltac translate_matrix f := 
+let x := fresh "x" in 
+let g := fresh "g" in 
+evar (g: ftype Tdouble -> ftype Tdouble);
+let H := fresh in 
+let prop := constr:(forall x : ftype Tdouble, f x = g x) in let prop := eval cbv beta in prop in 
+assert (H: prop);  [
+  intro x;
+ unfold FShape.θ, FShape.dθ; simpl;
+ match goal with |- fun_of_matrix ?a _ _ = _ => 
+        let b := eval red in a in let b := changeStdLibToCore b in change a with b 
+  end;
+ unfold rowmx_of_list; simpl seq.size;
+ rewrite_matrix;
+  subst g; reflexivity
+ | subst g;  exact H].
 
 Lemma ord_enum_cases: forall [n] (P: 'I_n -> Prop),
   Forall P (ord_enum n) ->
@@ -289,12 +381,19 @@ change (@ssralg.GRing.inv _) with Rinv;
 change (ssralg.GRing.one _) with 1;
 repeat change (nmodule.Algebra.natmul _ ?i) with (INR i).
 
+Ltac related_matrix f := let x :=
+     fresh "x" in intro x;
+    match type of (f x) with _ = ?t => let b := eval cbv beta in t in exact b end.
+ 
+Definition relate_1dP1_0  
+ := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (rowmx_of_list [x]) ord0 (@Ordinal 2 0 (eq_refl _)))).
+Definition f_1dP1_0 := ltac:(related_matrix relate_1dP1_0).
 
-Definition f_1dP1_0 (x: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes1dP1_float (rowmx_of_list [x])) 0%nat 0%nat).
+Goal f_1dP1_0 = fun x : ftype Tdouble => (0.5 * (1 - x))%F64.  reflexivity. Abort.  
+Definition   relate_1dP1_1
+ := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (rowmx_of_list [x]) ord0 (@Ordinal 2 1 (eq_refl _)))).
 
-Definition f_1dP1_1 (x: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (FShape.θ shapes1dP1F (rowmx_of_list [x])) 0%nat 1%nat).
+Definition f_1dP1_1 := ltac:(related_matrix relate_1dP1_1).
 
 Local Ltac function_arity t :=
   lazymatch t with _ -> ?B => let n := function_arity B in constr:(S n) | _ => constr:(O) end.
@@ -352,11 +451,13 @@ prove_roundoff_bound.
  do_interval.
 Qed.
 
-Definition f_1dP1deriv_0 (x: ftype Tdouble) := 
-     ltac:(matrix_expression (shapes1dP1_fderiv (rowmx_of_list [x])) 0%nat 0%nat).
+Definition relate_1dP1deriv_0 := 
+   ltac:(translate_matrix (fun x => shapes1dP1_fderiv (rowmx_of_list [x]) (@Ordinal 2 0 (eq_refl _)) ord0)).
+Definition f_1dP1deriv_0 := ltac:(related_matrix relate_1dP1deriv_0).
 
-Definition f_1dP1deriv_1 (x: ftype Tdouble) := 
-     ltac:(matrix_expression (shapes1dP1_fderiv (rowmx_of_list [x])) 1%nat 0%nat).
+Definition relate_1dP1deriv_1 := 
+   ltac:(translate_matrix (fun x => shapes1dP1_fderiv (rowmx_of_list [x]) (@Ordinal 2 1 (eq_refl _)) ord0)).
+Definition f_1dP1deriv_1 := ltac:(related_matrix relate_1dP1deriv_1).
 
 Lemma prove_roundoff_bound_1dP1deriv_0:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP1deriv_0) 0.
@@ -382,14 +483,17 @@ prove_roundoff_bound.
  rewrite Rminus_diag. rewrite Rabs_R0. apply Rle_refl.
 Qed.
 
-Definition f_1dP2_0 (x: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes1dP2_float (rowmx_of_list [x])) 0%nat 0%nat).
+Definition relate_1dP2_0 := 
+   ltac:(translate_matrix (fun x => shapes1dP2_float  (rowmx_of_list [x]) ord0 (@Ordinal 3 0 (eq_refl _)))).
+Definition f_1dP2_0 := ltac:(related_matrix relate_1dP2_0).
 
-Definition f_1dP2_1 (x: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes1dP2_float (rowmx_of_list [x]))  0%nat 1%nat).
+Definition relate_1dP2_1 := 
+   ltac:(translate_matrix (fun x => shapes1dP2_float  (rowmx_of_list [x]) ord0 (@Ordinal 3 1 (eq_refl _)))).
+Definition f_1dP2_1 := ltac:(related_matrix relate_1dP2_1).
 
-Definition f_1dP2_2 (x: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes1dP2_float (rowmx_of_list [x])) 0%nat 2%nat).
+Definition relate_1dP2_2 := 
+   ltac:(translate_matrix (fun x => shapes1dP2_float  (rowmx_of_list [x]) ord0 (@Ordinal 3 2 (eq_refl _)))).
+Definition f_1dP2_2 := ltac:(related_matrix relate_1dP2_2).
 
 Derive acc_1dP2_1
  in  (forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP2_1)  acc_1dP2_1)
@@ -452,14 +556,101 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
-Definition f_2dP1_0 (x y: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes2dP1_float (rowmx_of_list [x;y])) 0%nat 0%nat).
 
-Definition f_2dP1_1 (x y: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes2dP1_float (rowmx_of_list [x;y])) 0%nat 1%nat).
 
-Definition f_2dP1_2 (x y: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes2dP1_float (rowmx_of_list [x;y])) 0%nat 2%nat).
+Definition relate_1dP2deriv_0 := 
+   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (rowmx_of_list [x]) (@Ordinal 3 0 (eq_refl _)) ord0)).
+Definition f_1dP2deriv_0 := ltac:(related_matrix relate_1dP2deriv_0).
+
+Definition relate_1dP2deriv_1 := 
+   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (rowmx_of_list [x]) (@Ordinal 3 1 (eq_refl _)) ord0)).
+Definition f_1dP2deriv_1 := ltac:(related_matrix relate_1dP2deriv_1).
+
+Definition relate_1dP2deriv_2 := 
+   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (rowmx_of_list [x]) (@Ordinal 3 2 (eq_refl _)) ord0)).
+Definition f_1dP2deriv_2 := ltac:(related_matrix relate_1dP2deriv_2).
+
+
+Definition acc_1dP2deriv : R := 4 / IZR (Z.pow_pos 10 16).
+
+Lemma prove_roundoff_bound_1dP2deriv_0:  
+    forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_1dP2deriv_0) acc_1dP2deriv.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+Qed.
+
+Lemma prove_roundoff_bound_1dP2deriv_1:  
+    forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP2deriv_1) acc_1dP2deriv.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+ prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+Qed.
+
+
+Lemma prove_roundoff_bound_1dP2deriv_2:  
+    forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP2deriv_2) acc_1dP2deriv.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+ prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+Qed.
+
+Ltac translate_matrix2 f := 
+let x := fresh "x" in let y := fresh "y" in 
+let g := fresh "g" in 
+evar (g: ftype Tdouble -> ftype Tdouble -> ftype Tdouble);
+let H := fresh in 
+let prop := constr:(forall x y : ftype Tdouble, f x y = g x y) in let prop := eval cbv beta in prop in 
+assert (H: prop);  [
+  intros x y;
+ unfold FShape.θ, FShape.dθ; simpl;
+ match goal with |- fun_of_matrix ?a _ _ = _ => 
+        let b := eval red in a in change a with b 
+  end;
+ unfold shapes1dP1_float, shapes1dP1_fderiv;
+ unfold rowmx_of_list; simpl seq.size;
+  match goal with |- ?A => let b := changeStdLibToCore A in change b end;
+ rewrite_matrix;
+  subst g; reflexivity
+ | subst g;  exact H].
+
+Ltac related_matrix2 f := let x := fresh "x" in intro x; let y := fresh "y" in intro y;
+    match type of (f x y) with _ = ?t => let b := eval cbv beta in t in exact b end.
+ 
+Definition relate_2dP1_0 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 4 0 (eq_refl _)))).
+Definition f_2dP1_0 := ltac:(related_matrix2 relate_2dP1_0).
+
+Definition relate_2dP1_1 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 4 1 (eq_refl _)))).
+Definition f_2dP1_1 := ltac:(related_matrix2 relate_2dP1_1).
+
+Definition relate_2dP1_2 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 4 2 (eq_refl _)))).
+Definition f_2dP1_2 := ltac:(related_matrix2 relate_2dP1_2).
+
+Definition relate_2dP1_3 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 4 3 (eq_refl _)))).
+Definition f_2dP1_3 := ltac:(related_matrix2 relate_2dP1_3).
+
 
 Derive acc_2dP1_1
  in  (forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1_1)  acc_2dP1_1)
@@ -479,7 +670,6 @@ Qed.
 
 
 Check ltac:(ShowBound acc_2dP1_1). (* 3.33066907387548e-16%F64 *)
-
 
 Definition acc_2dP1: R := 4 / IZR (Z.pow_pos 10 16).
 
@@ -522,15 +712,122 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
+Lemma prove_roundoff_bound_2dP1_3:  
+    forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1_3) acc_2dP1.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+Qed.
 
-Definition f_2dT1_0 (x y: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes2dT1_float (rowmx_of_list [x;y])) 0%nat 0%nat).
 
-Definition f_2dT1_1 (x y: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes2dT1_float (rowmx_of_list [x;y])) 0%nat 1%nat).
+Definition relate_2dP1deriv_0 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (@Ordinal 4 0 (eq_refl _)) ord0)).
+Definition f_2dP1deriv_0 := ltac:(related_matrix2 relate_2dP1deriv_0).
 
-Definition f_2dT1_2 (x y: ftype Tdouble) : ftype Tdouble
-  := ltac:(matrix_expression (shapes2dT1_float (rowmx_of_list [x;y])) 0%nat 2%nat).
+Definition relate_2dP1deriv_1 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (@Ordinal 4 1 (eq_refl _)) ord0)).
+Definition f_2dP1deriv_1 := ltac:(related_matrix2 relate_2dP1deriv_1).
+
+Definition relate_2dP1deriv_2 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (@Ordinal 4 2 (eq_refl _)) ord0)).
+Definition f_2dP1deriv_2 := ltac:(related_matrix2 relate_2dP1deriv_2).
+
+Definition relate_2dP1deriv_3 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (@Ordinal 4 3 (eq_refl _)) ord0)).
+Definition f_2dP1deriv_3 := ltac:(related_matrix2 relate_2dP1deriv_3).
+
+
+Derive acc_2dP1deriv
+ in  (forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1deriv_0)  acc_2dP1deriv)
+ as derive_roundoff_bound_2dP1deriv.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+ prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+match goal with |- 0 <= ?acc - ?A => assert (acc = A) by (unfold acc; reflexivity) end.
+lra.
+Qed.
+
+
+Check ltac:(ShowBound acc_2dP1deriv). (* 1.11022302462516%F64 *)
+
+
+Lemma prove_roundoff_bound_2dP1deriv_0:  
+    forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1deriv_0) acc_2dP1deriv.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+Qed.
+
+Lemma prove_roundoff_bound_2dP1deriv_1:  
+    forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1deriv_1) acc_2dP1deriv.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+Qed.
+
+
+Lemma prove_roundoff_bound_2dP1deriv_2:  
+    forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1deriv_2) acc_2dP1deriv.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+Qed.
+
+Lemma prove_roundoff_bound_2dP1deriv_3:  
+    forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1deriv_3) acc_2dP1deriv.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+prove_rndval; interval.
+-
+ prove_roundoff_bound2.
+ prune_terms (cutoff 30).
+ do_interval.
+Qed.
+
+
+Definition relate_2dT1_0 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 3 0 (eq_refl _)))).
+Definition f_2dT1_0 := ltac:(related_matrix2 relate_2dT1_0).
+
+Definition relate_2dT1_1 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 3 1 (eq_refl _)))).
+Definition f_2dT1_1 := ltac:(related_matrix2 relate_2dT1_1).
+
+Definition relate_2dT1_2 := 
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 3 2 (eq_refl _)))).
+Definition f_2dT1_2 := ltac:(related_matrix2 relate_2dT1_2).
 
 Derive acc_2dT1_0
  in  (forall vmap,  prove_roundoff_bound simplex_boundsmap_2d vmap ltac:(reify_function f_2dT1_0)  acc_2dT1_0)
@@ -592,6 +889,11 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
+Lemma rowmx_of_list_1: forall [T] (x: 'M[T]_1), rowmx_of_list [x ord0 ord0] = x.
+Proof.
+intros.
+unfold rowmx_of_list; apply matrixP; intros ? ?;  rewrite_matrix; auto.
+Qed.
 
 Lemma roundoff_bound_1dP1 : forall (x: 'rV[ftype Tdouble]_1) (j: 'I_2),
        FPCore.is_finite (x ord0 ord0) = true ->
@@ -602,55 +904,51 @@ Lemma roundoff_bound_1dP1 : forall (x: 'rV[ftype Tdouble]_1) (j: 'I_2),
                       ord0 j) <= acc_1dP1.
 Proof.
 intros.
-set (x00 := x ord0 ord0) in *.
-assert (boundsmap_denote cuboid_boundsmap_1d (x_vmap x00)). {
+assert (boundsmap_denote cuboid_boundsmap_1d (x_vmap (x ord0 ord0))). {
  apply boundsmap_denote_i; simpl; auto.
  eexists. split; [  |split]; auto. reflexivity. split; auto.
 }
 ord_enum_cases j; clear j.
 -
-destruct (prove_roundoff_bound_1dP1_0 (x_vmap x00) H1).
+destruct (prove_roundoff_bound_1dP1_0 (x_vmap (x ord0 ord0)) H1).
 unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE.
 realify.
 rewrite Rplus_opp.
-set (fx := FShape.θ _ _ _ _); change (FShape.θ _ _ _ _) with fx.
-match type of H3 with Rabs (FT2R ?M - _) <= _ => assert (fx = M) end. {
- subst fx. simpl. unfold shapes1dP1_float. unfold rowmx_of_list; row_col_matrix_tac. reflexivity.
-}
-rewrite H4; clear H4 fx.
+change (FPStdLib.ftype FPStdLib.Tdouble) with (ftype Tdouble).
+rewrite <- rowmx_of_list_1 at 1 2.
+rewrite relate_1dP1_0.
 split; auto.
 match goal with H: Rabs ?A <= acc_1dP1 |- Rabs ?B <= _ => replace B with A; auto end.
 clear.
-f_equal.
 simpl.
+f_equal.
 unfold shapes1dP1_function.
 unfold rowmx_of_list; row_col_matrix_tac; rewrite !mxE.
 realify.
-change (x _ _) with x00.
-change (env_ _ _ _ 1%positive) with x00.
+set (x2 := x _ _).
+change (env_ _ _ _ _) with x2.
 unfold Defs.F2R; simpl.
 nra.
 -
-destruct (prove_roundoff_bound_1dP1_1 (x_vmap x00) H1).
+destruct (prove_roundoff_bound_1dP1_1 (x_vmap (x ord0 ord0)) H1).
 unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE.
 realify.
 rewrite Rplus_opp.
-set (fx := FShape.θ _ _ _ _); change (FShape.θ _ _ _ _) with fx.
-match type of H3 with Rabs (FT2R ?fv - _) <= _ => assert (fx = fv) end. {
- subst fx. simpl. unfold shapes1dP1_float. unfold rowmx_of_list; row_col_matrix_tac. reflexivity.
-}
-rewrite H4; clear H4 fx.
+change (FPStdLib.ftype FPStdLib.Tdouble) with (ftype Tdouble).
+rewrite <- rowmx_of_list_1 at 1 2.
+rewrite relate_1dP1_1.
 split; auto.
 match goal with H: Rabs ?A <= acc_1dP1 |- Rabs ?B <= _ => replace B with A; auto end.
 clear.
-f_equal.
 simpl.
+f_equal.
 unfold shapes1dP1_function.
 unfold rowmx_of_list; row_col_matrix_tac; rewrite !mxE.
 realify.
-change (x _ _) with x00.
-change (env_ _ _ _ 1%positive) with x00.
-unfold Defs.F2R; simpl; nra.
+set (x2 := x _ _).
+change (env_ _ _ _ _) with x2.
+unfold Defs.F2R; simpl.
+nra.
 Qed.
 
 
