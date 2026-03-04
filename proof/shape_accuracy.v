@@ -1,5 +1,7 @@
 From CFEM Require Import shape shapefloat.
 From mathcomp Require Import Rstruct.
+Import matrix matrix_util fintype.
+
 
 Require Import vcfloat.VCFloat.
 Require Import Interval.Tactic.
@@ -118,11 +120,6 @@ end;
 
 Existing Instance FPCompCert.nans.
 
-Definition x_vmap_list (x : ftype Tdouble) :=
-   [(1%positive, existT ftype _ x)].
-
-Definition x_vmap (x : ftype Tdouble) : valmap :=
- ltac:(make_valmap_of_list (x_vmap_list x)).
 
 Definition firstn_canon_idents (n: nat) := map Pos.of_succ_nat (seq 0 n).
 
@@ -141,8 +138,6 @@ Ltac compute_boundsmap one_d_bound dim :=
 Definition cuboid_boundsmap_1d := ltac:(compute_boundsmap cuboid_bounds 1%nat).
 Definition cuboid_boundsmap_2d := ltac:(compute_boundsmap cuboid_bounds 2%nat).
 Definition simplex_boundsmap_2d := ltac:(compute_boundsmap simplex_bounds 2%nat).
-
-Import matrix matrix_util fintype.
 
 Ltac changeStdLibToCore f :=
  lazymatch f with 
@@ -355,7 +350,8 @@ Qed.
 Ltac is_ground_nat x := lazymatch x with O => idtac | S ?k => is_ground_nat k end.
 
 Ltac compute_ord_enum n := 
-  (is_ground_nat n + fail "compute_ord_enum: Need a ground term natural number, but got" n); 
+  tryif is_ground_nat n then idtac 
+      else  fail "compute_ord_enum: Need a ground term natural number, but got" n; 
   pattern (ord_enum n); 
   match goal with |- ?F _ => 
     let f := fresh "f" in set (f:=F);
@@ -380,6 +376,137 @@ change (@ssralg.GRing.mul _) with Rmult;
 change (@ssralg.GRing.inv _) with Rinv;
 change (ssralg.GRing.one _) with 1;
 repeat change (nmodule.Algebra.natmul _ ?i) with (INR i).
+
+Lemma rowmx_of_list_1: forall [T] (x: 'M[T]_1), rowmx_of_list [x ord0 ord0] = x.
+Proof.
+intros.
+unfold rowmx_of_list; apply matrixP; intros ? ?. simpl in y.
+unfold row_mx, const_mx; rewrite !mxE.
+unfold fintype.split. rewrite ord1. simpl.
+destruct (ssrnat.ltnP 0 1); try lia.
+rewrite mxE.
+f_equal. apply ord_inj; simpl. rewrite ord1. auto.
+Qed.
+
+Definition vmap_of_rV_list [n] (x: 'rV[ftype Tdouble]_n) :=
+      map (fun i => (Pos.of_succ_nat (nat_of_ord i), existT ftype _ (fun_of_matrix x ord0 i))) (ord_enum n).
+
+Lemma vmap_of_rV_list_valid: forall [n] (x: 'rV[ftype Tdouble]_n),
+  @valmap_valid empty_collection (valmap_of_list' (@vmap_of_rV_list n x)).
+Proof.
+intros.
+unfold vmap_of_rV_list.
+unfold valmap_valid.
+intros.
+destruct ty as [t a].
+simpl.
+unfold valmap_of_list' in H.
+rewrite <- fold_left_rev_right in H.
+rewrite <- map_rev in H.
+revert H.
+induction (rev (ord_enum n)); intros.
+inversion H.
+simpl in H.
+destruct (Pos.eq_dec id  (Pos.of_succ_nat (@nat_of_ord n a0))).
+subst id.
+rewrite Maps.PTree.gss in H.
+assert (t = Tdouble) by congruence.
+subst; hnf; auto.
+rewrite Maps.PTree.gso in H by auto.
+apply IHl; auto.
+Qed.
+
+Definition  vmap_of_rV [n](x: 'rV[ftype Tdouble]_n) : valmap :=
+   @valmap_of_list empty_collection (vmap_of_rV_list x) (vmap_of_rV_list_valid x).
+
+Ltac simplify_vmap_of_rV :=
+let u := fresh "u" in set (u := @vmap_of_rV _ _ );
+  pattern u; subst u;
+  let G := fresh "G" in 
+  match goal with |- ?A _ => set (G:=A) end;
+  cbv [vmap_of_rV rowmx_of_list valmap_of_list valmap_of_list'
+                               vmap_of_rV_list make_valmap]; simpl seq.size;
+let b := fresh "b" in 
+evar (b: Maps.PTree.tree {x : type & ftype x});
+let H := fresh in 
+match goal with |- G (exist valmap_valid ?L _) => assert (H: L=b); [
+ match L with fold_left _ (map _ (ord_enum ?n)) _ => 
+  pattern (ord_enum n);
+  match goal with |- ?F _ => 
+    let f := fresh "f" in set (f:=F);
+      let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
+      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
+        [ replace e with (eq_refl true) by apply proof_irr; clear e | try (contradiction e; reflexivity)]);
+     subst f; cbv beta
+  end
+end;
+cbv [fold_left map Pos.of_succ_nat Pos.succ nat_of_ord];
+rewrite_matrix;
+cbv [Maps.PTree.set Maps.PTree.set0 Maps.PTree.set' Maps.PTree.empty];
+subst b;
+reflexivity
+|
+let VALID := fresh "VALID" in 
+assert (VALID: valmap_valid b) by (apply compute_valmap_valid; repeat split; apply Logic.I);
+rewrite (boolp.eq_exist _ VALID)  by apply H; clear H;
+subst b G; cbv beta;
+let vmap := fresh "vmap" in set (vmap := exist valmap_valid _ VALID: valmap);
+change (exist valmap_valid _ VALID) with vmap
+ ]
+end.
+
+(*
+Ltac simplify_vmap_of_rV vm :=
+  pattern vm; 
+  let G := fresh "G" in 
+  match goal with |- ?A vm => set (G:=A) end;
+  cbv [vmap_of_rV rowmx_of_list valmap_of_list valmap_of_list'
+                               vmap_of_rV_list make_valmap]; simpl seq.size;
+let b := fresh "b" in 
+evar (b: Maps.PTree.tree {x : type & ftype x});
+let H := fresh in 
+match goal with |- G (exist valmap_valid ?L _) => assert (H: L=b); [
+ match L with fold_left _ (map _ (ord_enum ?n)) _ => 
+  pattern (ord_enum n);
+  match goal with |- ?F _ => 
+    let f := fresh "f" in set (f:=F);
+      let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
+      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
+        [ replace e with (eq_refl true) by apply proof_irr; clear e | try (contradiction e; reflexivity)]);
+     subst f; cbv beta
+  end
+end;
+
+cbv [fold_left map Pos.of_succ_nat Pos.succ nat_of_ord];
+rewrite_matrix;
+cbv [Maps.PTree.set Maps.PTree.set0 Maps.PTree.set' Maps.PTree.empty];
+subst b;
+reflexivity
+|
+
+let VALID := fresh "VALID" in 
+assert (VALID: valmap_valid b) by (apply compute_valmap_valid; repeat split; apply Logic.I);
+rewrite (boolp.eq_exist _ VALID)  by apply H; clear H;
+subst b G; cbv beta;
+let vmap := fresh "vmap" in set (vmap := exist valmap_valid _ VALID: valmap);
+change (exist valmap_valid _ VALID) with vmap
+
+ ]
+end.
+*)
+
+
+Definition x_vmap_list (x : ftype Tdouble) :=
+   [(1%positive, existT ftype _ x)].
+
+Definition x_vmap (x : ftype Tdouble) : valmap :=
+ ltac:(make_valmap_of_list (x_vmap_list x)).
+
+
+Goal vmap_of_rV (rowmx_of_list [ Zconst Tdouble 3; Zconst Tdouble 4]) = x_vmap (Zconst Tdouble 0).
+   simplify_vmap_of_rV.
+Abort.
+
 
 Ltac related_matrix f := let x :=
      fresh "x" in intro x;
@@ -543,7 +670,7 @@ prove_rndval; interval.
 Qed.
 
 
-Lemma prove_roundoff_bound_1dP2_3:  
+Lemma prove_roundoff_bound_1dP2_2:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP2_2) acc_1dP2.
 Proof.
 intros.
@@ -889,66 +1016,278 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
-Lemma rowmx_of_list_1: forall [T] (x: 'M[T]_1), rowmx_of_list [x ord0 ord0] = x.
+Definition roundoff_bound_lemma (s: Shape.shape) (bounds: boundsmap)
+    (Fθ: 'rV[ftype Tdouble]_(Shape.d s) -> 'rV_(Shape.nsh s)) (acc: R)
+(*    (Fdθ: 'rV[ftype Tdouble]_(Shape.d s) -> 'M_(Shape.nsh s, Shape.d s)) (accd: R) *):=
+  forall (x: 'rV[ftype Tdouble]_(Shape.d s))
+           (j: 'I_(Shape.nsh s)),
+       boundsmap_denote bounds (vmap_of_rV x) -> 
+       @FPCore.is_finite Tdouble (Fθ x ord0 j) = true /\
+       Rabs (addmx (map_mx (@FT2R Tdouble) (Fθ x)) 
+                    (oppmx (Shape.θ s (map_mx FT2R x)))
+                      ord0 j) <= acc.
+
+
+Ltac prove_vmaps_equal := 
+apply ProofIrrelevance.ProofIrrelevanceTheory.subset_eq_compat;
+cbv beta match fix delta [ vmap_of_rV_list ord_enum seq.iota seq.pmap eqtype.insub ];
+ repeat (destruct (@ssrbool.idP _); [ | lia]);
+cbv beta match fix zeta iota delta [ valmap_of_list' fold_left Maps.PTree.set Maps.PTree.set0 Maps.PTree.empty map ];
+simpl;
+repeat f_equal; apply ord_inj; auto.
+
+Ltac simplify_ordinal i := 
+   (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i (eq_refl true)  *)
+      lazymatch i with @Ordinal _ _ (eq_refl _) => fail | _ => idtac end;
+      let j := eval hnf in i in
+      let n := constr:(nat_of_ord j) in let n1 := eval hnf in n in 
+         is_ground_nat n1; 
+         match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
+             replace i with (@Ordinal k n1 (eq_refl true)) by (apply ord_inj; reflexivity)
+        end end.
+
+Lemma roundoff_bound_1dP1: roundoff_bound_lemma shapes1dP1 
+        cuboid_boundsmap_1d
+        (FShape.θ shapes1dP1F)
+(* (FShape.dθ shapes1dP1F) *)
+       acc_1dP1.
 Proof.
-intros.
-unfold rowmx_of_list; apply matrixP; intros ? ?;  rewrite_matrix; auto.
+intros x j.
+simpl in x; simpl in j.
+simplify_vmap_of_rV.
+match goal with |- _ -> _ /\ Rabs (fun_of_matrix (addmx (map_mx _ (?F ?x )) (oppmx (?G _))) _ _) <= _ => 
+  let f := eval hnf in F in
+  let fx := constr:(f x) in  
+  let y := eval cbv beta zeta in fx in
+  let z := changeStdLibToCore y in
+   change (F x) with z;
+  let g := eval hnf in G in change G with g
+end.
+unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE.
+realify; rewrite Rplus_opp.
+revert VALID vmap;
+repeat match goal with
+ | |- context [fun_of_matrix x ?i _ ] => simplify_ordinal i
+ | |- context [fun_of_matrix x  _ ?j ] => simplify_ordinal j
+end;
+intros VALID vmap H.
+ord_enum_cases j;
+[ generalize (prove_roundoff_bound_1dP1_0 _ H); clear H
+| generalize (prove_roundoff_bound_1dP1_1 _ H); clear H
+];
+unfold prove_roundoff_bound, roundoff_error_bound;
+match goal with |- _ /\ Rabs (FT2R ?F - ?X) <= _ -> _ /\ Rabs (FT2R ?F' - ?X') <= _  => 
+  replace F' with F; [replace X' with X; [tauto | ] | ]
+end;
+simpl;
+unfold rowmx_of_list;
+cbv [env_ vmap proj1_sig Maps.PTree.get Maps.PTree.get' typesize_eq_dec];
+simpl;
+rewrite_matrix; rewrite ?mxE;
+unfold Defs.F2R; simpl;
+try reflexivity; try nra.
 Qed.
 
-Lemma roundoff_bound_1dP1 : forall (x: 'rV[ftype Tdouble]_1) (j: 'I_2),
-       FPCore.is_finite (x ord0 ord0) = true ->
-       -1 <= FT2R (x ord0 ord0) <= 1 ->
-       @FPCore.is_finite Tdouble (FShape.θ shapes1dP1F x ord0 j) = true /\
-       Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.θ shapes1dP1F x)) 
-                    (oppmx (Shape.θ shapes1dP1 (map_mx FT2R x)))
-                      ord0 j) <= acc_1dP1.
+
+Lemma roundoff_bound_1dP2: roundoff_bound_lemma shapes1dP2 
+        cuboid_boundsmap_1d
+        (FShape.θ shapes1dP2F)
+(* (FShape.dθ shapes1dP1F) *)
+       acc_1dP2.
 Proof.
-intros.
-assert (boundsmap_denote cuboid_boundsmap_1d (x_vmap (x ord0 ord0))). {
- apply boundsmap_denote_i; simpl; auto.
- eexists. split; [  |split]; auto. reflexivity. split; auto.
-}
-ord_enum_cases j; clear j.
--
-destruct (prove_roundoff_bound_1dP1_0 (x_vmap (x ord0 ord0)) H1).
+intros x j.
+simpl in x; simpl in j.
+simplify_vmap_of_rV.
+match goal with |- _ -> _ /\ Rabs (fun_of_matrix (addmx (map_mx _ (?F ?x )) (oppmx (?G _))) _ _) <= _ => 
+  let f := eval hnf in F in
+  let fx := constr:(f x) in  
+  let y := eval cbv beta zeta in fx in
+  let z := changeStdLibToCore y in
+   change (F x) with z;
+  let g := eval hnf in G in change G with g
+end.
 unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE.
-realify.
-rewrite Rplus_opp.
-change (FPStdLib.ftype FPStdLib.Tdouble) with (ftype Tdouble).
-rewrite <- rowmx_of_list_1 at 1 2.
-rewrite relate_1dP1_0.
-split; auto.
-match goal with H: Rabs ?A <= acc_1dP1 |- Rabs ?B <= _ => replace B with A; auto end.
-clear.
-simpl.
-f_equal.
-unfold shapes1dP1_function.
-unfold rowmx_of_list; row_col_matrix_tac; rewrite !mxE.
-realify.
-set (x2 := x _ _).
-change (env_ _ _ _ _) with x2.
-unfold Defs.F2R; simpl.
-nra.
--
-destruct (prove_roundoff_bound_1dP1_1 (x_vmap (x ord0 ord0)) H1).
+realify; rewrite Rplus_opp.
+revert VALID vmap;
+repeat match goal with
+ | |- context [fun_of_matrix x ?i _ ] => simplify_ordinal i
+ | |- context [fun_of_matrix x  _ ?j ] => simplify_ordinal j
+end;
+intros VALID vmap H.
+ord_enum_cases j;
+[ generalize (prove_roundoff_bound_1dP2_0 _ H); clear H
+| generalize (prove_roundoff_bound_1dP2_1 _ H); clear H
+| generalize (prove_roundoff_bound_1dP2_2 _ H); clear H
+];
+unfold prove_roundoff_bound, roundoff_error_bound;
+match goal with |- _ /\ Rabs (FT2R ?F - ?X) <= _ -> _ /\ Rabs (FT2R ?F' - ?X') <= _  => 
+  replace F' with F; [replace X' with X; [tauto | ] | ]
+end;
+simpl;
+unfold rowmx_of_list;
+cbv [env_ vmap proj1_sig Maps.PTree.get Maps.PTree.get' typesize_eq_dec];
+simpl;
+rewrite_matrix; rewrite ?mxE;
+unfold Defs.F2R; simpl;
+try reflexivity; try nra.
+Qed.
+
+
+Lemma roundoff_bound_2dP1: roundoff_bound_lemma shapes2dP1 
+        cuboid_boundsmap_2d
+        (FShape.θ shapes2dP1F)
+(* (FShape.dθ shapes1dP1F) *)
+       acc_2dP1.
+Proof.
+intros x j.
+simpl in x; simpl in j.
+simplify_vmap_of_rV.
+match goal with |- _ -> _ /\ Rabs (fun_of_matrix (addmx (map_mx _ (?F ?x )) (oppmx (?G _))) _ _) <= _ => 
+  let f := eval hnf in F in
+  let f := eval unfold shapes1dP1_float in f in (* new *)
+  let fx := constr:(f x) in  
+  let y := eval cbv beta zeta in fx in
+  let z := changeStdLibToCore y in
+   change (F x) with z;
+  let g := eval hnf in G in let g := eval unfold shapes1dP1_function in g in change G with g
+end.
 unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE.
-realify.
-rewrite Rplus_opp.
-change (FPStdLib.ftype FPStdLib.Tdouble) with (ftype Tdouble).
-rewrite <- rowmx_of_list_1 at 1 2.
-rewrite relate_1dP1_1.
-split; auto.
-match goal with H: Rabs ?A <= acc_1dP1 |- Rabs ?B <= _ => replace B with A; auto end.
-clear.
-simpl.
-f_equal.
-unfold shapes1dP1_function.
-unfold rowmx_of_list; row_col_matrix_tac; rewrite !mxE.
-realify.
-set (x2 := x _ _).
-change (env_ _ _ _ _) with x2.
-unfold Defs.F2R; simpl.
-nra.
+repeat match goal with | |- context [col ?i _ ] => simplify_ordinal i end; unfold col; rewrite ?mxE; (* new *)
+realify; rewrite Rplus_opp.
+revert VALID vmap;
+repeat match goal with
+ | |- context [fun_of_matrix x ?i _ ] => simplify_ordinal i
+ | |- context [fun_of_matrix x  _ ?j ] => simplify_ordinal j
+end;
+intros VALID vmap H.
+ord_enum_cases j;
+[ generalize (prove_roundoff_bound_2dP1_0 _ H); clear H
+| generalize (prove_roundoff_bound_2dP1_1 _ H); clear H
+| generalize (prove_roundoff_bound_2dP1_2 _ H); clear H
+| generalize (prove_roundoff_bound_2dP1_3 _ H); clear H
+];
+unfold prove_roundoff_bound, roundoff_error_bound;
+match goal with |- _ /\ Rabs (FT2R ?F - ?X) <= _ -> _ /\ Rabs (FT2R ?F' - ?X') <= _  => 
+  replace F' with F; [replace X' with X; [tauto | ] | ]
+end;
+simpl;
+unfold rowmx_of_list;
+cbv [env_ vmap proj1_sig Maps.PTree.get Maps.PTree.get' typesize_eq_dec];
+simpl;
+rewrite_matrix; rewrite ?mxE;
+unfold Defs.F2R; simpl;
+try reflexivity; try nra.
+Qed.
+
+
+Ltac realify ::= 
+try change (@nmodule.Algebra.add _) with Rplus;
+try change (@nmodule.Algebra.opp _) with Ropp;
+try change (@ssralg.GRing.mul _) with Rmult;
+try change (@ssralg.GRing.inv _) with Rinv;
+try change (ssralg.GRing.one _) with 1;
+change (ssralg.GRing.one
+        (ssralg.GRing.PzRing.Exports.join_GRing_PzRing_between_Algebra_BaseZmodule_and_GRing_PzSemiRing
+           (reals.Real.Exports.reals_Real__to__GRing_PzRing
+              RbaseSymbolsImpl_R__canonical__reals_Real))) with 1;
+try change (@nmodule.Algebra.zero _) with 0;
+repeat change (nmodule.Algebra.natmul _ ?i) with (INR i).
+
+Lemma roundoff_bound_2dP2: roundoff_bound_lemma shapes2dP2 
+        cuboid_boundsmap_2d
+        (FShape.θ shapes2dP2F)
+(* (FShape.dθ shapes1dP1F) *)
+       acc_2dP1.
+Proof.
+intros x j.
+simpl in x; simpl in j.
+simplify_vmap_of_rV.
+match goal with |- _ -> _ /\ Rabs (fun_of_matrix (addmx (map_mx _ (?F ?x )) (oppmx (?G _))) _ _) <= _ => 
+  let f := eval hnf in F in
+  let f := eval unfold shapes1dP1_float, shapes1dP2_float in f in (* new *)
+  let fx := constr:(f x) in  
+  let y := eval cbv beta zeta in fx in
+  let z := changeStdLibToCore y in
+   change (F x) with z;
+  let g := eval hnf in G in let g := eval unfold shapes1dP1_function, shapes1dP2_function in g in change G with g
+end.
+unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE.
+repeat match goal with | |- context [col ?i _ ] => simplify_ordinal i end; unfold col; rewrite ?mxE. (* new *)
+realify; rewrite Rplus_opp.
+revert VALID vmap;
+repeat match goal with
+ | |- context [fun_of_matrix x ?i _ ] => simplify_ordinal i
+ | |- context [fun_of_matrix x  _ ?j ] => simplify_ordinal j
+end;
+intros VALID vmap H.
+try (  (* these prove_roundoff_bound lemmas all exist, but in a different .v file *)
+ord_enum_cases j;
+[ generalize (prove_roundoff_bound_2dP2_0 _ H); clear H
+| generalize (prove_roundoff_bound_2dP2_1 _ H); clear H
+| generalize (prove_roundoff_bound_2dP2_2 _ H); clear H
+| generalize (prove_roundoff_bound_2dP2_3 _ H); clear H
+| generalize (prove_roundoff_bound_2dP2_4 _ H); clear H
+| generalize (prove_roundoff_bound_2dP2_5 _ H); clear H
+| generalize (prove_roundoff_bound_2dP2_6 _ H); clear H
+| generalize (prove_roundoff_bound_2dP2_7 _ H); clear H
+| generalize (prove_roundoff_bound_2dP2_8 _ H); clear H
+];
+unfold prove_roundoff_bound, roundoff_error_bound;
+match goal with |- _ /\ Rabs (FT2R ?F - ?X) <= _ -> _ /\ Rabs (FT2R ?F' - ?X') <= _  => 
+  replace F' with F; [replace X' with X; [tauto | ] | ]
+end;
+simpl;
+unfold rowmx_of_list;
+cbv [env_ vmap proj1_sig Maps.PTree.get Maps.PTree.get' typesize_eq_dec];
+simpl;
+rewrite_matrix; rewrite ?mxE;
+unfold Defs.F2R; simpl;
+try reflexivity; try nra).
+Abort.
+
+Lemma roundoff_bound_2dT1: roundoff_bound_lemma shapes2dT1 
+        simplex_boundsmap_2d
+        (FShape.θ shapes2dT1F)
+(* (FShape.dθ shapes1dP1F) *)
+       acc_2dT1.
+Proof.
+intros x j.
+simpl in x; simpl in j.
+simplify_vmap_of_rV.
+match goal with |- _ -> _ /\ Rabs (fun_of_matrix (addmx (map_mx _ (?F ?x )) (oppmx (?G _))) _ _) <= _ => 
+  let f := eval hnf in F in
+  let f := eval unfold shapes1dP1_float in f in (* new *)
+  let fx := constr:(f x) in  
+  let y := eval cbv beta zeta in fx in
+  let z := changeStdLibToCore y in
+   change (F x) with z;
+  let g := eval hnf in G in let g := eval unfold shapes1dP1_function in g in change G with g
+end.
+unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE.
+repeat match goal with | |- context [col ?i _ ] => simplify_ordinal i end; unfold col; rewrite ?mxE; (* new *)
+realify; rewrite Rplus_opp.
+revert VALID vmap;
+repeat match goal with
+ | |- context [fun_of_matrix x ?i _ ] => simplify_ordinal i
+ | |- context [fun_of_matrix x  _ ?j ] => simplify_ordinal j
+end;
+intros VALID vmap H.
+ord_enum_cases j;
+[ generalize (prove_roundoff_bound_2dT1_0 _ H); clear H
+| generalize (prove_roundoff_bound_2dT1_1 _ H); clear H
+| generalize (prove_roundoff_bound_2dT1_2 _ H); clear H
+];
+unfold prove_roundoff_bound, roundoff_error_bound;
+match goal with |- _ /\ Rabs (FT2R ?F - ?X) <= _ -> _ /\ Rabs (FT2R ?F' - ?X') <= _  => 
+  replace F' with F; [replace X' with X; [tauto | ] | ]
+end;
+simpl;
+unfold rowmx_of_list;
+cbv [env_ vmap proj1_sig Maps.PTree.get Maps.PTree.get' typesize_eq_dec];
+simpl;
+rewrite_matrix; rewrite ?mxE;
+unfold Defs.F2R; simpl;
+try reflexivity; try nra.
 Qed.
 
 

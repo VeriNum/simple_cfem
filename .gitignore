@@ -14,6 +14,16 @@ proof/CoqMakefile.conf
 docs/index_files/*/*
 docs/index.html
 docs/index.pdf
+proof/html/CFEM.*
+proof/html/coqdoc.css
+proof/html/genindex.html
+proof/html/toc.html
+proof/*.glob
+proof/*.vo
+proof/*.vos
+proof/*.vok
+proof/.*.cache
+proof/.*.aux
 obj/*
 exe/*
 
