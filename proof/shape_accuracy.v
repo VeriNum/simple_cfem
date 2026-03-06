@@ -2,7 +2,6 @@ From CFEM Require Import shape shapefloat.
 From mathcomp Require Import Rstruct.
 Import matrix matrix_util fintype.
 
-
 Require Import vcfloat.VCFloat.
 Require Import Interval.Tactic.
 Import Binary.
@@ -14,6 +13,7 @@ Set Bullet Behavior "Strict Subproofs".
 
 Open Scope R_scope.
 
+Locate nth_ord_enum'.
 
 
 Ltac prove_roundoff_bound2 ::=
@@ -157,162 +157,9 @@ lazymatch f with
  | _ => let g := eval red in f in red_to_rowmx g
 end.
 
-Lemma split_shift1 [m j]: lt j m -> is_true (ssrnat.leq (S j) m).
-Proof. lia. Qed.
 
 
-Lemma split_shift2 [m n] [j: 'I_(m+n)] : not (lt (nat_of_ord j) m) -> is_true (ssrnat.leq (S (nat_of_ord j - m)) n).
-Proof. intros. pose proof (ltn_ord j). lia. Qed.
 
-Definition split_shift [m n] (j: 'I_(m+n)) :=
-   match Compare_dec.lt_dec j m
-   with left H => @lshift m n (@Ordinal _ (nat_of_ord j) (split_shift1 H))
-         | right H => @rshift m n (@Ordinal _ (nat_of_ord j - m) (split_shift2 H))
-   end.
-
-Lemma split_shift_eq: forall [m n] (j: 'I_(m+n)), j = split_shift j.
-Proof.
-intros.
-unfold split_shift.
-destruct (Compare_dec.lt_dec _ _); apply ord_inj; simpl; auto.
-lia.
-Qed.
-
-Lemma row_mxE: forall [T: Type][m n1 n2: nat] (A1: 'M[T]_(m,n1)) (A2: 'M[T]_(m,n2)) (i: 'I_m) (j: 'I_(n1+n2)),
-    row_mx A1 A2 i j = 
-    match Compare_dec.lt_dec (nat_of_ord j) n1
-    with left H => A1 i  (@Ordinal n1 (nat_of_ord j) (split_shift1 H))
-         | right H => A2 i (@Ordinal n2 (nat_of_ord j - n1) (split_shift2 H))
-     end.
-Proof.
-intros.
-pose proof (split_shift_eq j).
-rewrite H at 1.
-unfold split_shift.
-destruct (Compare_dec.lt_dec _ _); simpl.
-apply row_mxEl.
-apply row_mxEr.
-Qed.
-
-
-Lemma col_mxE: forall [T: Type][m1 m2 n: nat] (A1: 'M[T]_(m1,n)) (A2: 'M[T]_(m2,n)) (i: 'I_(m1+m2)) (j: 'I_n),
-    col_mx A1 A2 i j = 
-    match Compare_dec.lt_dec (nat_of_ord i) m1
-    with left H => A1 (@Ordinal m1 (nat_of_ord i) (split_shift1 H)) j
-         | right H => A2 (@Ordinal m2 (nat_of_ord i - m1) (split_shift2 H)) j
-     end.
-Proof.
-intros.
-pose proof (split_shift_eq i).
-rewrite H at 1.
-unfold split_shift.
-destruct (Compare_dec.lt_dec _ _); simpl.
-apply col_mxEu.
-apply col_mxEd.
-Qed.
-
-Lemma row_0_1: forall [T: Type] [n: nat] (A: 'M[T]_(1,n)) i, row i A = A.
-Proof.
-intros.
-rewrite ord1. clear i.
-apply matrixP. intros i j.
-unfold row.
-rewrite mxE.
-f_equal.
-symmetry; apply ord1.
-Qed.
-
-Lemma col_0_1: forall [T: Type] [n: nat] (A: 'M[T]_(n,1)) j, col j A = A.
-Proof.
-intros.
-rewrite ord1.  clear j.
-apply matrixP. intros i j.
-unfold col.
-rewrite mxE.
-f_equal.
-symmetry; apply ord1.
-Qed.
-
-
-Lemma row_col_E: forall [T: Type] [m1 m2 n] (A: 'M[T]_(m1,n)) (B: 'M[T]_(m2,n)) (i: 'I_(m1+m2)),
-      row i (col_mx A B) =
-    match Compare_dec.lt_dec (nat_of_ord i) m1
-    with left H => row (@Ordinal m1 (nat_of_ord i) (split_shift1 H)) A
-         | right H => row (@Ordinal m2 (nat_of_ord i - m1) (split_shift2 H)) B
-     end.
-Proof.
-intros.
-pose proof (split_shift_eq i).
-rewrite H at 1.
-unfold split_shift.
-destruct (Compare_dec.lt_dec _ _); simpl.
-rewrite <- row_usubmx, col_mxKu. auto.
-rewrite <- row_dsubmx, col_mxKd. auto.
-Qed.
-
-Lemma col_row_E: forall [T: Type] [m n1 n2] (A: 'M[T]_(m,n1)) (B: 'M[T]_(m,n2)) (j: 'I_(n1+n2)),
-      col j (row_mx A B) =
-    match Compare_dec.lt_dec (nat_of_ord j) n1
-    with left H => col (@Ordinal n1 (nat_of_ord j) (split_shift1 H)) A
-         | right H => col (@Ordinal n2 (nat_of_ord j - n1) (split_shift2 H)) B
-     end.
-Proof.
-intros.
-pose proof (split_shift_eq j).
-rewrite H at 1.
-unfold split_shift.
-destruct (Compare_dec.lt_dec _ _); simpl.
-rewrite <- col_lsubmx, row_mxKl. auto.
-rewrite <- col_rsubmx, row_mxKr. auto.
-Qed.
-
-Ltac rewrite_matrix := 
-repeat
-match goal with
-  | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 _ _) ?i ?j ] =>
-             rewrite (@row_mxE T m n1 n2);
-              let H := fresh in 
-               destruct (Compare_dec.lt_dec (nat_of_ord _) n1) as [H | H];
-               simpl in H; simpl nat_of_ord;
-               [try (exfalso; clear - H; lia); try (replace (@split_shift1 _ _ H) with (eq_refl true) by apply proof_irr; clear H)
-              | try (exfalso; clear - H; lia); 
-                try (replace (@split_shift2 n1 n2 (@Ordinal _ _ (@eq_refl bool (ssrnat.leq _ _))) H) with (eq_refl true) by apply proof_irr ; clear H)] 
-  | |- context [fun_of_matrix (@col_mx ?T ?m1 ?m2 ?n _ _) ?i ?j ] =>
-             rewrite (@col_mxE T m1 m2 n);
-              let H := fresh in 
-               destruct (Compare_dec.lt_dec (nat_of_ord _) m1) as [H | H];
-               simpl in H; simpl nat_of_ord;
-               [try (exfalso; clear - H; lia); try (replace (@split_shift1 _ _ H) with (eq_refl true) by apply proof_irr; clear H)
-              | try (exfalso; clear - H; lia); 
-                try (replace (@split_shift2 m1 m2 (@Ordinal _ _ (@eq_refl bool (ssrnat.leq _ _))) H) with (eq_refl true) by apply proof_irr ; clear H)] 
-   | |- context [@col ?T' ?m' ?n' ?j (@row_mx ?T ?m ?n1 ?n2 ?A ?B)] =>
-             change m' with m; change n' with (n1+n2)%nat; change T' with T;
-             rewrite (@col_row_E T m n1 n2 A B j);
-              let H := fresh in 
-               destruct (Compare_dec.lt_dec (nat_of_ord _) n1) as [H | H];
-               simpl in H; simpl nat_of_ord;
-               [try (exfalso; clear - H; lia); try (replace (@split_shift1 _ _ H) with (eq_refl true) by apply proof_irr; clear H)
-              | try (exfalso; clear - H; lia); 
-                try (replace (@split_shift2 n1 n2 (@Ordinal _ _ (@eq_refl bool (ssrnat.leq _ _))) H) with (eq_refl true) by apply proof_irr ; clear H)] 
-   | |- context [@row ?T' ?m' ?n' ?j (@col_mx ?T ?m1 ?m2 ?n ?A ?B)] =>
-             change m' with (m1+m2)%nat; change n' with n; change T' with T;
-             rewrite (@row_col_E T m1 m2 n A B j);
-              let H := fresh in 
-               destruct (Compare_dec.lt_dec (nat_of_ord _) m1) as [H | H];
-               simpl in H; simpl nat_of_ord;
-               [try (exfalso; clear - H; lia); try (replace (@split_shift1 _ _ H) with (eq_refl true) by apply proof_irr; clear H)
-              | try (exfalso; clear - H; lia); 
-                try (replace (@split_shift2 m1 m2 (@Ordinal _ _ (@eq_refl bool (ssrnat.leq _ _))) H) with (eq_refl true) by apply proof_irr ; clear H)] 
-  | |- _ => rewrite const_mxE
-  | |- _ => rewrite row_0_1
-  | |- _ => rewrite col_0_1
-  | |- _ => rewrite row_col_E
-  | |- _ => rewrite col_row_E
-  | i: 'I_1 |- _ =>  let H := fresh in assert (H := ord1 i); simpl in H; subst i
-  | H: 'I__ |- _ => progress simpl in H
-  | H: ~(nat_of_ord _ < _)%nat |- _ => simpl in H
-  | _ => lia
-       end.
 
 Ltac translate_matrix f := 
 let x := fresh "x" in 
@@ -330,44 +177,6 @@ assert (H: prop);  [
  rewrite_matrix;
   subst g; reflexivity
  | subst g;  exact H].
-
-Lemma ord_enum_cases: forall [n] (P: 'I_n -> Prop),
-  Forall P (ord_enum n) ->
-  forall i, P i.
-Proof.
-intros.
-rewrite Forall_forall in H.
-apply H.
-clear.
-pose proof @nth_ord_enum' n i i.
-rewrite mv_mathcomp.nth_List_nth in H.
-rewrite <- H.
-apply nth_In.
-rewrite size_ord_enum.
-pose proof (ltn_ord i); lia.
-Qed. 
-
-Ltac is_ground_nat x := lazymatch x with O => idtac | S ?k => is_ground_nat k end.
-
-Ltac compute_ord_enum n := 
-  tryif is_ground_nat n then idtac 
-      else  fail "compute_ord_enum: Need a ground term natural number, but got" n; 
-  pattern (ord_enum n); 
-  match goal with |- ?F _ => 
-    let f := fresh "f" in set (f:=F);
-      let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
-      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
-        [ replace e with (eq_refl true) by apply proof_irr; clear e | try (contradiction e; reflexivity)]);
-     subst f
-  end.
-
-Ltac ord_enum_cases j :=
- lazymatch type of j with ordinal ?n => 
-  pattern j; 
-  apply ord_enum_cases;
-  compute_ord_enum n;
-  repeat apply Forall_cons; try apply Forall_nil
- end.
 
 Ltac realify := 
 change (@nmodule.Algebra.add _) with Rplus;
@@ -506,7 +315,6 @@ Definition x_vmap (x : ftype Tdouble) : valmap :=
 Goal vmap_of_rV (rowmx_of_list [ Zconst Tdouble 3; Zconst Tdouble 4]) = x_vmap (Zconst Tdouble 0).
    simplify_vmap_of_rV.
 Abort.
-
 
 Ltac related_matrix f := let x :=
      fresh "x" in intro x;
@@ -761,7 +569,7 @@ assert (H: prop);  [
 
 Ltac related_matrix2 f := let x := fresh "x" in intro x; let y := fresh "y" in intro y;
     match type of (f x y) with _ = ?t => let b := eval cbv beta in t in exact b end.
- 
+
 Definition relate_2dP1_0 := 
    ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 4 0 (eq_refl _)))).
 Definition f_2dP1_0 := ltac:(related_matrix2 relate_2dP1_0).
@@ -778,7 +586,6 @@ Definition relate_2dP1_3 :=
    ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (@Ordinal 4 3 (eq_refl _)))).
 Definition f_2dP1_3 := ltac:(related_matrix2 relate_2dP1_3).
 
-
 Derive acc_2dP1_1
  in  (forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1_1)  acc_2dP1_1)
  as derive_roundoff_bound_2dP1_1.
@@ -794,7 +601,6 @@ prove_roundoff_bound.
 match goal with |- 0 <= ?acc - ?A => assert (acc = A) by (unfold acc; reflexivity) end.
 lra.
 Qed.
-
 
 Check ltac:(ShowBound acc_2dP1_1). (* 3.33066907387548e-16%F64 *)
 
@@ -885,7 +691,6 @@ prove_roundoff_bound.
 match goal with |- 0 <= ?acc - ?A => assert (acc = A) by (unfold acc; reflexivity) end.
 lra.
 Qed.
-
 
 Check ltac:(ShowBound acc_2dP1deriv). (* 1.11022302462516%F64 *)
 
@@ -1036,7 +841,8 @@ cbv beta match fix zeta iota delta [ valmap_of_list' fold_left Maps.PTree.set Ma
 simpl;
 repeat f_equal; apply ord_inj; auto.
 
-Ltac simplify_ordinal i := 
+
+Ltac simplify_ordinal i ::=  (* Why is this redefinition necessary? *)
    (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i (eq_refl true)  *)
       lazymatch i with @Ordinal _ _ (eq_refl _) => fail | _ => idtac end;
       let j := eval hnf in i in
@@ -1045,6 +851,18 @@ Ltac simplify_ordinal i :=
          match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
              replace i with (@Ordinal k n1 (eq_refl true)) by (apply ord_inj; reflexivity)
         end end.
+
+Ltac compute_ord_enum n ::=   (* Why is this redefinition necessary? *)
+  tryif is_ground_nat n then idtac 
+      else  fail "compute_ord_enum: Need a ground term natural number, but got" n; 
+  pattern (ord_enum n); 
+  match goal with |- ?F ?c => 
+    let f := fresh "f" in set (f:=F);
+      let d :=  eval compute in c in change (f d);
+      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
+        [ replace e with (eq_refl true) by apply proof_irr; clear e | try (contradiction e; reflexivity)]);
+     subst f
+  end.
 
 Lemma roundoff_bound_1dP1: roundoff_bound_lemma shapes1dP1 
         cuboid_boundsmap_1d
@@ -1065,7 +883,7 @@ match goal with |- _ -> _ /\ Rabs (fun_of_matrix (addmx (map_mx _ (?F ?x )) (opp
 end.
 unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE.
 realify; rewrite Rplus_opp.
-revert VALID vmap;
+revert VALID vmap.
 repeat match goal with
  | |- context [fun_of_matrix x ?i _ ] => simplify_ordinal i
  | |- context [fun_of_matrix x  _ ?j ] => simplify_ordinal j

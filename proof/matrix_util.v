@@ -1,5 +1,6 @@
 From mathcomp Require Import all_boot.
 From mathcomp Require Import all_algebra.
+From mathcomp.zify Require Import ssrZ zify.
 From HB Require Import structures.
 Import GRing.
 
@@ -119,6 +120,79 @@ Check B.
 
 End Test4.
 
+Lemma split_shift1 [m j]: lt j m -> is_true (ssrnat.leq (S j) m).
+Proof. lia. Qed.
+
+Lemma split_shift2 [m n] [j: 'I_(m+n)] : not (lt (nat_of_ord j) m) -> is_true (ssrnat.leq (S (nat_of_ord j - m)) n).
+Proof. intros. pose proof (ltn_ord j). lia. Qed.
+
+Definition split_shift [m n] (j: 'I_(m+n)) :=
+   match Compare_dec.lt_dec j m
+   with left H => @lshift m n (@Ordinal _ (nat_of_ord j) (split_shift1 H))
+         | right H => @rshift m n (@Ordinal _ (nat_of_ord j - m) (split_shift2 H))
+   end.
+
+Lemma split_shift_eq: forall [m n] (j: 'I_(m+n)), j = split_shift j.
+Proof.
+intros.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); apply ord_inj; simpl; auto.
+lia.
+Qed.
+
+Lemma row_mxE: forall [T: Type][m n1 n2: nat] (A1: 'M[T]_(m,n1)) (A2: 'M[T]_(m,n2)) (i: 'I_m) (j: 'I_(n1+n2)),
+    row_mx A1 A2 i j = 
+    match Compare_dec.lt_dec (nat_of_ord j) n1
+    with left H => A1 i  (@Ordinal n1 (nat_of_ord j) (split_shift1 H))
+         | right H => A2 i (@Ordinal n2 (nat_of_ord j - n1) (split_shift2 H))
+     end.
+Proof.
+intros.
+pose proof (split_shift_eq j).
+rewrite {1}H.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); simpl.
+apply row_mxEl.
+apply row_mxEr.
+Qed.
+
+Lemma col_mxE: forall [T: Type][m1 m2 n: nat] (A1: 'M[T]_(m1,n)) (A2: 'M[T]_(m2,n)) (i: 'I_(m1+m2)) (j: 'I_n),
+    col_mx A1 A2 i j = 
+    match Compare_dec.lt_dec (nat_of_ord i) m1
+    with left H => A1 (@Ordinal m1 (nat_of_ord i) (split_shift1 H)) j
+         | right H => A2 (@Ordinal m2 (nat_of_ord i - m1) (split_shift2 H)) j
+     end.
+Proof.
+intros.
+pose proof (split_shift_eq i).
+rewrite {1}H.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); simpl.
+apply col_mxEu.
+apply col_mxEd.
+Qed.
+
+Lemma row_0_1: forall [T: Type] [n: nat] (A: 'M[T]_(1,n)) i, row i A = A.
+Proof.
+intros.
+rewrite ord1. clear i.
+apply matrixP. intros i j.
+unfold row.
+rewrite mxE.
+f_equal.
+symmetry; apply ord1.
+Qed.
+
+Lemma col_0_1: forall [T: Type] [n: nat] (A: 'M[T]_(n,1)) j, col j A = A.
+Proof.
+intros.
+rewrite ord1.  clear j.
+apply matrixP. intros i j.
+unfold col.
+rewrite mxE.
+f_equal.
+symmetry; apply ord1.
+Qed.
 
 Lemma col_row: forall {t} [m n] (i: 'I_m) (j: 'I_n) A, 
   @col t 1 n j (@row t m n i A) = @row t m 1 i (@col t m n j A).
@@ -142,6 +216,39 @@ Qed.
 
 From Stdlib Require Import Lia.
 
+Lemma row_col_E: forall [T: Type] [m1 m2 n] (A: 'M[T]_(m1,n)) (B: 'M[T]_(m2,n)) (i: 'I_(m1+m2)),
+      row i (col_mx A B) =
+    match Compare_dec.lt_dec (nat_of_ord i) m1
+    with left H => row (@Ordinal m1 (nat_of_ord i) (split_shift1 H)) A
+         | right H => row (@Ordinal m2 (nat_of_ord i - m1) (split_shift2 H)) B
+     end.
+Proof.
+intros.
+pose proof (split_shift_eq i).
+rewrite {1}H.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); simpl.
+rewrite <- row_usubmx, col_mxKu. auto.
+rewrite <- row_dsubmx, col_mxKd. auto.
+Qed.
+
+Lemma col_row_E: forall [T: Type] [m n1 n2] (A: 'M[T]_(m,n1)) (B: 'M[T]_(m,n2)) (j: 'I_(n1+n2)),
+      col j (row_mx A B) =
+    match Compare_dec.lt_dec (nat_of_ord j) n1
+    with left H => col (@Ordinal n1 (nat_of_ord j) (split_shift1 H)) A
+         | right H => col (@Ordinal n2 (nat_of_ord j - n1) (split_shift2 H)) B
+     end.
+Proof.
+intros.
+pose proof (split_shift_eq j).
+rewrite {1}H.
+unfold split_shift.
+destruct (Compare_dec.lt_dec _ _); simpl.
+rewrite <- col_lsubmx, row_mxKl. auto.
+rewrite <- col_rsubmx, row_mxKr. auto.
+Qed.
+
+(* TODO: see if we can unify these two similar tactics, row_col_matrix_tac and rewrite_matrix *)
 
 Ltac row_col_matrix_tac :=
 repeat
@@ -196,3 +303,141 @@ match goal with
        by (apply ord_inj; try reflexivity; lia);
     rewrite (@col_mxEd _ _ n1 n2)
 end.
+
+Ltac is_ground_nat n := lazymatch n with O => idtac | S ?n' => is_ground_nat n' end.
+
+Ltac is_const_ordinal i := let j := eval hnf in i in match j with @Ordinal _ ?k _ => 
+       let k' := eval hnf in k in is_ground_nat k' end.
+
+Ltac rewrite_matrix := 
+repeat
+match goal with
+  | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 _ _) ?i ?j ] => is_const_ordinal j;
+             rewrite (@row_mxE T m n1 n2);
+              let H := fresh in 
+               destruct (Compare_dec.lt_dec (nat_of_ord _) n1) as [H | H];
+               simpl in H; simpl nat_of_ord;
+               [try (exfalso; clear - H; lia);
+                let ss := fresh "ss" in set (ss := @split_shift1 n1 _ _); rewrite (proof_irr ss isT); clear ss H
+              | try (exfalso; clear - H; lia);
+                let ss := fresh "ss" in set (ss := @split_shift2 n1 n2 _ _); rewrite (proof_irr ss isT); clear ss H ]
+  | |- context [fun_of_matrix (@col_mx ?T ?m1 ?m2 ?n _ _) ?i ?j ] =>  is_const_ordinal i;
+             rewrite (@col_mxE T m1 m2 n);
+              let H := fresh in 
+               destruct (Compare_dec.lt_dec (nat_of_ord _) m1) as [H | H];
+               simpl in H; simpl nat_of_ord;
+               [try (exfalso; clear - H; lia);
+                let ss := fresh "ss" in set (ss := @split_shift1 m1 _ _); rewrite (proof_irr ss isT); clear ss H
+              | try (exfalso; clear - H; lia); 
+                let ss := fresh "ss" in set (ss := @split_shift2 m1 m2 _ _); rewrite (proof_irr ss isT); clear ss H] 
+   | |- context [@col ?T' ?m' ?n' ?j (@row_mx ?T ?m ?n1 ?n2 ?A ?B)] =>
+             change m' with m; change n' with (n1+n2)%nat; change T' with T;
+             rewrite (@col_row_E T m n1 n2 A B j);
+              let H := fresh in 
+               destruct (Compare_dec.lt_dec (nat_of_ord _) n1) as [H | H];
+               simpl in H; simpl nat_of_ord;
+               [try (exfalso; clear - H; lia);
+                let ss := fresh "ss" in set (ss := @split_shift1 n1 _ _); rewrite (proof_irr ss isT); clear ss H
+              | try (exfalso; clear - H; lia); 
+                let ss := fresh "ss" in set (ss := @split_shift2 n1 n2 _ _); rewrite (proof_irr ss isT); clear ss H] 
+   | |- context [@row ?T' ?m' ?n' ?j (@col_mx ?T ?m1 ?m2 ?n ?A ?B)] => 
+             change m' with (m1+m2)%nat; change n' with n; change T' with T;
+             rewrite (@row_col_E T m1 m2 n A B j);
+              let H := fresh in 
+               destruct (Compare_dec.lt_dec (nat_of_ord _) m1) as [H | H];
+               simpl in H; simpl nat_of_ord;
+               [try (exfalso; clear - H; lia);
+                let ss := fresh "ss" in set (ss := @split_shift1 m1 _ _); rewrite (proof_irr ss isT); clear ss H
+              | try (exfalso; clear - H; lia); 
+                let ss := fresh "ss" in set (ss := @split_shift2 m1 m2 _ _); rewrite (proof_irr ss isT); clear ss H] 
+  | |- _ => rewrite const_mxE
+  | |- _ => rewrite row_0_1
+  | |- _ => rewrite col_0_1
+  | |- _ => rewrite row_col_E
+  | |- _ => rewrite col_row_E
+  | i: 'I_1 |- _ =>  let H := fresh in assert (H := ord1 i); simpl in H; subst i
+  | H: 'I__ |- _ => progress simpl in H
+  | H: ~(nat_of_ord _ < _)%nat |- _ => simpl in H
+  | _ => lia
+       end.
+
+Lemma size_ord_enum: forall n, size (ord_enum n) = n.
+Proof.
+intros.
+pose proof val_ord_enum n.
+simpl in H.
+transitivity (size (iota 0 n)).
+transitivity (size (map (nat_of_ord (n:=n)) (ord_enum n))).
+rewrite size_map; auto.
+f_equal; auto.
+apply size_iota.
+Qed.
+
+Lemma nth_ord_enum': forall n (d i: 'I_n), nth d (ord_enum n) i = i.
+Proof.
+intros.
+pose proof (val_ord_enum n).
+simpl in H.
+apply ord_inj.
+pose proof ltn_ord i.
+rewrite <- nth_map with (x2:=nat_of_ord d).
+rewrite H. rewrite nth_iota. lia. lia.
+rewrite size_ord_enum.
+auto.
+Qed.
+
+Lemma nth_List_nth: forall {A: Type} (d: A) (l: seq.seq A) (n: nat),
+  seq.nth d l n = List.nth n l d.
+Proof.
+  move => A d l. elim : l => [//= n | //= h t IH n].
+  - by case : n.
+  - case: n. by []. move => n. by rewrite /= IH.
+Qed.
+
+Lemma ord_enum_cases: forall [n] (P: 'I_n -> Prop),
+  List.Forall P (ord_enum n) ->
+  forall i, P i.
+Proof.
+intros.
+rewrite List.Forall_forall in H.
+apply H.
+clear.
+pose proof @nth_ord_enum' n i i.
+rewrite nth_List_nth in H.
+rewrite <- H.
+apply List.nth_In.
+change @length with @size.
+rewrite size_ord_enum.
+pose proof (ltn_ord i); lia.
+Qed. 
+
+Ltac compute_ord_enum n := 
+  tryif is_ground_nat n then idtac 
+      else  fail "compute_ord_enum: Need a ground term natural number, but got" n; 
+  pattern (ord_enum n); 
+  match goal with |- ?F _ => 
+    let f := fresh "f" in set (f:=F);
+      let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
+      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
+        [ replace e with (eq_refl true) by apply proof_irr; clear e | try (contradiction e; reflexivity)]);
+     subst f
+  end.
+
+Ltac ord_enum_cases j :=
+ lazymatch type of j with ordinal ?n => 
+  pattern j; 
+  apply ord_enum_cases;
+  compute_ord_enum n;
+  repeat apply List.Forall_cons; try apply List.Forall_nil
+ end.
+
+Ltac simplify_ordinal i := 
+   (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i (eq_refl true)  *)
+      lazymatch i with @Ordinal _ _ (eq_refl _) => fail | _ => idtac end;
+      let j := eval hnf in i in
+      let n := constr:(nat_of_ord j) in let n1 := eval hnf in n in 
+         is_ground_nat n1; 
+         match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
+             replace i with (@Ordinal k n1 (eq_refl true)) by (apply ord_inj; reflexivity)
+        end end.
+
