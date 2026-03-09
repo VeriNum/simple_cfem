@@ -21,7 +21,7 @@ Local Open Scope ring_scope.
 
 From mathcomp.algebra_tactics Require Import ring lra.
 
-Section S.
+Section S.  
 Context {R : realType}.
 
 Definition continuously_differentiable [n] (f: 'rV[R]_n -> R) : Prop :=
@@ -75,10 +75,15 @@ Module Shape.
 Section S.
 Context {R : realType}.
 
+
+Definition dθ_ [d n: nat] (F: 'rV[R]_d -> 'rV[R]_n) (x: 'rV[R]_d) :  'M[R]_(n, d):=
+     \matrix_(i<n,j<d) 'D_('e_j) F x 0 i.
+
 Record shape : Type := {
   d : nat;
   nsh: nat;
   θ: 'rV_d -> 'rV_nsh;  (* nsh shape functions, each R^d->R *)
+  dθ := dθ_ θ;
   vtx: 'M[R]_(nsh,d); 
   K  := convex_hull vtx;
   lagrangian: forall i j, θ (row i vtx) 0 j  = if i==j then 1 else 0;
@@ -87,8 +92,6 @@ Record shape : Type := {
 
 End S.
 End Shape.
-
-Definition single {R: realType} (x: R) := @const_mx R 1 1 x.
 
 From Stdlib Require Import Lia.
 From Stdlib Require Import FunctionalExtensionality.
@@ -393,20 +396,10 @@ end;
 repeat match type of j with context [S (S ?A)] => change  (S (S ?A)) with (1 + S A)%nat in j end;
 repeat case_splitP j; rewrite !ord1 /=;
 rewrite [continuously_differentiable]lock;
-repeat (under eq_locked_continuously_differentiable do [ rewrite /single /at00 ?mxE /split /= ];
+repeat (under eq_locked_continuously_differentiable do [ rewrite /at00 ?mxE /split /= ];
             repeat (destruct (ltnP _ _); try discriminate));
 rewrite -lock;
 apply multivariate_polynomial_continuously_differentiable; repeat constructor.
-
-Ltac prove_lagrangian_old_and_slow := 
-let i := fresh "i" in let j := fresh "j" in 
-intros i j;
-rewrite /single /at00 !mxE;
-repeat match type of i with context [S (S ?A)] => change  (S (S ?A)) with (1 + S A)%nat in i end;
-repeat match type of j with context [S (S ?A)] => change  (S (S ?A)) with (1 + S A)%nat in j end;
-repeat case_splitP j; repeat case_splitP i; 
-repeat (rewrite ?ord1 ?mxE /= /split; repeat (destruct (ltnP _ _); try discriminate));
-rewrite ?mxE /=; try nra.
 
 Ltac split_I_n := 
 repeat 
@@ -422,7 +415,6 @@ match type of i with
  | 'I_?n => let n := eval compute in n in is_ground_nat n
  | ?t =>  fail "Type of" i "is" t "but should be 'I_n where n is a constant"
 end.
-
 
 Ltac prove_lagrangian :=
 let i := fresh "i" in let j := fresh "j" in intros i j;
@@ -445,56 +437,10 @@ split_I_n; simpl;
 row_col_matrix_tac;
 try (rewrite ?mulr1 ?mul1r ?mulr0 ?mul0r ?addrN; auto; nra).
 
-Section S.
-Context {R : realType}.
-
-Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
-    let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
-Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
-
-Definition shapes1dP1 : @Shape.shape R.
-apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_vertices).
-- abstract prove_lagrangian.
-- abstract prove_continuously_differentiable.
-Defined.
-
-
-Definition shapes1dP1_deriv' (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
-   let x := xm 0 0 in
-   mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
-
-
-Definition dθ_ [d n: nat] (F: 'rV[R]_d -> 'rV[R]_n) (x: 'rV[R]_d) :  'M[R]_(n, d):=
-     \matrix_(i<n,j<d) 'D_('e_j) F x 0 i.
-
-Definition dθ (s: Shape.shape) : 'rV[R]_(Shape.d s) -> 'M[R]_(Shape.nsh s, Shape.d s) :=
-      dθ_ (Shape.θ s).
-
-Definition dθ1 [nsh] (f: 'rV[R]_1 -> 'rV[R]_nsh) (x : 'rV[R]_1) : 'M[R]_(nsh, 1):= 
-   trmx ('D_ (const_mx 1)  f x).
-
-Goal forall nsh (f: 'rV[R]_1 -> 'rV[R]_nsh) , dθ1 f = dθ_ f.
-intros.
-rewrite /dθ /dθ1. extensionality x.
-unfold trmx. apply matrixP => i j. rewrite !mxE. rewrite ord1. f_equal. f_equal.
-clear.
-apply matrixP => i j. rewrite !ord1 ?mxE. reflexivity.
-all:fail.
-Abort.
-
-Ltac simplify_ordinal i :=  (* Delete me, already in matrix_util *)
-   (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i (eq_refl true)  *)
-      lazymatch i with @Ordinal _ _ (eq_refl _) => fail | _ => idtac end;
-      let j := eval hnf in i in
-      let n := constr:(nat_of_ord j) in let n1 := eval hnf in n in 
-         is_ground_nat n1; 
-         match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
-             replace i with (@Ordinal k n1 (eq_refl true)) by (apply ord_inj; reflexivity)
-        end end.
 
 Section pointwise_derivable.
 Local Open Scope classical_set_scope.
-Context  {V : normedModType R} {m n : nat}.
+Context  {R: realType}{V : normedModType R} {m n : nat}.
 Implicit Types M : V -> 'M[R]_(m, n).
 
 (* The two admitted lemmas in this section are proved in 
@@ -516,69 +462,125 @@ derivable M t v ->
 'D_v M t = \matrix_(i, j) 'D_v (fun t0 : NormedModule.sort V => fun_of_matrix (M t0) i j) t.
 Admitted.
 
-End pointwise_derivable.
-
-Lemma derive_vector_d_n:
-  forall (d n: nat) (x: 'rV_d.+1) (F: 'rV[R]_d.+1 -> 'rV[R]_n),
-  (forall i j z, derivable (fun x0 : 'rV_d.+1 => fun_of_matrix (F x0) z i) x ('e_j)) ->
-  forall  (i: 'I_n) j z,
-  fun_of_matrix ('D_('e_j) F x) z i =
-    'D_('e_j) (fun x' : 'rV[R]_d.+1 => fun_of_matrix (F x') z i) x.
+(* Delete this one after https://github.com/math-comp/analysis/pull/1891 is in a released mathcomp-analysis *)
+Global Instance is_derive_mx (M : V -> 'M[R]_(m, n))
+    (dM : 'M[R]_(m, n)) (x v : V) :
+  (forall i j, is_derive x v (fun x => M x i j) (dM i j)) ->
+  is_derive x v M dM.
 Proof.
-intros.
-rewrite derive_mx//=; first by rewrite mxE.
-apply/derivable_mxP => /= i0 j0.
-rewrite ord1 //.
+move=> MdM; apply: DeriveDef; first exact/derivable_mxP.
+apply/matrixP => i j.
+have [_ <-] := MdM i j.
+rewrite derive_mx//.
+  by rewrite mxE.
+apply/derivable_mxP => i0 j0.
+by have [] := MdM i0 j0.
 Qed.
 
-(*
-Lemma derive_vector_n_d':
-  forall (n d: nat) (x: 'cV_n.+1) (i: 'I_d.+1) (F: 'cV[R]_n.+1 -> 'rV[R]_d.+1),
-  (forall j, derivable (fun x0 : 'cV_n.+1 => fun_of_matrix (F x0) ord0 j) x (const_mx 1)) ->
-  fun_of_matrix ('D_(const_mx 1) F x) ord0 i =
-    'D_(const_mx 1) (fun x' : 'cV[R]_n.+1 => fun_of_matrix (F x') ord0 i) x.
-intros.
-rewrite derive_mx//=; first by rewrite mxE.
-apply/derivable_mxP => /= i0 j0.
-rewrite ord1 //.
-Qed.
-
-Lemma derive_vector_n_d:
-  forall (n d: nat) (x: 'cV_n) (i: 'I_d) (F: 'cV[R]_n -> 'rV[R]_d),
-  (forall j, derivable (fun x0 : 'cV_n => fun_of_matrix (F x0) ord0 j) x (const_mx 1)) ->
-  fun_of_matrix ('D_(const_mx 1) F x) ord0 i = 
-    'D_(const_mx 1) (fun x' : 'cV[R]_n => fun_of_matrix (F x') ord0 i) x.
-intros.
-destruct d; [destruct i; lia | ].
-destruct n.
-replace F with (fun _: 'cV[R]_0 => (F x)).
-2:{ extensionality y. f_equal. apply matrixP. intros a b. destruct a; lia. }
-set c := F x.
-clearbody c. clear F H.
-rewrite !derive_cst. rewrite mxE. auto.
-apply derive_vector_n_d'; auto.
-Qed.
-*)
+End pointwise_derivable.
 
 Ltac derivable := 
 repeat
 match goal with
-  |  |- derivable (fun _ => ?a) _ _ => apply derivable_cst
-  |  |- derivable (fun _ => mul _ _) _ _ => apply derivableM 
-  |  |- derivable (fun _ => add _ _) _ _ => apply derivableD
+  | |- derivable (fun _ => ?a) _ _ => apply derivable_cst
+  | |- derivable (fun _ => mul _ _) _ _ => apply derivableM 
+  | |- derivable (fun _ => add _ _) _ _ => apply derivableD
   | |- derivable (fun _ => opp _) _ _ => apply derivableN 
- | |- derivable (fun _ => add _ (opp _)) _ _ => apply derivableB
- | |- derivable (fun _ => fun_of_matrix _ _ _) _ _ => apply derivable_mxP
- | |- derivable (fun x => x) _ _ => apply derivable_id
+  | |- derivable (fun _ => add _ (opp _)) _ _ => apply derivableB
+  | |- derivable (fun _ => fun_of_matrix _ _ _) _ _ => apply derivable_mxP
+  | |- derivable (fun x => x) _ _ => apply derivable_id
 end.
-
 
 Ltac rewrite_matrix_under :=
  let f := fresh "f" in let g := fresh "g" in let y := fresh "y" in 
-   set f := (fun _ => fun_of_matrix _ _ _);
+  lazymatch goal with
+   | |- context [fun _ => fun_of_matrix _ _ _] =>  set f := (fun _ => fun_of_matrix _ _ _)
+   | |- context [fun _ => row_mx _ _] =>  set f := (fun _ => row_mx _ _)
+  end;
    match type of f with ?t => evar (g: t) end;
    replace f with g by (subst f g; extensionality y; rewrite_matrix; reflexivity);
    subst g; clear f.
+
+Ltac compute_addn := 
+repeat match goal with |- context C [addn ?x ?y] => let b := constr:(addn x y) in let c := eval compute in b in
+   change b with c end.
+
+Lemma trmxE : forall [T: Type] [m n: nat] (A: 'M[T]_(m,n)) i j, trmx A i j = A j i.
+Proof.
+intros. apply mxE.
+Qed.
+
+Lemma row__0: forall [T] [m n: nat] (A: 'M[T]_(m,n)) i j z, row j A z i = A j i.
+Proof.
+intros.
+apply mxE.
+Qed.
+
+Lemma col__0: forall [T] [m n: nat] (A: 'M[T]_(m,n)) i j z, col j A i z = A i j.
+Proof.
+intros.
+apply mxE.
+Qed.
+
+Section S.
+Context {R : realType}.
+
+Lemma is_derive_col: forall [n](x: 'rV_n.+1) (i j: 'I_n.+1),
+  is_derive x 'e_i (fun y: 'rV[R]_n.+1 => fun_of_matrix (col j y) 0 0) (if i==j then 1 else 0).
+Proof.
+intros.
+replace (fun _ => _) with (fun A: 'rV[R]_n.+1 => A ord0 j).
+2: extensionality A; symmetry; apply col__0.
+split.
+-
+apply diff_derivable.
+apply differentiable_coord.
+-
+rewrite deriveE; [ | apply differentiable_coord].
+have @f : {linear 'rV[R]_n.+1 -> R}.
+  by exists (fun N : 'rV[R]_( _) => N ord0 j); do 2![eexists]; do ?[constructor];
+     rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
+change (fun _ => fun_of_matrix _ _ _) with (Linear.sort f).
+rewrite diff_lin.
+simpl. rewrite mxE. simpl.
+rewrite eq_sym. destruct (_ == _); auto.
+apply (@coord_continuous (Real.sort R)).
+Qed.
+
+
+Lemma is_derive_coord_simple:
+ forall [n] (x: 'rV[R]_n) i j (z: 'I_1), is_derive x 'e_j (fun y => y z i) (if i==j then 1 else 0).
+Proof.
+intros.
+simpl.
+split.
+apply diff_derivable.
+apply differentiable_coord.
+-
+rewrite deriveE; [ | apply differentiable_coord].
+have @f : {linear 'rV[R]_n -> R}.
+  by exists (fun N : 'rV[R]_( _) => N z i); do 2![eexists]; do ?[constructor];
+     rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
+change (fun _ => fun_of_matrix _ _ _) with (Linear.sort f).
+rewrite diff_lin; [ | apply (@coord_continuous (Real.sort R))].
+simpl. rewrite mxE. clear.
+rewrite ?ord1.
+simpl.
+destruct (i==j); auto.
+Qed.
+
+(* Arguments Ordinal : clear implicits. *)
+
+Ltac is_derive := repeat
+  match goal with
+  | |- is_derive _ _ (fun _ => mul _ _) _ => apply is_deriveM
+  | |- is_derive _ _ (fun _ => add _ (opp _)) _ => apply is_deriveB
+  | |- is_derive _ _ (fun _ => add _ _) _ => apply is_deriveD
+  | |- is_derive _ _ (fun _ => opp _) _ => apply is_deriveN
+  | |- is_derive _ _ (fun=> _) _ => apply is_derive_cst
+  | |- is_derive ?x _ (fun _ => fun_of_matrix (col _ _) _ _) _ => apply (is_derive_col x)
+  | |- is_derive _ 'e__ _ _ => apply is_derive_coord_simple
+ end.
 
 Ltac ord1 := match goal with i:'I_1 |- _ => 
   let Hi := fresh "H" i in destruct i as [i Hi];
@@ -586,66 +588,56 @@ Ltac ord1 := match goal with i:'I_1 |- _ =>
    assert (Hi = isT) by apply Base.proof_irr; subst Hi
   end.
 
-Ltac find_f_composable_1dim G :=
- (* Given G of the form:    (fun y : 'M[R]_(1,n) => context[ fun_of_matrix y 0 i])
-      construct a function f = (fun x: R => context[x]) and change G to (f \o (fun y => fun_of_matrix y 0 i))  *)
- lazymatch G with
- | (fun _ => _) =>  match G with 
-   context [@fun_of_matrix (Real.sort R) 1 1 _ 0 ?i] =>
-   let f := fresh "f" in let H := fresh in
-  evar (f: R -> R);
-  assert (H: G = fun y => f (@fun_of_matrix (Real.sort R) 1 1 y 0 i));
-    [let y := fresh "y" in let g := fresh "g" in 
-      extensionality y;
-       set g := fun_of_matrix _ _ _;
-      clearbody g; simpl in g;
-      subst f; reflexivity 
-     | clear H; change G with (f \o (fun y => @fun_of_matrix (Real.sort R) 1 1 y 0 i))]
-   end
- | context [@fun_of_matrix (Real.sort R) 1 1 ?x 0 ?i] =>
-  let f := fresh "f" in evar (f: R -> R); let H := fresh in 
-  assert (H: G = f (@fun_of_matrix (Real.sort R) 1 1 x 0 i));
-  [let g := fresh "g" in 
-    set g := fun_of_matrix _ _ _; clearbody g; simpl in g; subst f; reflexivity
-  | change G with (f (@fun_of_matrix (Real.sort R) 1 1 x 0 i)); clear H ]
-end.
+Ltac unfold_dθ :=
+unfold Shape.dθ;
+match goal with |- Shape.dθ_ ?A _ = _ =>  let a := eval hnf in A in change A with a end;
+repeat
+lazymatch goal with
+ | |- _ = row_mx _ _ => fail
+ | |- _ = col_mx _ _ => fail
+ | |- _ = ?B => let b := eval red in B in change B with b
+end;
+unfold rowmx_of_list;
+let i := fresh "i" in let j := fresh "j" in 
+apply matrixP => i j; simpl in i, j;
+match goal with |- _ = ?B => let rhs := fresh "rhs" in set rhs :=  B; rewrite ?mxE; subst rhs end;
+repeat match goal with |- context [fun_of_matrix (?F (col _ _)) _ _] => unfold F, rowmx_of_list end.
 
-Ltac is_const_ordinal i ::= let j := eval hnf in i in match j with @Ordinal _ ?k _ => 
-       let k' := eval hnf in k in is_ground_nat k' end. (* REMOVE ME *)
+Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
+    let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
+Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
+Definition shapes1dP1_deriv' (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
+   let x := xm 0 0 in
+   mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
 
-Lemma shapes1dP1_deriv: dθ shapes1dP1 = shapes1dP1_deriv'.
+Definition shapes1dP1 : @Shape.shape R.
+apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_vertices).
+- abstract prove_lagrangian.
+- abstract prove_continuously_differentiable.
+Defined.
+
+Lemma shapes1dP1_deriv: Shape.dθ shapes1dP1 = shapes1dP1_deriv'.
 Proof.
-extensionality x.
-apply matrixP.
-intros i j.
-unfold dθ, dθ_, Shape.θ, shapes1dP1_deriv', shapes1dP1, shapes1dP1_function.
-simpl in *.
-ord1.
-unfold trmx; rewrite mxE.
-rewrite derive_vector_d_n.
-2: clear; intros; simpl in *; repeat ord1; ord_enum_cases i; clear i; rewrite_matrix_under; derivable.
-ord_enum_cases i; clear i.
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = _ => find_f_composable_1dim G end.
-match goal with |- _ = ?y => assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f y) end.
- move => a; apply: is_derive_eq; rewrite ?add0r !mul1r ?scalerN ?scaler1; lra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = _ => find_f_composable_1dim G end.
-match goal with |- _ = ?y => assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f y) end.
- move => a; apply: is_derive_eq; rewrite ?add0r !mul1r ?scalerN ?scaler1; lra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply   (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
+extensionality x. simpl in x.
+unfold_dθ.
+set (f := fun _ => _). simpl in f.
+rewrite -(trmxK (col_mx _ _)).
+set g := (trmx (col_mx _ _)).
+assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
+clear i. 
+subst f g; 
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under.
+  apply is_derive_mx; intros i j; compute in i,j; ord1;
+    ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
+  (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 Qed.
 
 Definition shapes1dP2_vertices : 'cV[R]_3 := mx_of_list [:: [:: -1:R] ; [:: 0]; [:: 1] ].
 Definition shapes1dP2_function (xm: 'rV_1) : 'rV_3 :=
     let x : R := xm 0 0 in rowmx_of_list [::   -(1/2)*(1-x)*x ;  (1-x)*(1+x);   (1/2)*x*(1+x)].
+Definition shapes1dP2_deriv' (xm: 'rV[R]_1) : 'M[R]_(3,1) :=
+   let x := xm 0 0 in
+   mx_of_list ([:: [:: -1/2*(1-2*x)];  [:: -2*x]; [:: 1/2*(1+2*x)]] : list (list (R))).
 
 Definition shapes1dP2 : @Shape.shape R.
 apply (Shape.Build_shape 1 3 shapes1dP2_function shapes1dP2_vertices).
@@ -653,47 +645,20 @@ apply (Shape.Build_shape 1 3 shapes1dP2_function shapes1dP2_vertices).
 - abstract prove_continuously_differentiable.
 Defined.
 
-Definition shapes1dP2_deriv' (xm: 'rV[R]_1) : 'M[R]_(3,1) :=
-   let x := xm 0 0 in
-   mx_of_list ([:: [:: -1/2*(1-2*x)];  [:: -2*x]; [:: 1/2*(1+2*x)]] : list (list (R))).
-
-
-Lemma shapes1dP2_deriv: dθ shapes1dP2 = shapes1dP2_deriv'.
+Lemma shapes1dP2_deriv: Shape.dθ shapes1dP2 = shapes1dP2_deriv'.
 Proof.
-extensionality x.
-apply matrixP.
-intros i j.
-unfold dθ, dθ_, shapes1dP2_deriv', shapes1dP2, shapes1dP2_function.
-simpl in *.
-ord1.
-unfold trmx; rewrite mxE.
-rewrite derive_vector_d_n.
-2: clear; intros; simpl in *; repeat ord1; ord_enum_cases i; clear i; rewrite_matrix_under; derivable.
-ord_enum_cases i; clear i.
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = ?B => find_f_composable_1dim G; find_f_composable_1dim B end.
-assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f (f0 a)).
- move => a; apply: is_derive_eq; rewrite /f0; repeat change (scale ?A ?B) with (mul A B); nra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = ?B => find_f_composable_1dim G; find_f_composable_1dim B end.
-assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f (f0 a)).
- move => a; apply: is_derive_eq; rewrite /f0; repeat change (scale ?A ?B) with (mul A B); nra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply   (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = ?B => find_f_composable_1dim G; find_f_composable_1dim B end.
-assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f (f0 a)).
- move => a; apply: is_derive_eq; rewrite /f0; repeat change (scale ?A ?B) with (mul A B); nra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply   (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
+extensionality x. simpl in x.
+unfold_dθ.
+set (f := fun _ => _). simpl in f.
+rewrite -(trmxK (col_mx _ _)).
+set g := (trmx (col_mx _ _)).
+assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
+clear i. 
+subst f g; 
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under.
+  apply is_derive_mx; intros i j; compute in i,j; ord1;
+    ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
+  (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 Qed.
 
 Definition shapes1dP3_vertices : 'cV[R]_4 := mx_of_list [::  [:: -1:R]; [:: -1/3]; [:: 1/3]; [:: 1]].
@@ -703,7 +668,6 @@ Definition shapes1dP3_function (xm: 'rV_1) : 'rV_4 :=
                                    9/16*(1-x)*(1-3*x)*(1+x); 
                                    9/16*(1-x)*(1+3*x)*(1+x);
                                 -(1/16)*(1-3*x)*(1+3*x)*(1+x) ].
-
 Definition shapes1dP3_deriv' (xm: 'rV[R]_1) : 'M[R]_(4,1) :=
    let x := xm 0 0 in
    mx_of_list ([:: [:: 1/16 * (1 + x*(18 + x*(-27)) )];  
@@ -717,52 +681,21 @@ apply (Shape.Build_shape 1 4 shapes1dP3_function shapes1dP3_vertices).
 - abstract prove_continuously_differentiable.
 Defined.
 
-Lemma shapes1dP3_deriv: dθ shapes1dP3 = shapes1dP3_deriv'.
+Lemma shapes1dP3_deriv: Shape.dθ shapes1dP3 = shapes1dP3_deriv'.
 Proof.
-extensionality x.
-apply matrixP.
-intros i j.
-unfold dθ, dθ_, shapes1dP3_deriv', shapes1dP3, shapes1dP3_function.
-simpl in *.
-ord1.
-unfold trmx; rewrite mxE.
-rewrite derive_vector_d_n.
-2: clear; intros; simpl in *; repeat ord1; ord_enum_cases i; clear i; rewrite_matrix_under; derivable.
-ord_enum_cases i; clear i.
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = ?B => find_f_composable_1dim G; find_f_composable_1dim B end.
-assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f (f0 a)).
- move => a; apply: is_derive_eq; rewrite /f0; repeat change (scale ?A ?B) with (mul A B); nra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = ?B => find_f_composable_1dim G; find_f_composable_1dim B end.
-assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f (f0 a)).
- move => a; apply: is_derive_eq; rewrite /f0; repeat change (scale ?A ?B) with (mul A B); nra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply   (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = ?B => find_f_composable_1dim G; find_f_composable_1dim B end.
-assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f (f0 a)).
- move => a; apply: is_derive_eq; rewrite /f0; repeat change (scale ?A ?B) with (mul A B); nra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply   (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
--
-rewrite_matrix.
-rewrite_matrix_under.
-match goal with |- 'D__ ?G _ = ?B => find_f_composable_1dim G; find_f_composable_1dim B end.
-assert (DERIV: forall a, is_derive a (one (reals_Real__to__GRing_PzSemiRing R)) f (f0 a)).
- move => a; apply: is_derive_eq; rewrite /f0; repeat change (scale ?A ?B) with (mul A B); nra.
-rewrite -(@derive_val _ _ _ _ _ _ _ (DERIV (x 0 0))).
-apply   (equal_f (@derive_comp_mx R O f ltac:(intro; rewrite -derivable1_diffP; apply DERIV) 0) x).
+extensionality x. simpl in x.
+unfold_dθ.
+set (f := fun _ => _). simpl in f.
+rewrite -(trmxK (col_mx _ _)).
+set g := (trmx (col_mx _ _)).
+assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
+clear i. 
+subst f g; 
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under.
+  apply is_derive_mx; intros i j; compute in i,j; ord1;
+    ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
+  (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 Qed.
-
 
 Definition shapes2dP1_vertices : 'M[R]_(4,2) := 
    mx_of_list [:: [:: -1:R; -1]; [:: 1; -1]; [:: 1;1]; [:: -1;1]].
@@ -771,12 +704,6 @@ Definition shapes2dP1_function (xy: 'rV[R]_2) : 'rV[R]_4 :=
    let Nx : 'rV_2 := shapes1dP1_function (col 0 xy) in
    let Ny : 'rV_2 := shapes1dP1_function (col 1 xy) in
   rowmx_of_list [:: Nx 0 0 * Ny 0 0 ; Nx 0 1 * Ny 0 0 ; Nx 0 1 * Ny 0 1 ; Nx 0 0 * Ny 0 1 ].
-
-Definition shapes2dP1 : @Shape.shape R.
-apply (Shape.Build_shape 2 4 shapes2dP1_function shapes2dP1_vertices).
-- abstract prove_lagrangian.
-- abstract prove_continuously_differentiable.
-Defined.
 
 Definition shapes2dP1_deriv' (xm: 'rV[R]_2) : 'M[R]_(4,2) :=
   let Nx := shapes1dP1_function (col 0 xm) in
@@ -789,87 +716,61 @@ Definition shapes2dP1_deriv' (xm: 'rV[R]_2) : 'M[R]_(4,2) :=
                          [:: dNx 1 0 * Ny 0 1 ; Nx 0 1 * dNy 1 0 ];
                          [:: dNx 0 0 * Ny 0 1 ; Nx 0 0 * dNy 1 0 ]]: list (list R)).
 
+Definition shapes2dP1 : @Shape.shape R.
+apply (Shape.Build_shape 2 4 shapes2dP1_function shapes2dP1_vertices).
+- abstract prove_lagrangian.
+- abstract prove_continuously_differentiable.
+Defined.
 
-Lemma derivable_col: forall [n] (x: 'rV[R]_n) (i j: 'I_n), derivable (col i) x 'e_j.
-Admitted.
-
-
-Definition compose2 [A] (f: R -> R -> R) (g: A -> R) (h: A -> R) : A -> R := fun x => f (g x) (h x).
-
-Ltac find_f_composable_2dim G :=
- (* Given G of the form:    (fun y : 'M[R]_(1,n) => context[ fun_of_matrix y 0 i])
-      construct a function f = (fun x: R => context[x]) and change G to (f \o (fun y => fun_of_matrix y 0 i))  *)
- lazymatch G with
- | (fun _ => _) =>  
-match G with 
-   context [@fun_of_matrix (Real.sort R) 1 1 (col _ _) 0 0] =>
-   let f := fresh "f" in let H := fresh in
-  evar (f: R -> R -> R);
-  assert (H: G = fun y : 'rV[R]_2 => f (@fun_of_matrix (Real.sort R) 1 1 (col 0 y) 0 0)  (@fun_of_matrix (Real.sort R) 1 1 (col 1 y) 0 0));
-    [let y := fresh "y" in let g := fresh "g" in let h := fresh "h" in 
-      extensionality y;
-       set g := fun_of_matrix (col 0 _) _ _; set h := fun_of_matrix (col 1 _) _ _;
-      clearbody g; clearbody h; simpl in g; simpl in h;
-      subst f; reflexivity
-     | clear H; change G with (compose2 f (fun y :'rV[R]_2 => @fun_of_matrix (Real.sort R) 1 1 (col 0 y) 0 0)
-                                                       (fun y :'rV[R]_2 => @fun_of_matrix (Real.sort R) 1 1 (col 1 y) 0 0))  ]
-   end
- | context [@fun_of_matrix (Real.sort R) 1 1 (col _ ?x) 0 0] =>
-  let f := fresh "f" in evar (f: R -> R -> R); let H := fresh in 
-  assert (H: G = f (@fun_of_matrix (Real.sort R) 1 1 (col 0 x) 0 0) (@fun_of_matrix (Real.sort R) 1 1 (col 1 x) 0 0));
-  [let g := fresh "g" in let h := fresh "h" in 
-    set g := fun_of_matrix (col 0 x) _ _; set h := fun_of_matrix (col 1 x) _ _;
-    clearbody g; clearbody h; simpl in g; simpl in h; subst f; reflexivity
-  | change G with (f (@fun_of_matrix (Real.sort R) 1 1 (col 0 x) 0 0)  (@fun_of_matrix (Real.sort R) 1 1 (col 1 x) 0 0)); clear H ]
-end.
-
-
-Ltac rewrite_matrix_under' :=
- let f := fresh "f" in let g := fresh "g" in let y := fresh "y" in 
-   set f := (fun _ => row_mx _ _);
-   match type of f with ?t => evar (g: t) end;
-   replace f with g by (subst f g; extensionality y; rewrite_matrix; reflexivity);
-   subst g; clear f.
-
-
-Lemma is_derive_col: forall [n](x: 'rV_n.+1) (i j: 'I_n.+1),
-  is_derive x 'e_i (fun y: 'rV[R]_n.+1 => fun_of_matrix (col j y) 0 0) (if i==j then 1 else 0).
-Admitted.
-
-Arguments Ordinal : clear implicits.
-
-Ltac is_derive := repeat
-  match goal with
-  | |- is_derive _ _ (fun _ => mul _ _) _ => apply is_deriveM
-  | |- is_derive _ _ (fun _ => add _ (opp _)) _ => apply is_deriveB
-  | |- is_derive _ _ (fun _ => add _ _) _ => apply is_deriveD
-  | |- is_derive _ _ (fun _ => opp _) _ => apply is_deriveN
-  | |- is_derive _ _ (fun=> _) _ => apply is_derive_cst
-  | |- is_derive ?x _ (fun _ => fun_of_matrix (col _ _) _ _) _ => apply (is_derive_col x)
- end.
-
-
-Lemma derivable_shapes2dP1: 
- forall (j: 'I_2) (x : 'rV[R]_2), derivable (Shape.θ shapes2dP1) x 'e_j.
- (* when is_derive_mx is invented, this lemma won't be needed any more *)
-Admitted.
-
-
-Lemma shapes2dP1_deriv: dθ shapes2dP1 = shapes2dP1_deriv'.
+Lemma shapes2dP1_deriv: Shape.dθ shapes2dP1 = shapes2dP1_deriv'.
 Proof.
 extensionality x. simpl in x.
-unfold dθ, dθ_.
-apply matrixP => i j.
-rewrite mxE.
-rewrite derive_mx; [ | apply derivable_shapes2dP1].
-rewrite mxE. simpl.
-unfold shapes2dP1_deriv', shapes2dP1_function, shapes1dP1_deriv', shapes1dP1_function, rowmx_of_list.
-simpl in i,j.
-ord_enum_cases j; clear j; ord_enum_cases i; clear i; rewrite_matrix; rewrite_matrix_under;
-match goal with |- derive ?f ?x ?v = ?df => 
-   assert (DERIV: is_derive x v f df); [  | apply DERIV]; apply: is_derive_eq; [is_derive | ]
-end;
-simpl;  repeat change (scale ?A ?B) with (mul A B); lra.
+unfold_dθ.
+set (f := fun _ => _). simpl in f.
+rewrite -(trmxK (col_mx _ _)).
+set g := (trmx (col_mx _ _)).
+assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
+clear i. 
+subst f g; 
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under;
+  apply is_derive_mx; intros i j; compute in i,j; ord1;
+    ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
+   (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
+Qed.
+
+Definition shapes2dT1_vertices : 'M[R]_(3,2) := 
+    mx_of_list [:: [:: 0:R; 0]; [:: 1; 0]; [:: 0; 1]].
+Definition shapes2dT1_function (xy: 'rV[R]_2) : 'rV[R]_3 :=
+   let x : R := xy 0 0 in
+   let y : R := xy 0 1 in
+   rowmx_of_list [:: 1-x-y; x; y]. 
+
+Definition shapes2dT1_deriv' (xm: 'rV[R]_2) : 'M[R]_(3,2) :=
+  let x := xm 0 0 in let y := xm 0 1 in
+  mx_of_list ([:: [:: -1 ; -1 ];
+                         [:: 1 ; 0 ];
+                         [:: 0 ; 1]]: list (list R)).
+
+Definition shapes2dT1 : @Shape.shape R.
+apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_vertices).
+- abstract prove_lagrangian.
+- abstract prove_continuously_differentiable.
+Defined.
+
+Lemma shapes2T1_deriv: Shape.dθ shapes2dT1 = shapes2dT1_deriv'.
+Proof.
+extensionality x. simpl in x.
+unfold_dθ.
+set (f := fun _ => _). simpl in f.
+rewrite -(trmxK (col_mx _ _)).
+set g := (trmx (col_mx _ _)).
+assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
+clear i. 
+subst f g; 
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under;
+  apply is_derive_mx; intros i j; compute in i,j; ord1;
+    ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
+   (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl);lra ]).
 Qed.
 
 Definition shapes2dP2_vertices : 'M[R]_(9,2) := 
@@ -900,19 +801,6 @@ Definition shapes2dS2_function (xy: 'rV[R]_2) : 'rV[R]_8 :=
 
 Definition shapes2dS2 : @Shape.shape R.
 apply (Shape.Build_shape 2 8 shapes2dS2_function shapes2dS2_vertices).
-- abstract prove_lagrangian.
-- abstract prove_continuously_differentiable.
-Defined.
-
-Definition shapes2dT1_vertices : 'M[R]_(3,2) := 
-    mx_of_list [:: [:: 0:R; 0]; [:: 1; 0]; [:: 0; 1]].
-Definition shapes2dT1_function (xy: 'rV[R]_2) : 'rV[R]_3 :=
-   let x : R := xy 0 0 in
-   let y : R := xy 0 1 in
-   rowmx_of_list [:: 1-x-y; x; y].
-
-Definition shapes2dT1 : @Shape.shape R.
-apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_vertices).
 - abstract prove_lagrangian.
 - abstract prove_continuously_differentiable.
 Defined.

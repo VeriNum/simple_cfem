@@ -350,11 +350,12 @@ match goal with
                 let ss := fresh "ss" in set (ss := @split_shift1 m1 _ _); rewrite (proof_irr ss isT); clear ss H
               | try (exfalso; clear - H; lia); 
                 let ss := fresh "ss" in set (ss := @split_shift2 m1 m2 _ _); rewrite (proof_irr ss isT); clear ss H] 
-  | |- _ => rewrite const_mxE
-  | |- _ => rewrite row_0_1
-  | |- _ => rewrite col_0_1
-  | |- _ => rewrite row_col_E
-  | |- _ => rewrite col_row_E
+   | |- context [trmx (@col_mx ?R ?m1 ?m2 ?n ?A ?B)] => rewrite (@tr_col_mx R m1 m2 n A B)
+   | |- context [trmx (@row_mx ?R ?m ?n1 ?n2 ?A ?B)] => rewrite (@tr_row_mx R m n1 n2 A B)
+ | |- context [@row _ _ _ ?i (@row_mx ?R ?m ?n1 ?n2 ?A1 ?A2)] => rewrite (@row_row_mx R m n1 n2 i A1 A2)
+ | |- context [@col _ _ _ ?j (@col_mx ?R ?m1 ?m2 ?n ?A1 ?A2)] => rewrite (@col_col_mx R m1 m2 n j A1 A2)
+   | |- _ => progress rewrite ?trmx_const ?const_mxE ?row_0_1 ?col_0_1
+                 ?row_col_E ?col_row_E
   | i: 'I_1 |- _ =>  let H := fresh in assert (H := ord1 i); simpl in H; subst i
   | H: 'I__ |- _ => progress simpl in H
   | H: ~(nat_of_ord _ < _)%nat |- _ => simpl in H
