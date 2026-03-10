@@ -568,6 +568,7 @@ rewrite ?ord1.
 simpl.
 destruct (i==j); auto.
 Qed.
+End S.
 
 (* Arguments Ordinal : clear implicits. *)
 
@@ -603,6 +604,8 @@ apply matrixP => i j; simpl in i, j;
 match goal with |- _ = ?B => let rhs := fresh "rhs" in set rhs :=  B; rewrite ?mxE; subst rhs end;
 repeat match goal with |- context [fun_of_matrix (?F (col _ _)) _ _] => unfold F, rowmx_of_list end.
 
+Section S.
+Context {R : realType}.
 Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
     let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
 Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].

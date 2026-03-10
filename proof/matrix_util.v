@@ -9,6 +9,8 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Set Bullet Behavior "Strict Subproofs".
 
+Notation Ordn i j := (@Ordinal i j (ssrbool.isT)).
+
 Definition from_'I0_any (T: Type) (i: 'I_0) : T.
 destruct i. discriminate.
 Qed.
@@ -248,6 +250,21 @@ rewrite <- col_lsubmx, row_mxKl. auto.
 rewrite <- col_rsubmx, row_mxKr. auto.
 Qed.
 
+Lemma col_E_specific: (* Integrate this into rewrite_matrix *)
+  forall [T: Type] [m n: nat] (A: 'M[T]_(m,n)) (k: 'I_n) (i: 'I_m) (j: 'I_1),
+    fun_of_matrix (col k A) i j = A i k.
+Proof.
+intros.
+unfold col; apply mxE.
+Qed.
+
+Lemma row_E_specific:
+  forall [T: Type] [m n: nat] (A: 'M[T]_(m,n)) (k: 'I_m) (i: 'I_1) (j: 'I_n),
+   fun_of_matrix (row k A) i j = A k j.
+Proof.
+intros; apply mxE.
+Qed.
+
 (* TODO: see if we can unify these two similar tactics, row_col_matrix_tac and rewrite_matrix *)
 
 Ltac row_col_matrix_tac :=
@@ -355,7 +372,7 @@ match goal with
  | |- context [@row _ _ _ ?i (@row_mx ?R ?m ?n1 ?n2 ?A1 ?A2)] => rewrite (@row_row_mx R m n1 n2 i A1 A2)
  | |- context [@col _ _ _ ?j (@col_mx ?R ?m1 ?m2 ?n ?A1 ?A2)] => rewrite (@col_col_mx R m1 m2 n j A1 A2)
    | |- _ => progress rewrite ?trmx_const ?const_mxE ?row_0_1 ?col_0_1
-                 ?row_col_E ?col_row_E
+                 ?row_col_E ?col_row_E ?col_E_specific ?row_E_specific
   | i: 'I_1 |- _ =>  let H := fresh in assert (H := ord1 i); simpl in H; subst i
   | H: 'I__ |- _ => progress simpl in H
   | H: ~(nat_of_ord _ < _)%nat |- _ => simpl in H
@@ -433,12 +450,12 @@ Ltac ord_enum_cases j :=
  end.
 
 Ltac simplify_ordinal i := 
-   (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i (eq_refl true)  *)
-      lazymatch i with @Ordinal _ _ (eq_refl _) => fail | _ => idtac end;
+   (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i isT  *)
+      lazymatch i with @Ordn _ _  => fail | _ => idtac end;
       let j := eval hnf in i in
       let n := constr:(nat_of_ord j) in let n1 := eval hnf in n in 
          is_ground_nat n1; 
          match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
-             replace i with (@Ordinal k n1 (eq_refl true)) by (apply ord_inj; reflexivity)
+             replace i with (@Ordn k n1) by (apply ord_inj; reflexivity)
         end end.
 
