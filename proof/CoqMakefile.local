@@ -1,5 +1,5 @@
 #
-COQDOCEXTRAFLAGS= -g --no-lib-name --index genindex --lib-subtitles --interpolate -utf8
+COQDOCEXTRAFLAGS= -g --no-lib-name --with-header header.html --index genindex --lib-subtitles --interpolate -utf8
 
 publish: html
 	cd ../gh-pages; git submodule update

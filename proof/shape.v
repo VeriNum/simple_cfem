@@ -4,7 +4,7 @@
   as well as the real-valued functional models of some shape functions from ../src/shapes.c 
 *)
 From mathcomp Require Import all_ssreflect ssralg ssrnum archimedean finfun.
-From mathcomp Require Import all_algebra all_field all_analysis all_reals.
+From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory.
 From CFEM Require Import matrix_util.
 
@@ -95,17 +95,6 @@ End Shape.
 
 From Stdlib Require Import Lia.
 From Stdlib Require Import FunctionalExtensionality.
-
-Ltac case_splitP j :=  (* this is copied from LAProof somewhere *)
-  tryif clearbody j then fail "case_splitP requires a variable, but got  a local definition" j
-  else tryif is_var j then idtac else fail "case_splitP requires a variable, but got" j;
- match type of j with 'I_(addn ?a ?b) =>
-  let i := fresh "j" in let H := fresh in 
-  destruct (splitP j) as [i H | i H];
- [replace j with (@lshift a b i); [ | apply ord_inj; simpl; lia]
- |replace j with (@rshift a b i); [ | apply ord_inj; simpl; lia]];
- clear j H; rename i into j
- end.
 
 Lemma eq_differentiable: forall {K: numDomainType} {V W: normedModType K} 
    (f g: NormedModule.sort V -> NormedModule.sort W) x,
@@ -227,8 +216,8 @@ Inductive is_multivariate_polynomial [d] : ('rV[R]_d -> R) -> Prop :=
             is_multivariate_polynomial (fun x => - a x)
 | IMP_prod: forall a b, is_multivariate_polynomial a -> is_multivariate_polynomial b ->
             is_multivariate_polynomial (fun x => a x * b x)
-| IMP_mono1: forall i (k: nat), is_multivariate_polynomial (fun x => x 0 i)
-| IMP_mono: forall i (k: nat), is_multivariate_polynomial (fun x => x 0 i ^ k).
+| IMP_mono1: forall i j, is_multivariate_polynomial (fun x => x i j)
+| IMP_mono: forall i j (k: nat), is_multivariate_polynomial (fun x => x i j ^ k).
 
 Lemma continuously_differentiable_cst: forall [d] c, @continuously_differentiable R d.+1 (fun=>c).
 Proof.
@@ -311,10 +300,12 @@ apply (@continuousM _ _ _ _ _ (differentiable_continuous (Db x)) (Ca i x)).
 Qed.
 
 Lemma continously_differentiable_coord: 
-  forall [d] (i: 'I_d.+1),
-continuously_differentiable (fun x : 'rV[R]_d.+1 => fun_of_matrix x 0 i).
+  forall [d] (i: 'I_1) (j: 'I_d.+1),
+continuously_differentiable (fun x : 'rV[R]_d.+1 => fun_of_matrix x i j).
 Proof.
 intros.
+rewrite ord1. clear i.
+rename j into i.
 split; simpl; intros.
 apply differentiable_coord.
 rename i0 into j.
@@ -386,20 +377,39 @@ Qed.
 
 End S.
 
+Ltac rewrite_matrix_under :=
+ let f := fresh "f" in let g := fresh "g" in let y := fresh "y" in 
+  lazymatch goal with
+   | |- context [fun _ => fun_of_matrix _ _ _] =>  set f := (fun _ => fun_of_matrix _ _ _)
+   | |- context [fun _ => row_mx _ _] =>  set f := (fun _ => row_mx _ _)
+  end;
+   match type of f with ?t => evar (g: t) end;
+   replace f with g by (subst f g; extensionality y; rewrite_matrix; reflexivity);
+   subst g; clear f.
+
 Ltac prove_continuously_differentiable :=
 let j := fresh "j" in 
-intro j;
+intro j; ord_enum_cases j; clear j;
 lazymatch goal with
-  |  j: 'I_?n |- continuously_differentiable (fun i => fun_of_matrix (?f i) 0 j) => try unfold f
-  | |- _ => fail "prove_continuously_differentiable must be applied to a goal of the form, continuously_differentiable (fun i => ...)"
+  | |- continuously_differentiable ?f =>
+      let g := fresh "g" in let y := fresh "y" in 
+      match type of f with ?t => evar (g: t) end;
+     replace f with g; [ subst g |
+      subst g; extensionality y;
+      match goal with |- _ = fun_of_matrix (?f y) _ _ => unfold f end;
+      try lazymatch goal with |- context [fun_of_matrix (?f (col _ _))] => unfold f end;
+      unfold rowmx_of_list;
+      repeat match goal with
+      | |- context [fun_of_matrix _ ?i _] => simplify_ordinal i
+      | |- context [fun_of_matrix _ _ ?j] => simplify_ordinal j
+     end;
+      simpl;
+      rewrite_matrix;
+      reflexivity
+    ]
 end;
-repeat match type of j with context [S (S ?A)] => change  (S (S ?A)) with (1 + S A)%nat in j end;
-repeat case_splitP j; rewrite !ord1 /=;
-rewrite [continuously_differentiable]lock;
-repeat (under eq_locked_continuously_differentiable do [ rewrite /at00 ?mxE /split /= ];
-            repeat (destruct (ltnP _ _); try discriminate));
-rewrite -lock;
-apply multivariate_polynomial_continuously_differentiable; repeat constructor.
+apply multivariate_polynomial_continuously_differentiable;
+   repeat constructor.
 
 Ltac split_I_n := 
 repeat 
@@ -491,16 +501,6 @@ match goal with
   | |- derivable (fun x => x) _ _ => apply derivable_id
 end.
 
-Ltac rewrite_matrix_under :=
- let f := fresh "f" in let g := fresh "g" in let y := fresh "y" in 
-  lazymatch goal with
-   | |- context [fun _ => fun_of_matrix _ _ _] =>  set f := (fun _ => fun_of_matrix _ _ _)
-   | |- context [fun _ => row_mx _ _] =>  set f := (fun _ => row_mx _ _)
-  end;
-   match type of f with ?t => evar (g: t) end;
-   replace f with g by (subst f g; extensionality y; rewrite_matrix; reflexivity);
-   subst g; clear f.
-
 Ltac compute_addn := 
 repeat match goal with |- context C [addn ?x ?y] => let b := constr:(addn x y) in let c := eval compute in b in
    change b with c end.
@@ -583,12 +583,6 @@ Ltac is_derive := repeat
   | |- is_derive _ 'e__ _ _ => apply is_derive_coord_simple
  end.
 
-Ltac ord1 := match goal with i:'I_1 |- _ => 
-  let Hi := fresh "H" i in destruct i as [i Hi];
-   destruct i; [ | discriminate Hi];
-   assert (Hi = isT) by apply Base.proof_irr; subst Hi
-  end.
-
 Ltac unfold_dθ :=
 unfold Shape.dθ;
 match goal with |- Shape.dθ_ ?A _ = _ =>  let a := eval hnf in A in change A with a end;
@@ -612,6 +606,19 @@ Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
 Definition shapes1dP1_deriv' (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
    let x := xm 0 0 in
    mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
+
+
+Ltac compute_ord_enum n ::= 
+  tryif is_ground_nat n then idtac 
+      else  fail "compute_ord_enum: Need a ground term natural number, but got" n; 
+  pattern (ord_enum n); 
+  match goal with |- ?F _ => 
+    let f := fresh "f" in set (f:=F);
+      let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
+      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
+        [ replace e with ssrbool.isT by apply Base.proof_irr; clear e | try (contradiction e; reflexivity)]);
+     subst f
+  end.
 
 Definition shapes1dP1 : @Shape.shape R.
 apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_vertices).
@@ -725,6 +732,16 @@ apply (Shape.Build_shape 2 4 shapes2dP1_function shapes2dP1_vertices).
 - abstract prove_continuously_differentiable.
 Defined.
 
+Ltac simplify_ordinal i ::= 
+   (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i isT  *)
+      lazymatch i with @Ordn _ _  => fail | _ => idtac end;
+      let j := eval compute in i in
+      let n := constr:(nat_of_ord j) in let n1 := eval hnf in n in 
+         is_ground_nat n1; 
+         match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
+             replace i with (@Ordn k n1) by (apply ord_inj; reflexivity)
+        end end.
+
 Lemma shapes2dP1_deriv: Shape.dθ shapes2dP1 = shapes2dP1_deriv'.
 Proof.
 extensionality x. simpl in x.
@@ -735,7 +752,8 @@ set g := (trmx (col_mx _ _)).
 assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
 clear i. 
 subst f g; 
-ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under;
+ord_enum_cases j; clear j;  
+rewrite_matrix; rewrite_matrix_under;
   apply is_derive_mx; intros i j; compute in i,j; ord1;
     ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
    (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
@@ -760,7 +778,7 @@ apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_vertices).
 - abstract prove_continuously_differentiable.
 Defined.
 
-Lemma shapes2T1_deriv: Shape.dθ shapes2dT1 = shapes2dT1_deriv'.
+Lemma shapes2dT1_deriv: Shape.dθ shapes2dT1 = shapes2dT1_deriv'.
 Proof.
 extensionality x. simpl in x.
 unfold_dθ.
@@ -809,171 +827,3 @@ apply (Shape.Build_shape 2 8 shapes2dS2_function shapes2dS2_vertices).
 Defined.
 
 End S.
-
-(** some experiments with mathcomp.algebra's Lagrange polynomials *)
-
-From mathcomp Require Import algebra.qpoly.
-
-
-Ltac simpl_bigop_index_enum :=
-match goal with |- context [@bigop.body ?t1 ?t2 ?idx (index_enum ?s) ?f] => pattern (@bigop.body t1 t2 idx (index_enum s) f)  end;
-match goal with |- ?hideme _ => let hide := fresh "hide" in
-   set hide := hideme;
-   rewrite bigop.unlock locked_withE Finite.enum.unlock /= /ord_enum /= /reducebig /Option.apply !insubT /Sub /=;
-   subst hide; cbv beta
-end.
-
-Lemma bigop_2_1: forall [R] [op: R -> R -> R] [idx: R] (f: 'I_2 -> R), \big[op/idx]_(i < 2 | i != 0) f i = op (f 1) idx.
-Proof.
-intros.
-simpl_bigop_index_enum.
-f_equal. f_equal.
-apply ord_inj; reflexivity.
-Qed.
-
-Lemma bigop_2_0: forall [R] [op: R -> R -> R] [idx: R] (f: 'I_2 -> R), \big[op/idx]_(i < 2 | i != 1) f i = op (f 0) idx.
-Proof.
-intros.
-simpl_bigop_index_enum.
-f_equal. f_equal.
-apply ord_inj; reflexivity.
-Qed.
-
-Section S.
-Context {R : realType}.
-
-Definition R_of_nat : nat ->  R  := @natmul  (Num_NumDomain__to__Algebra_BaseAddUMagma R) 1.
-
-Lemma injective_R_of_nat : injective R_of_nat.
-Proof.
-apply (@mulrIn R).
-apply lt0r_neq0.
-change (is_true ((0 : Num.NumDomain.sort R) < (1 : Num.NumDomain.sort R))).
-apply ltr01.
-Qed.
-
-Hint Resolve injective_R_of_nat : core.
-
-Definition the_points : nat -> Nmodule.sort R  := fun i => -1 + natmul 2 i.
-Lemma injective_the_points: injective the_points.
-Proof.
-rewrite /the_points.
-move => x y.
-set a := natmul 2 x.
-set b := natmul 2 y.
-move => H.
-assert (a = b).
-clearbody a; clearbody b.
-lra.
-subst a b; revert H0; clear. revert x y.
-apply mulrIn.
-apply lt0r_neq0.
-change (is_true ((0 : Num.NumDomain.sort R) < (2 : Num.NumDomain.sort R))).
-lra.
-Qed.
-
-Hint Resolve injective_the_points : core.
-
-Definition lagrange_2 := lagrange 2 the_points.
-Definition lagrange_2_0 : {poly_2 R} := tnth lagrange_2 0.
-
-Lemma sub_natmulE1: forall (x: R) (i j: nat), is_true (j<=i)%N -> add (natmul x i) (opp (natmul x j)) = (natmul x (subn i j)).
-Proof.
-intros.
-rewrite mulrnBr //.
-Qed.
-
-Lemma sub_natmulE2: forall (x: R) (i j: nat), is_true (i<=j)%N -> add (natmul x i) (opp (natmul x j)) = opp (natmul x (subn j i)).
-Proof.
-intros.
-rewrite mulrnBr //. lra.
-Qed.
-
-Ltac rsimpl := 
-   repeat (rewrite ?opprK ?invrN ?subr0 ?invr1 ?subr0 ?mul1r ?mulr1 ?mulN1r ?opprB ?addSn ?add0n ?mulN1r;
-                try (rewrite modn_small; [ | lia]);
-                try (rewrite sub_natmulE1; [ | lia]);
-                try (rewrite sub_natmulE2; [ | lia])).
-
-Goal forall x, horner (tnth lagrange_2 0) x = (2^-1) * (1 - x).
-Proof.
-move => x.
-rewrite lagrangeE // /the_points /=.
-simpl_bigop_index_enum.
-rewrite !hornerE /=.
-rsimpl.
-rewrite addNr add0r -opprB invrN mulNr -mulrN.
-f_equal; try lra.
-f_equal.
-lra.
-Qed.
-
-Goal forall x, horner (tnth lagrange_2 1) x =  (2^-1) * (1 + x).
-Proof.
-move => x.
-rewrite lagrangeE // /the_points /=.
-simpl_bigop_index_enum.
-rewrite !hornerE /=.
-rsimpl.
-rewrite addNr add0r.
-f_equal.
-lra.
-Qed.
-
-
-Goal forall i j : 'I_2, horner (tnth lagrange_2 i) (the_points j) = (i==j)%:R.
-Proof.
-move => i j.
-apply lagrange_sample; auto.
-Qed.
-
-Goal forall x, horner (tnth (lagrange 1 R_of_nat) 0) x = 1.
-Proof.
-move => x.
-rewrite lagrangeE // /R_of_nat /=.
-simpl_bigop_index_enum.
-rewrite !hornerE /=.
-rsimpl.
-auto.
-Qed.
-
-
-
-Goal forall x, horner (tnth (lagrange 3 R_of_nat) 0) x = 2^-1 * (x - 1) * (x - 2) .
-Proof.
-move => x.
-rewrite lagrangeE // /R_of_nat /=.
-simpl_bigop_index_enum.
-rewrite !hornerE /=.
-rsimpl.
-auto.
-Qed.
-
-
-Goal forall x, horner (tnth (lagrange 3 R_of_nat) 1) x = - x * (x - 2).
-Proof.
-move => x.
-rewrite lagrangeE // /R_of_nat /=.
-simpl_bigop_index_enum.
-rewrite !hornerE /=.
-rsimpl.
-auto.
-Qed.
-
-Goal forall x, horner (tnth (lagrange 3 R_of_nat) 2) x = 2^-1 * x * (x - 1).
-Proof.
-move => x.
-rewrite lagrangeE // /R_of_nat /=.
-simpl_bigop_index_enum.
-rewrite !hornerE /=.
-rsimpl.
-auto.
-Qed.
-
-   
-
-Fail Lemma poly_continuously_differentiable: forall p : {poly R}, continuously_differentiable (horner p).
-
-End S.
-
-

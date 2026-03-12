@@ -857,6 +857,68 @@ Definition relate_2dT1deriv_0_0 :=
    ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 0) (Ordn 2 0))).
 Definition f_2dT1deriv_0_0 := ltac:(related_matrix2 relate_2dT1deriv_0_0).
 
+(*
+Definition foo: False.
+let f := constr:(fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 0) (Ordn 2 1)) in 
+let x := fresh "x" in let y := fresh "y" in 
+let g := fresh "g" in 
+evar (g: ftype Tdouble -> ftype Tdouble -> ftype Tdouble);
+let H := fresh in 
+let prop := constr:(forall x y : ftype Tdouble, f x y = g x y) in let prop := eval cbv beta in prop in 
+assert (H: prop);  [
+  intros x y;
+ unfold FShape.θ, FShape.dθ; simpl;
+ match goal with |- fun_of_matrix ?a _ _ = _ => 
+        let b := eval red in a in change a with b 
+  end;
+ unfold shapes1dP1_float, shapes1dP1_fderiv;
+ unfold rowmx_of_list; simpl seq.size;
+  match goal with |- ?A => let b := changeStdLibToCore A in change b end;
+idtac (*
+ rewrite_matrix;
+  subst g; reflexivity *)
+ | subst g].
+{
+rewrite_matrix.
+Import Base ssrnat ssrfun ssrbool.
+
+Ltac foo :=
+match goal with
+  | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 ?A ?B) ?i ?j ] => is_const_ordinal j;
+    let j' := constr:(nat_of_ord j) in
+     let j' := eval compute in j' in  
+     let a := fresh "a" in let b := fresh "b" in let H := fresh in
+     destruct (ssrnat.leq (S j') n1) eqn:H;
+  [ try discriminate H;
+    clear H; 
+    pose (b:=B); 
+    change (fun_of_matrix (@row_mx T m n1 n2 A B) i j) with (fun_of_matrix  (@row_mx T m n1 n2 A b) i j);
+    clearbody b;
+    rewrite(@row_mxEl' T m n1 n2 A b i j isT); clear b; try change (nat_of_ord j) with j'
+  | try discriminate H;
+    clear H; 
+    pose (a:=A); 
+    change (fun_of_matrix (@row_mx T m n1 n2 A B) i j) with (fun_of_matrix  (@row_mx T m n1 n2 a B) i j);
+    clearbody a;
+    let k := constr:(subn j' n1) in let k := eval compute in k in 
+    generalize (@row_mxEr' T m n1 n2 a B i j isF  k erefl isT);
+    set (b := B)  at 1 3; clearbody b; intro H; rewrite H; clear H a b
+ ]
+end.
+foo.
+foo.
+
+intro H.
+rewrite H.
+
+fold b at 1.
+intro H; rewrite H.
+
+
+
+translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 0) (Ordn 2 1)).
+*)
+
 Definition relate_2dT1deriv_0_1 := 
    ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 0) (Ordn 2 1))).
 Definition f_2dT1deriv_0_1 := ltac:(related_matrix2 relate_2dT1deriv_0_1).
@@ -890,6 +952,30 @@ prove_rndval; interval.
  prove_roundoff_bound2.
  rewrite Rminus_diag. rewrite Rabs_R0. apply Rle_refl.
 Qed.
+
+(*
+Ltac HO_reify_float_expr names E :=
+  lazymatch names with
+  | ?n :: ?names' =>
+      lazymatch type of E with
+      | ftype ?ty -> _ => let Ev := constr:((E (placeholder ty n))) in
+                          HO_reify_float_expr names' Ev
+      | ?foo => fail 100 "could not reify" E foo
+      end
+  | [] => reify_float_expr E
+  end.
+
+*)
+Definition r_2dT1_deriv_0_1 : expr Tdouble.
+   match type of f_2dT1deriv_0_1 with ?t => let n := function_arity t in
+        let vars := constr:(firstn_canon_idents n) in let vars := eval compute in vars in 
+        let e' := HO_reify_float_expr vars f_2dT1deriv_0_1
+       in exact e'
+   end.
+
+
+Show Proof.
+Defined.
 
 Lemma prove_roundoff_bound_2dT1deriv_0_1:  
     forall vmap,  prove_roundoff_bound simplex_boundsmap_2d vmap ltac:(reify_function f_2dT1deriv_0_1) acc_2dT1deriv.
@@ -1223,6 +1309,7 @@ unfold addmx, oppmx, map2_mx, map_mx.
  rewrite !mxE.
 realify; rewrite Rplus_opp.
 revert VALID vmap.
+rewrite_matrix.
 repeat match goal with
  | |- context [fun_of_matrix x ?i _ ] => simplify_ordinal i
  | |- context [fun_of_matrix x  _ ?j ] => simplify_ordinal j
@@ -1230,7 +1317,7 @@ end;
 intros VALID vmap H.
 ord_enum_cases j; clear j.
 +
-ord_enum_cases i; clear i; rewrite_matrix; (*; rewrite ?col_E_specific, ?row_E_specific; *)
+ord_enum_cases i; clear i; rewrite_matrix;
  [ generalize (prove_roundoff_bound_2dP1deriv_0_0 _ H); clear H
  | generalize (prove_roundoff_bound_2dP1deriv_1_0 _ H); clear H
  | generalize (prove_roundoff_bound_2dP1deriv_2_0 _ H); clear H
@@ -1247,7 +1334,7 @@ rewrite ?mxE;
 unfold Defs.F2R; simpl;
 try reflexivity; try nra.
 +
-ord_enum_cases i; clear i; rewrite_matrix; (* rewrite ?col_E_specific, ?row_E_specific; *)
+ord_enum_cases i; clear i; rewrite_matrix;
  [ generalize (prove_roundoff_bound_2dP1deriv_0_1 _ H); clear H
  | generalize (prove_roundoff_bound_2dP1deriv_1_1 _ H); clear H
  | generalize (prove_roundoff_bound_2dP1deriv_2_1 _ H); clear H
@@ -1326,7 +1413,7 @@ Lemma roundoff_bound_2dT1: roundoff_bound_lemma shapes2dT1
         (FShape.dθ shapes2dT1F) acc_2dT1deriv.
 Proof.
 red; simpl; intro x.
-rewrite shapes2T1_deriv.  (* TODO: correct spelling to 2dT1_deriv *)
+rewrite shapes2dT1_deriv.
 simplify_vmap_of_rV.
 intro H; split; intros; revert H.
 -
@@ -1348,6 +1435,7 @@ repeat match goal with
  | |- context [fun_of_matrix x  _ ?j ] => simplify_ordinal j
 end;
 intros VALID vmap H.
+rewrite_matrix.
 ord_enum_cases j;
 [ generalize (prove_roundoff_bound_2dT1_0 _ H); clear H
 | generalize (prove_roundoff_bound_2dT1_1 _ H); clear H
@@ -1392,7 +1480,7 @@ end;
 intros VALID vmap H.
 ord_enum_cases j; clear j.
 +
-ord_enum_cases i; clear i; rewrite_matrix; (*rewrite  ?col_E_specific, ?row_E_specific; *)
+ord_enum_cases i; clear i; rewrite_matrix;
  [ generalize (prove_roundoff_bound_2dT1deriv_0_0 _ H); clear H
  | generalize (prove_roundoff_bound_2dT1deriv_1_0 _ H); clear H
  | generalize (prove_roundoff_bound_2dT1deriv_2_0 _ H); clear H
@@ -1404,11 +1492,10 @@ end;
 simpl;
 cbv [env_ vmap proj1_sig Maps.PTree.get Maps.PTree.get' typesize_eq_dec];
 simpl;
-rewrite ?mxE;
 unfold Defs.F2R; simpl;
 try reflexivity; try nra.
 +
-ord_enum_cases i; clear i; rewrite_matrix; (* rewrite ?col_E_specific, ?row_E_specific; *)
+ord_enum_cases i; clear i; rewrite_matrix;
  [ generalize (prove_roundoff_bound_2dT1deriv_0_1 _ H); clear H
  | generalize (prove_roundoff_bound_2dT1deriv_1_1 _ H); clear H
  | generalize (prove_roundoff_bound_2dT1deriv_2_1 _ H); clear H

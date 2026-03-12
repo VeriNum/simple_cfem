@@ -154,9 +154,9 @@ Definition shapes2dT1_float (xy: 'rV[ftype Tdouble]_2) : 'rV[ftype Tdouble]_3 :=
 Definition shapes2dT1_fderiv (xy: 'rV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(3,2) :=
    let x : ftype Tdouble := xy 0 0 in
    let y : ftype Tdouble := xy 0 1 in
-   mx_of_list ([:: [:: -1; -1];
-                        [:: 1; 0];
-                        [:: 0; 1]]%F64 : list (list (ftype Tdouble))).
+   mx_of_list ([:: [:: -1.0; -1.0];
+                        [:: 1.0; 0.0];
+                        [:: 0.0; 1.0]]%F64 : list (list (ftype Tdouble))).
 
 
 Definition shapes2dT1F : @FShape.shape Tdouble :=

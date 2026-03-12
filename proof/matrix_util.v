@@ -174,6 +174,40 @@ apply col_mxEu.
 apply col_mxEd.
 Qed.
 
+Lemma row_mxEl': forall [T: Type][m n1 n2: nat] (A1: 'M[T]_(m,n1)) (A2: 'M[T]_(m,n2)) (i: 'I_m) (j: 'I_(n1+n2))
+   (H: is_true (ssrnat.leq (S (nat_of_ord j)) n1)),
+    row_mx A1 A2 i j = A1 i  (@Ordinal n1 (nat_of_ord j) H).
+Proof.
+ intros. rewrite row_mxE. destruct (Compare_dec.lt_dec _ _); try lia. repeat f_equal. apply proof_irr.
+Qed.
+
+Lemma row_mxEr': forall [T: Type][m n1 n2: nat] (A1: 'M[T]_(m,n1)) (A2: 'M[T]_(m,n2)) (i: 'I_m) (j: 'I_(n1+n2))
+   (H: (ssrnat.leq (S (nat_of_ord j)) n1) = false)
+   (k: nat)
+   (H0: k = subn (nat_of_ord j)  n1)
+   (H1: (ssrnat.leq (S k) n2) = true),
+    row_mx A1 A2 i j = A2 i  (@Ordinal n2 k H1).
+Proof.
+ intros. subst k. rewrite row_mxE. destruct (Compare_dec.lt_dec _ _). lia. repeat f_equal; apply proof_irr.
+Qed.
+
+Lemma col_mxEu': forall [T: Type][m1 m2 n: nat] (A1: 'M[T]_(m1,n)) (A2: 'M[T]_(m2,n)) (i: 'I_(m1+m2)) (j: 'I_n)
+   (H: is_true (ssrnat.leq (S (nat_of_ord i)) m1)),
+    col_mx A1 A2 i j = A1  (@Ordinal m1 (nat_of_ord i) H) j.
+Proof.
+ intros. rewrite col_mxE. destruct (Compare_dec.lt_dec _ _); try lia. repeat f_equal. apply proof_irr.
+Qed.
+
+Lemma col_mxEd': forall [T: Type][m1 m2 n: nat] (A1: 'M[T]_(m1,n)) (A2: 'M[T]_(m2,n)) (i: 'I_(m1+m2)) (j: 'I_n)
+   (H: (ssrnat.leq (S (nat_of_ord i)) m1) = false)
+   (k: nat)
+   (H0: k = subn (nat_of_ord i)  m1)
+   (H1: (ssrnat.leq (S k) m2) = true),
+    col_mx A1 A2 i j = A2  (@Ordinal m2 k H1) j.
+Proof.
+ intros. subst k. rewrite col_mxE. destruct (Compare_dec.lt_dec _ _). lia. repeat f_equal; apply proof_irr.
+Qed.
+
 Lemma row_0_1: forall [T: Type] [n: nat] (A: 'M[T]_(1,n)) i, row i A = A.
 Proof.
 intros.
@@ -326,9 +360,51 @@ Ltac is_ground_nat n := lazymatch n with O => idtac | S ?n' => is_ground_nat n' 
 Ltac is_const_ordinal i := let j := eval hnf in i in match j with @Ordinal _ ?k _ => 
        let k' := eval hnf in k in is_ground_nat k' end.
 
+Lemma isF: false = false. 
+Proof. reflexivity. Qed.
+
 Ltac rewrite_matrix := 
 repeat
 match goal with
+  | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 ?A ?B) ?i ?j ] => is_const_ordinal j;
+    let j' := constr:(nat_of_ord j) in
+     let j' := eval compute in j' in  
+     let a := fresh "a" in let b := fresh "b" in let H := fresh in
+     destruct (ssrnat.leq (S j') n1) eqn:H;
+  [ try discriminate H;
+    clear H; 
+    pose (b:=B); 
+    change (fun_of_matrix (@row_mx T m n1 n2 A B) i j) with (fun_of_matrix  (@row_mx T m n1 n2 A b) i j);
+    clearbody b;
+    rewrite(@row_mxEl' T m n1 n2 A b i j isT); clear b; try change (nat_of_ord j) with j'
+  | try discriminate H;
+    clear H;
+    pose (a:=A); 
+    change (fun_of_matrix (@row_mx T m n1 n2 A B) i j) with (fun_of_matrix  (@row_mx T m n1 n2 a B) i j);
+    clearbody a;
+    let k := constr:(subn j' n1) in let k := eval compute in k in 
+    rewrite (@row_mxEr' T m n1 n2 a B i j isF  k erefl isT); clear a
+ ]
+  | |- context [fun_of_matrix (@col_mx ?T ?m1 ?m2 ?n ?A ?B) ?i ?j ] => is_const_ordinal i;
+    let i' := constr:(nat_of_ord i) in
+     let i' := eval compute in i' in  
+     let a := fresh "a" in let b := fresh "b" in let H := fresh in
+     destruct (ssrnat.leq (S i') m1) eqn:H;
+  [ try discriminate H;
+    clear H;
+    pose (b:=B); 
+    change (fun_of_matrix (@col_mx T m1 m2 n A B) i j) with (fun_of_matrix  (@col_mx T m1 m2 n A b) i j);
+    clearbody b;
+    rewrite(@col_mxEu' T m1 m2 n A b i j isT); clear b; try change (nat_of_ord i) with i'
+  | try discriminate H;
+    clear H;
+    pose (a:=A); 
+    change (fun_of_matrix (@col_mx T m1 m2 n A B) i j) with (fun_of_matrix  (@col_mx T m1 m2 n a B) i j);
+    clearbody a;
+    let k := constr:(subn i' m1) in let k := eval compute in k in 
+    rewrite (@col_mxEd' T m1 m2 n a B i j isF  k erefl isT); clear a
+ ]
+(*  this version of the previous two clauses is correct but can be MUCH slower 
   | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 _ _) ?i ?j ] => is_const_ordinal j;
              rewrite (@row_mxE T m n1 n2);
               let H := fresh in 
@@ -347,6 +423,7 @@ match goal with
                 let ss := fresh "ss" in set (ss := @split_shift1 m1 _ _); rewrite (proof_irr ss isT); clear ss H
               | try (exfalso; clear - H; lia); 
                 let ss := fresh "ss" in set (ss := @split_shift2 m1 m2 _ _); rewrite (proof_irr ss isT); clear ss H] 
+*)
    | |- context [@col ?T' ?m' ?n' ?j (@row_mx ?T ?m ?n1 ?n2 ?A ?B)] =>
              change m' with m; change n' with (n1+n2)%nat; change T' with T;
              rewrite (@col_row_E T m n1 n2 A B j);
@@ -437,8 +514,14 @@ Ltac compute_ord_enum n :=
     let f := fresh "f" in set (f:=F);
       let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
       let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
-        [ replace e with (eq_refl true) by apply proof_irr; clear e | try (contradiction e; reflexivity)]);
+        [ replace e with ssrbool.isT by apply proof_irr; clear e | try (contradiction e; reflexivity)]);
      subst f
+  end.
+
+Ltac ord1 := match goal with i:'I_1 |- _ => 
+  let Hi := fresh "H" i in destruct i as [i Hi];
+   destruct i; [ | discriminate Hi];
+   assert (Hi = isT) by apply proof_irr; subst Hi
   end.
 
 Ltac ord_enum_cases j :=
@@ -452,7 +535,7 @@ Ltac ord_enum_cases j :=
 Ltac simplify_ordinal i := 
    (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i isT  *)
       lazymatch i with @Ordn _ _  => fail | _ => idtac end;
-      let j := eval hnf in i in
+      let j := eval compute in i in
       let n := constr:(nat_of_ord j) in let n1 := eval hnf in n in 
          is_ground_nat n1; 
          match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
