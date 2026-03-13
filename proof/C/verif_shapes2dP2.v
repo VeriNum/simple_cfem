@@ -171,7 +171,7 @@ clear.
 abstract (
   unfold shapes2dP2_fderiv;
   simpl map_mx; unfold map_mx; rewrite !mxE;
-  unfold matrix_util.mx_of_list_def; simpl;
+  unfold matrix_util.mx_of_list; simpl;
   prove_matrices_same;
   repeat (f_equal; try (apply ord_inj; reflexivity))).
 *

@@ -49,7 +49,7 @@ apply derives_refl'.
 f_equal.
 clear.
 unfold shapes1dP1_fderiv.
-unfold matrix_util.mx_of_list_def. simpl. 
+unfold matrix_util.mx_of_list. simpl. 
 prove_matrices_same.
 +
 forward.
@@ -115,7 +115,7 @@ f_equal.
 clear.
 unfold shapes1dP2_fderiv.
 replace (x _ _) with x00 by (subst x00; f_equal; apply ord_inj; reflexivity).
-unfold matrix_util.mx_of_list_def. simpl. 
+unfold matrix_util.mx_of_list. simpl. 
 prove_matrices_same.
 +
 forward.
@@ -183,7 +183,7 @@ f_equal.
 clear.
 unfold shapes1dP3_fderiv.
 replace (x _ _) with x00 by (subst x00; f_equal; apply ord_inj; reflexivity).
-unfold matrix_util.mx_of_list_def. simpl. 
+unfold matrix_util.mx_of_list. simpl. 
 prove_matrices_same.
 +
 forward.

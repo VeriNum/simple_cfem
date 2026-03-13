@@ -50,24 +50,24 @@ Defined.
 Ltac compute_size a :=  let x := constr:(size a) in 
    let y := eval compute in x in exact y.
 
-Definition mx_of_list_def  {t: baseAddUMagmaType} (rl: seq (seq t))
+Definition mx_of_list  {t: baseAddUMagmaType} (rl: seq (seq t))
  :=  @mx_of_listn t (size rl) (size (head nil rl)) rl.
 
-Notation mx_of_list rl := ltac:(let m := constr:(size rl) in let m := eval compute in m
+Notation compute_mx_of_list rl := ltac:(let m := constr:(size rl) in let m := eval compute in m
                                      in let n := constr:(size (head nil rl)) in let n := eval compute in n
                                      in let a := constr:(@mx_of_listn _ m n rl)
                                      in let b := eval cbv beta match fix delta [mx_of_listn rowmx_of_listn] in a
                                      in exact b)  (only parsing).
 
 
-Definition A := mx_of_list_def [:: [:: 1; 2; 3];  [:: 4; 5; 6]].
+Definition A := mx_of_list [:: [:: 1; 2; 3];  [:: 4; 5; 6]].
 
 Lemma mx_of_listE: forall [t: baseAddUMagmaType] (rl: seq (seq t)) (i: 'I_(size rl)) (j: 'I_(size (head nil rl))),
-     fun_of_matrix (mx_of_list_def rl) i j = 
+     fun_of_matrix (mx_of_list rl) i j = 
    nth zero (nth nil rl i) j.
 Proof.
 intros.
-unfold mx_of_list_def.
+unfold mx_of_list.
 destruct i as [i Hi].
 revert j; 
 set n := size _. clearbody n.
@@ -111,10 +111,10 @@ f_equal. f_equal. lia.
 Qed.
 
 Lemma row_mx_of_list: forall [t: baseAddUMagmaType] (rl: seq (seq t)) (i: 'I_(size rl)),
-     row i (mx_of_list_def rl) = @rowmx_of_listn t (size (head [::] rl)) (nth [::] rl i).
+     row i (mx_of_list rl) = @rowmx_of_listn t (size (head [::] rl)) (nth [::] rl i).
 Proof.
 intros.
-unfold mx_of_list_def.
+unfold mx_of_list.
 destruct i as [i Hi].
 simpl.
 set (n := size (head _ _)).
@@ -136,7 +136,7 @@ f_equal. apply ord_inj; simpl; auto.
 Qed.
 
 Lemma col_mx_of_list: forall [t: baseAddUMagmaType] (rl: seq (seq t)) (j: 'I_(size (head [::] rl))),
-     col j (mx_of_list_def rl) = trmx (rowmx_of_listn (map (fun r => nth zero r (nat_of_ord j)) rl)).
+     col j (mx_of_list rl) = trmx (rowmx_of_listn (map (fun r => nth zero r (nat_of_ord j)) rl)).
 Proof.
 Admitted.
 
@@ -415,62 +415,6 @@ Proof.
 intros; apply mxE.
 Qed.
 
-(* TODO: see if we can unify these two similar tactics, row_col_matrix_tac and rewrite_matrix *)
-
-Ltac row_col_matrix_tac :=
-repeat
-match goal with
- | |- context [@row ?t _ _ (@lshift ?a ?b _) (col_mx _ _)] => rewrite (@rowKu t a b)
- | |- context [@row ?t _ _ (@rshift ?a ?b _) (col_mx _ _)] => rewrite (@rowKd t a b)
- | |- context [col ?j (row ?i (row_mx _ _))] => rewrite (col_row i j)
- | |- context [@col ?t ?a _ (@lshift ?b _ _) (row_mx _ _)] => rewrite (@colKl t  a b) 
- | |- context [@col ?t ?a _ (@rshift ?b _ _) (row_mx _ _)] => rewrite (@colKr t  a b) 
- | |- context [@row ?t _ _ ?c (@col_mx _ ?n1 ?n2 _ _ _)] => 
-      lazymatch c with @lshift n1 n2 _ => fail | _ => idtac end;
-     replace c with (@lshift n1 n2 (@Ordinal n1 (nat_of_ord c) erefl))
-    by (apply ord_inj; reflexivity)
- | |- context [@row ?t _ _ ?c (@col_mx _ ?n1 ?n2 _ _ _)] => 
-      lazymatch c with @rshift n1 n2 _ => fail | _ => idtac end;
-  replace c with (@rshift n1 n2 (@Ordinal n1 (nat_of_ord c - n1) erefl))
-    by (apply ord_inj; reflexivity)
- | |- context [@col ?t _ ?n ?c (@row_mx _ _ ?n1 ?n2 _ _)] => 
-      lazymatch c with @lshift n1 n2 _ => fail | _ => idtac end;
-     replace c with (@lshift n1 n2 (@Ordinal n1 (nat_of_ord c) erefl))
-    by (apply ord_inj; reflexivity)
- | |- context [@col ?t _ ?n ?c (@row_mx _ _ ?n1 ?n2 _ _)] => 
-      lazymatch c with @rshift n1 n2 _ => fail | _ => idtac end;
-  replace c with (@rshift n1 n2 (@Ordinal n1 (nat_of_ord c - n1) erefl))
-    by (apply ord_inj; reflexivity)
- | |- _ => rewrite col_const
- | |- _ => rewrite row_const
- | |- _ => rewrite const_mxE
- | |- _ => rewrite row01
-| |- context [fun_of_matrix (@row_mx _ _ ?n1 ?n2 _ _) ?i (@lshift _ _ _)] => rewrite (@row_mxEl _ _ n1 n2)
-| |- context [fun_of_matrix (@row_mx _ _ ?n1 ?n2 _ _) ?i (@rshift _ _ _)] => rewrite (@row_mxEr _ _ n1 n2)
-| |- context [fun_of_matrix (@row_mx _ _ ?n1 ?n2 _ _) ?i ?j] =>
-      lazymatch j with @lshift n1 n2 _ => fail | _ => idtac end;    
-    replace j with (@lshift n1 n2 (@Ordinal n1 (nat_of_ord j) erefl))
-       by (apply ord_inj; reflexivity; try lia);
-    rewrite (@row_mxEl _ _ n1 n2)
-| |- context [fun_of_matrix (@row_mx _ _ ?n1 ?n2 _ _) ?i ?j] =>
-      lazymatch j with @rshift n1 n2 _ => fail | _ => idtac end;    
-    replace j with (@rshift n1 n2 (@Ordinal n2 (nat_of_ord j - n1) erefl))
-       by (apply ord_inj; try reflexivity; lia);
-    rewrite (@row_mxEr _ _ n1 n2)
-| |- context [fun_of_matrix (@col_mx _ ?n1 ?n2 _ _ _) (@lshift _ _ _) ?j] => rewrite (@col_mxEu _ _ n1 n2)
-| |- context [fun_of_matrix (@col_mx _ ?n1 ?n2 _ _ _) (@rshift _ _ _) ?j] => rewrite (@col_mxEd _ _ n1 n2)
-| |- context [fun_of_matrix (@col_mx _ ?n1 ?n2 _ _ _) ?i ?j] =>
-      lazymatch j with @lshift n1 n2 _ => fail | _ => idtac end;    
-    replace j with (@lshift n1 n2 (@Ordinal n1 (nat_of_ord j) erefl))
-       by (apply ord_inj; try reflexivity; lia);
-    rewrite (@col_mxEu _ _ n1 n2)
-| |- context [fun_of_matrix (@col_mx _ ?n1 ?n2 _ _ _) ?i ?j] =>
-      lazymatch j with @rshift n1 n2 _ => fail | _ => idtac end;    
-    replace j with (@rshift n1 n2 (@Ordinal n2 (nat_of_ord j - n1) erefl))
-       by (apply ord_inj; try reflexivity; lia);
-    rewrite (@col_mxEd _ _ n1 n2)
-end.
-
 Ltac is_ground_nat n := lazymatch n with O => idtac | S ?n' => is_ground_nat n' end.
 
 Ltac is_const_ordinal i := let j := eval hnf in i in match j with @Ordinal _ ?k _ => 
@@ -482,26 +426,17 @@ Proof. reflexivity. Qed.
 Ltac rewrite_matrix := 
 repeat
 match goal with
-  | |- context [@fun_of_matrix ?T ?m ?n (@mx_of_list_def ?t ?rl) ?i ?j] =>
+  | |- context [@fun_of_matrix ?T ?m ?n (@mx_of_list ?t ?rl) ?i ?j] =>
      is_const_ordinal i; is_const_ordinal j; 
    let a := constr:(@seq.nth (nmodule.Algebra.BaseAddUMagma.sort t)
-  (@nmodule.Algebra.zero _)
-  (@seq.nth (list (nmodule.Algebra.BaseAddUMagma.sort t)) nil rl
-     (@nat_of_ord
-        (@seq.size (list (nmodule.Algebra.BaseAddUMagma.sort t)) rl) i))
-  (@nat_of_ord
-     (@seq.size (nmodule.Algebra.BaseAddUMagma.sort t)
-        (@seq.head (list (nmodule.Algebra.BaseAddUMagma.sort t)) nil rl))
-     j))
+          (@nmodule.Algebra.zero _)
+          (@seq.nth (list (nmodule.Algebra.BaseAddUMagma.sort t)) nil rl (nat_of_ord  i))  (nat_of_ord  j))
    in let a := eval cbv [seq.nth nat_of_ord] in a
-   in replace (@fun_of_matrix T m n (@mx_of_list_def t rl) i j) with a; [ | symmetry; apply  (@mx_of_listE t rl i j)]
-(*  | |- context [fun_of_matrix (mx_of_list_def ?rl) ?i ?j] => 
-     is_const_ordinal i; is_const_ordinal j; rewrite (mx_of_listE rl i j); simpl nth; simpl size
-*)
-  | |- context [row ?i (mx_of_list_def ?rl)] => is_const_ordinal i; rewrite (row_mx_of_list rl i); simpl nth; simpl size
-  | |- context [col ?j (mx_of_list_def ?rl)] => is_const_ordinal j; rewrite (col_mx_of_list rl j); simpl map; simpl size
-  | |- context [@row ?T ?m ?n ?i (trmx (@mx_of_list_def ?T' ?rl))] => 
-           rewrite -(@tr_col T n m i (@mx_of_list_def T' rl)) (col_mx_of_list rl i); simpl nth; simpl size
+   in replace (@fun_of_matrix T m n (@mx_of_list t rl) i j) with a; [ | symmetry; apply  (@mx_of_listE t rl i j)]
+  | |- context [row ?i (mx_of_list ?rl)] => is_const_ordinal i; rewrite (row_mx_of_list rl i); simpl nth; simpl size
+  | |- context [col ?j (mx_of_list ?rl)] => is_const_ordinal j; rewrite (col_mx_of_list rl j); simpl map; simpl size
+  | |- context [@row ?T ?m ?n ?i (trmx (@mx_of_list ?T' ?rl))] => 
+           rewrite -(@tr_col T n m i (@mx_of_list T' rl)) (col_mx_of_list rl i); simpl nth; simpl size
   | |- context [fun_of_matrix (rowmx_of_list ?rl) ?i ?j] => is_const_ordinal j; rewrite (rowmx_of_list_E rl i j); simpl nth; simpl size
   | |- context [fun_of_matrix (rowmx_of_listn ?rl) ?i ?j] => is_const_ordinal j; rewrite (rowmx_of_listn_E rl i j); simpl nth; simpl size
   | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 ?A ?B) ?i ?j ] => is_const_ordinal j;

@@ -122,7 +122,7 @@ f_equal.
 clear.
 unfold shapes2dP1_fderiv.
 simpl map_mx. unfold map_mx; rewrite !mxE.
-unfold matrix_util.mx_of_list_def. simpl. 
+unfold matrix_util.mx_of_list. simpl. 
 prove_matrices_same;
 repeat (f_equal; try (apply ord_inj; reflexivity)).
 *
@@ -304,7 +304,7 @@ clear.
 abstract (
   unfold shapes2dS2_fderiv;
   simpl map_mx; unfold map_mx; rewrite !mxE;
-  unfold matrix_util.mx_of_list_def; simpl;
+  unfold matrix_util.mx_of_list; simpl;
   prove_matrices_same;
   repeat (f_equal; try (apply ord_inj; reflexivity))).
 *
@@ -376,7 +376,7 @@ apply derives_refl'.
 f_equal.
 clear.
 unfold shapes2dT1_fderiv.
-unfold matrix_util.mx_of_list_def; simpl;
+unfold matrix_util.mx_of_list; simpl;
 prove_matrices_same.
 +
 forward.

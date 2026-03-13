@@ -42,7 +42,7 @@ Definition shapes1dP1_float (xm: 'rV[ftype Tdouble]_1) : 'rV[ftype Tdouble]_2 :=
 
 Definition shapes1dP1_fderiv (xm: 'rV[ftype Tdouble]_1) : 'M[ftype Tdouble]_(2,1) :=
    let x : ftype Tdouble := xm 0 0 in
-   mx_of_list_def ([:: [:: -0.5];
+   mx_of_list ([:: [:: -0.5];
                         [:: 0.5]]%F64 : list (list (ftype Tdouble))).
 
 Definition shapes1dP1F : @FShape.shape Tdouble :=
@@ -54,7 +54,7 @@ Definition shapes1dP2_float (xm: 'rV[ftype Tdouble]_1) : 'rV[ftype Tdouble]_3 :=
 
 Definition shapes1dP2_fderiv (xm: 'rV[ftype Tdouble]_1) : 'M[ftype Tdouble]_(3,1) :=
    let x : ftype Tdouble := xm 0 0 in
-   mx_of_list_def ([:: [:: -0.5*(1-2*x)]; [:: -2*x]; [:: 0.5*(1+2*x)]]%F64 : list (list (ftype Tdouble))).
+   mx_of_list ([:: [:: -0.5*(1-2*x)]; [:: -2*x]; [:: 0.5*(1+2*x)]]%F64 : list (list (ftype Tdouble))).
 
 Definition shapes1dP2F : @FShape.shape Tdouble :=
       FShape.Build_shape Tdouble 1 3 shapes1dP2_float shapes1dP2_fderiv.
@@ -69,7 +69,7 @@ Definition shapes1dP3_float (xm: 'rV[ftype Tdouble]_1) : 'rV[ftype Tdouble]_4 :=
 
 Definition shapes1dP3_fderiv (xm: 'rV[ftype Tdouble]_1) : 'M[ftype Tdouble]_(4,1) :=
    let x : ftype Tdouble := xm 0 0 in
-   mx_of_list_def ([:: [:: 1.0/16 * (1+x*(18+x*(-27)))]; 
+   mx_of_list ([:: [:: 1.0/16 * (1+x*(18+x*(-27)))]; 
                           [:: 9.0/16 * (-3+x*(-2+x* 9))]; 
                           [:: 9.0/16 * (3+x*(-2+x*(-9)))]; 
                           [:: 1.0/16 * (-1+x*(18+x* 27))]]%F64 : list (list (ftype Tdouble))).
@@ -88,7 +88,7 @@ Definition shapes2dP1_fderiv (xm: 'rV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(4,2
    let Ny := shapes1dP1_float (col 1 xm) 0 in
    let dNx i := shapes1dP1_fderiv (col 0 xm) i 0 in
    let dNy i := shapes1dP1_fderiv (col 1 xm) i 0 in
-    mx_of_list_def ([:: [:: dNx 0%R * Ny 0%R; Nx 0%R * dNy 0%R];
+    mx_of_list ([:: [:: dNx 0%R * Ny 0%R; Nx 0%R * dNy 0%R];
                            [:: dNx 1%R * Ny 0%R; Nx 1%R * dNy 0%R];
                            [:: dNx 1%R * Ny 1%R; Nx 1%R * dNy 1%R];
                            [:: dNx 0%R * Ny 1%R; Nx 0%R * dNy 1%R]]%F64 : list (list (ftype Tdouble))).
@@ -108,7 +108,7 @@ Definition shapes2dP2_fderiv (xm: 'rV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(9,2
    let Ny := shapes1dP2_float (col 1 xm) 0 in
    let dNx i := shapes1dP2_fderiv (col 0 xm) i 0 in
    let dNy i := shapes1dP2_fderiv (col 1 xm) i 0 in
-    mx_of_list_def ([:: [:: dNx 0%R * Ny 0%R; Nx 0%R * dNy 0%R];
+    mx_of_list ([:: [:: dNx 0%R * Ny 0%R; Nx 0%R * dNy 0%R];
                            [:: dNx 1%R * Ny 0%R; Nx 1%R * dNy 0%R];
                            [:: dNx 2%R * Ny 0%R; Nx 2%R * dNy 0%R];
                            [:: dNx 2%R * Ny 1%R; Nx 2%R * dNy 1%R];
@@ -133,7 +133,7 @@ Definition shapes2dS2_fderiv (xm: 'rV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(8,2
    let Ny := shapes1dP2_float (col 1 xm) 0 in
    let dNx i := shapes1dP2_fderiv (col 0 xm) i 0 in
    let dNy i := shapes1dP2_fderiv (col 1 xm) i 0 in
-    mx_of_list_def ([:: [:: dNx 0%R * Ny 0%R; Nx 0%R * dNy 0%R];
+    mx_of_list ([:: [:: dNx 0%R * Ny 0%R; Nx 0%R * dNy 0%R];
                            [:: dNx 1%R * Ny 0%R; Nx 1%R * dNy 0%R];
                            [:: dNx 2%R * Ny 0%R; Nx 2%R * dNy 0%R];
                            [:: dNx 2%R * Ny 1%R; Nx 2%R * dNy 1%R];
@@ -154,7 +154,7 @@ Definition shapes2dT1_float (xy: 'rV[ftype Tdouble]_2) : 'rV[ftype Tdouble]_3 :=
 Definition shapes2dT1_fderiv (xy: 'rV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(3,2) :=
    let x : ftype Tdouble := xy 0 0 in
    let y : ftype Tdouble := xy 0 1 in
-   mx_of_list_def ([:: [:: -1.0; -1.0];
+   mx_of_list ([:: [:: -1.0; -1.0];
                         [:: 1.0; 0.0];
                         [:: 0.0; 1.0]]%F64 : list (list (ftype Tdouble))).
 
