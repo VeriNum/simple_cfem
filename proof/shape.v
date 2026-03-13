@@ -382,6 +382,7 @@ Ltac rewrite_matrix_under :=
   lazymatch goal with
    | |- context [fun _ => fun_of_matrix _ _ _] =>  set f := (fun _ => fun_of_matrix _ _ _)
    | |- context [fun _ => row_mx _ _] =>  set f := (fun _ => row_mx _ _)
+   | |- context [fun _ => rowmx_of_list _] =>  set f := (fun _ => rowmx_of_list _)
   end;
    match type of f with ?t => evar (g: t) end;
    replace f with g by (subst f g; extensionality y; rewrite_matrix; reflexivity);
@@ -398,7 +399,7 @@ lazymatch goal with
       subst g; extensionality y;
       match goal with |- _ = fun_of_matrix (?f y) _ _ => unfold f end;
       try lazymatch goal with |- context [fun_of_matrix (?f (col _ _))] => unfold f end;
-      unfold rowmx_of_list;
+(*      unfold rowmx_of_list; *)
       repeat match goal with
       | |- context [fun_of_matrix _ ?i _] => simplify_ordinal i
       | |- context [fun_of_matrix _ _ ?j] => simplify_ordinal j
@@ -590,22 +591,23 @@ repeat
 lazymatch goal with
  | |- _ = row_mx _ _ => fail
  | |- _ = col_mx _ _ => fail
+ | |- _ = mx_of_list_def _ => fail
  | |- _ = ?B => let b := eval red in B in change B with b
 end;
-unfold rowmx_of_list;
+(* unfold rowmx_of_list; *)
 let i := fresh "i" in let j := fresh "j" in 
 apply matrixP => i j; simpl in i, j;
 match goal with |- _ = ?B => let rhs := fresh "rhs" in set rhs :=  B; rewrite ?mxE; subst rhs end;
-repeat match goal with |- context [fun_of_matrix (?F (col _ _)) _ _] => unfold F, rowmx_of_list end.
+repeat match goal with |- context [fun_of_matrix (?F (col _ _)) _ _] => unfold F (*, rowmx_of_list*)  end.
 
 Section S.
 Context {R : realType}.
 Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
     let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
-Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
+Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list_def [:: [:: -1:R] ; [:: 1]].
 Definition shapes1dP1_deriv' (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
    let x := xm 0 0 in
-   mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
+   mx_of_list_def ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
 
 
 Ltac compute_ord_enum n ::= 
@@ -620,9 +622,37 @@ Ltac compute_ord_enum n ::=
      subst f
   end.
 
+Ltac prove_lagrangian_new :=
+let i := fresh "i" in let j := fresh "j" in intros i j;
+test_I_n i; test_I_n j;
+try match goal with 
+| |- fun_of_matrix (?F (row i ?V)) 0 j =  if  i==j then _ else _ => rewrite /F /V
+end;
+try match goal with |- context [ fun_of_matrix (?F (col _ (row _ _))) _ _ ] => rewrite /F end;
+      repeat match goal with
+      | |- context [fun_of_matrix _ ?i _] => simplify_ordinal i
+      | |- context [fun_of_matrix _ _ ?j] => simplify_ordinal j
+     end;
+rewrite_matrix;
+ord_enum_cases i; clear i; rewrite_matrix;
+ ord_enum_cases j; clear j; rewrite_matrix;
+simpl; lra.
+
+Ltac prove_lagrangian_wasnew :=
+let i := fresh "i" in let j := fresh "j" in intros i j;
+test_I_n i; test_I_n j;
+try match goal with 
+| |- fun_of_matrix (?F (row i ?V)) 0 j =  if  i==j then _ else _ => rewrite /F /V
+end;
+try match goal with |- context [ fun_of_matrix (?F (col _ (row _ _))) _ _ ] => rewrite /F end;
+unfold rowmx_of_list;
+ord_enum_cases i; clear i; ord_enum_cases j; clear j;
+rewrite_matrix; simpl;
+compute_addn; try nra.
+
 Definition shapes1dP1 : @Shape.shape R.
 apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_vertices).
-- abstract prove_lagrangian.
+- abstract prove_lagrangian_new.
 - abstract prove_continuously_differentiable.
 Defined.
 
@@ -630,28 +660,29 @@ Lemma shapes1dP1_deriv: Shape.dθ shapes1dP1 = shapes1dP1_deriv'.
 Proof.
 extensionality x. simpl in x.
 unfold_dθ.
-set (f := fun _ => _). simpl in f.
-rewrite -(trmxK (col_mx _ _)).
-set g := (trmx (col_mx _ _)).
+set (f := fun _ => _). simpl size in f.
+rewrite -(trmxK (mx_of_list_def _)).
+set g := (trmx (mx_of_list_def _)).
 assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
 clear i. 
 subst f g; 
-ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under.
-  apply is_derive_mx; intros i j; compute in i,j; ord1;
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under. 
+simpl map. simpl size.
+  apply is_derive_mx; intros i j; compute in i,j; ord1; rewrite !trmxE.
     ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
   (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 Qed.
 
-Definition shapes1dP2_vertices : 'cV[R]_3 := mx_of_list [:: [:: -1:R] ; [:: 0]; [:: 1] ].
+Definition shapes1dP2_vertices : 'cV[R]_3 := mx_of_list_def [:: [:: -1:R] ; [:: 0]; [:: 1] ].
 Definition shapes1dP2_function (xm: 'rV_1) : 'rV_3 :=
     let x : R := xm 0 0 in rowmx_of_list [::   -(1/2)*(1-x)*x ;  (1-x)*(1+x);   (1/2)*x*(1+x)].
 Definition shapes1dP2_deriv' (xm: 'rV[R]_1) : 'M[R]_(3,1) :=
    let x := xm 0 0 in
-   mx_of_list ([:: [:: -1/2*(1-2*x)];  [:: -2*x]; [:: 1/2*(1+2*x)]] : list (list (R))).
+   mx_of_list_def ([:: [:: -1/2*(1-2*x)];  [:: -2*x]; [:: 1/2*(1+2*x)]] : list (list (R))).
 
 Definition shapes1dP2 : @Shape.shape R.
 apply (Shape.Build_shape 1 3 shapes1dP2_function shapes1dP2_vertices).
-- abstract prove_lagrangian.
+- abstract prove_lagrangian_new.
 - abstract prove_continuously_differentiable.
 Defined.
 
@@ -659,19 +690,19 @@ Lemma shapes1dP2_deriv: Shape.dθ shapes1dP2 = shapes1dP2_deriv'.
 Proof.
 extensionality x. simpl in x.
 unfold_dθ.
-set (f := fun _ => _). simpl in f.
-rewrite -(trmxK (col_mx _ _)).
-set g := (trmx (col_mx _ _)).
+set (f := fun _ => _). simpl size in f.
+rewrite -(trmxK (mx_of_list_def _)).
+set g := (trmx (mx_of_list_def _)).
 assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
 clear i. 
 subst f g; 
-ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under.
-  apply is_derive_mx; intros i j; compute in i,j; ord1;
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under; simpl map; simpl size;
+  apply is_derive_mx; intros i j; compute in i,j; ord1; rewrite !trmxE;
     ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
   (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 Qed.
 
-Definition shapes1dP3_vertices : 'cV[R]_4 := mx_of_list [::  [:: -1:R]; [:: -1/3]; [:: 1/3]; [:: 1]].
+Definition shapes1dP3_vertices : 'cV[R]_4 := mx_of_list_def [::  [:: -1:R]; [:: -1/3]; [:: 1/3]; [:: 1]].
 Definition shapes1dP3_function (xm: 'rV_1) : 'rV_4 :=
   let x: R := xm 0 0 in
    rowmx_of_list [::  -(1/16)*(1-x)*(1-3*x)*(1+3*x);  
@@ -680,14 +711,14 @@ Definition shapes1dP3_function (xm: 'rV_1) : 'rV_4 :=
                                 -(1/16)*(1-3*x)*(1+3*x)*(1+x) ].
 Definition shapes1dP3_deriv' (xm: 'rV[R]_1) : 'M[R]_(4,1) :=
    let x := xm 0 0 in
-   mx_of_list ([:: [:: 1/16 * (1 + x*(18 + x*(-27)) )];  
+   mx_of_list_def ([:: [:: 1/16 * (1 + x*(18 + x*(-27)) )];  
                           [:: 9/16 * (-3 + x*(-2 + x*9)) ]; 
                           [:: 9/16 * (3 + x*(-2 + x*(-9))) ]; 
                           [:: 1/16 * (-1 + x*(18 + x*27) )]] : list (list (R))).
 
 Definition shapes1dP3 : @Shape.shape R.
 apply (Shape.Build_shape 1 4 shapes1dP3_function shapes1dP3_vertices).
-- abstract prove_lagrangian.
+- abstract prove_lagrangian_new.
 - abstract prove_continuously_differentiable.
 Defined.
 
@@ -695,20 +726,20 @@ Lemma shapes1dP3_deriv: Shape.dθ shapes1dP3 = shapes1dP3_deriv'.
 Proof.
 extensionality x. simpl in x.
 unfold_dθ.
-set (f := fun _ => _). simpl in f.
-rewrite -(trmxK (col_mx _ _)).
-set g := (trmx (col_mx _ _)).
+set (f := fun _ => _). simpl size in f.
+rewrite -(trmxK (mx_of_list_def _)).
+set g := (trmx (mx_of_list_def _)).
 assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
 clear i. 
 subst f g; 
-ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under.
-  apply is_derive_mx; intros i j; compute in i,j; ord1;
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under; simpl map; simpl size;
+  apply is_derive_mx; intros i j; compute in i,j; ord1; rewrite !trmxE;
     ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
   (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 Qed.
 
 Definition shapes2dP1_vertices : 'M[R]_(4,2) := 
-   mx_of_list [:: [:: -1:R; -1]; [:: 1; -1]; [:: 1;1]; [:: -1;1]].
+   mx_of_list_def [:: [:: -1:R; -1]; [:: 1; -1]; [:: 1;1]; [:: -1;1]].
 
 Definition shapes2dP1_function (xy: 'rV[R]_2) : 'rV[R]_4 :=
    let Nx : 'rV_2 := shapes1dP1_function (col 0 xy) in
@@ -721,16 +752,16 @@ Definition shapes2dP1_deriv' (xm: 'rV[R]_2) : 'M[R]_(4,2) :=
   let Ny := shapes1dP1_function (col 1 xm) in
   let dNy := shapes1dP1_deriv' (col 1 xm) in
   let x := xm 0 0 in let y := xm 0 1 in
-  mx_of_list ([:: [:: dNx 0 0 * Ny 0 0 ; Nx 0 0 * dNy 0 0 ];
+  mx_of_list_def ([:: [:: dNx 0 0 * Ny 0 0 ; Nx 0 0 * dNy 0 0 ];
                          [:: dNx 1 0 * Ny 0 0 ; Nx 0 1 * dNy 0 0 ];
                          [:: dNx 1 0 * Ny 0 1 ; Nx 0 1 * dNy 1 0 ];
                          [:: dNx 0 0 * Ny 0 1 ; Nx 0 0 * dNy 1 0 ]]: list (list R)).
 
 Definition shapes2dP1 : @Shape.shape R.
 apply (Shape.Build_shape 2 4 shapes2dP1_function shapes2dP1_vertices).
-- abstract prove_lagrangian.
+- abstract prove_lagrangian_new.
 - abstract prove_continuously_differentiable.
-Defined.
+Defined. 
 
 Ltac simplify_ordinal i ::= 
    (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i isT  *)
@@ -746,21 +777,20 @@ Lemma shapes2dP1_deriv: Shape.dθ shapes2dP1 = shapes2dP1_deriv'.
 Proof.
 extensionality x. simpl in x.
 unfold_dθ.
-set (f := fun _ => _). simpl in f.
-rewrite -(trmxK (col_mx _ _)).
-set g := (trmx (col_mx _ _)).
+set (f := fun _ => _). simpl size in f.
+rewrite -(trmxK (mx_of_list_def _)).
+set g := (trmx (mx_of_list_def _)).
 assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
 clear i. 
 subst f g; 
-ord_enum_cases j; clear j;  
-rewrite_matrix; rewrite_matrix_under;
-  apply is_derive_mx; intros i j; compute in i,j; ord1;
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under; simpl map; simpl size;
+  apply is_derive_mx; intros i j; compute in i,j; ord1; rewrite !trmxE;
     ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
-   (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
+  (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 Qed.
 
 Definition shapes2dT1_vertices : 'M[R]_(3,2) := 
-    mx_of_list [:: [:: 0:R; 0]; [:: 1; 0]; [:: 0; 1]].
+    mx_of_list_def [:: [:: 0:R; 0]; [:: 1; 0]; [:: 0; 1]].
 Definition shapes2dT1_function (xy: 'rV[R]_2) : 'rV[R]_3 :=
    let x : R := xy 0 0 in
    let y : R := xy 0 1 in
@@ -768,13 +798,13 @@ Definition shapes2dT1_function (xy: 'rV[R]_2) : 'rV[R]_3 :=
 
 Definition shapes2dT1_deriv' (xm: 'rV[R]_2) : 'M[R]_(3,2) :=
   let x := xm 0 0 in let y := xm 0 1 in
-  mx_of_list ([:: [:: -1 ; -1 ];
+  mx_of_list_def ([:: [:: -1 ; -1 ];
                          [:: 1 ; 0 ];
                          [:: 0 ; 1]]: list (list R)).
 
 Definition shapes2dT1 : @Shape.shape R.
 apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_vertices).
-- abstract prove_lagrangian.
+- abstract prove_lagrangian_new.
 - abstract prove_continuously_differentiable.
 Defined.
 
@@ -782,20 +812,20 @@ Lemma shapes2dT1_deriv: Shape.dθ shapes2dT1 = shapes2dT1_deriv'.
 Proof.
 extensionality x. simpl in x.
 unfold_dθ.
-set (f := fun _ => _). simpl in f.
-rewrite -(trmxK (col_mx _ _)).
-set g := (trmx (col_mx _ _)).
+set (f := fun _ => _). simpl size in f.
+rewrite -(trmxK (mx_of_list_def _)).
+set g := (trmx (mx_of_list_def _)).
 assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //].
 clear i. 
 subst f g; 
-ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under;
-  apply is_derive_mx; intros i j; compute in i,j; ord1;
+ord_enum_cases j; clear j;  rewrite_matrix; rewrite_matrix_under; simpl map; simpl size;
+  apply is_derive_mx; intros i j; compute in i,j; ord1; rewrite !trmxE;
     ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
-   (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl);lra ]).
+  (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 Qed.
 
 Definition shapes2dP2_vertices : 'M[R]_(9,2) := 
-   mx_of_list [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]; [:: 0;0]].
+   mx_of_list_def [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]; [:: 0;0]].
 
 Definition shapes2dP2_function (xy: 'rV[R]_2) : 'rV[R]_9 :=
    let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
@@ -806,12 +836,12 @@ Definition shapes2dP2_function (xy: 'rV[R]_2) : 'rV[R]_9 :=
 
 Definition shapes2dP2 : @Shape.shape R.
 apply (Shape.Build_shape 2 9 shapes2dP2_function shapes2dP2_vertices).
-- abstract prove_lagrangian.
+- abstract prove_lagrangian_new.
 - abstract prove_continuously_differentiable.
 Defined.
 
 Definition shapes2dS2_vertices : 'M[R]_(8,2) := 
-   mx_of_list [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]].
+   mx_of_list_def [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]].
 
 Definition shapes2dS2_function (xy: 'rV[R]_2) : 'rV[R]_8 :=
    let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
@@ -822,7 +852,7 @@ Definition shapes2dS2_function (xy: 'rV[R]_2) : 'rV[R]_8 :=
 
 Definition shapes2dS2 : @Shape.shape R.
 apply (Shape.Build_shape 2 8 shapes2dS2_function shapes2dS2_vertices).
-- abstract prove_lagrangian.
+- abstract prove_lagrangian_new.
 - abstract prove_continuously_differentiable.
 Defined.
 

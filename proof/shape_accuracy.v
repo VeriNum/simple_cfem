@@ -8,13 +8,9 @@ Import Binary.
 Import Stdlib.Lists.List ListNotations.
 From LAProof Require Import matrix_model.
 
-
 Set Bullet Behavior "Strict Subproofs".
 
 Open Scope R_scope.
-
-Locate nth_ord_enum'.
-
 
 Ltac prove_roundoff_bound2 ::=
  (* Remove this when we are using a VCFloat in which https://github.com/VeriNum/vcfloat/issues/34
@@ -157,10 +153,6 @@ lazymatch f with
  | _ => let g := eval red in f in red_to_rowmx g
 end.
 
-
-
-
-
 Ltac translate_matrix f := 
 let x := fresh "x" in 
 let g := fresh "g" in 
@@ -169,13 +161,20 @@ let H := fresh in
 let prop := constr:(forall x : ftype Tdouble, f x = g x) in let prop := eval cbv beta in prop in 
 assert (H: prop);  [
   intro x;
- unfold FShape.θ, FShape.dθ; simpl;
- match goal with |- fun_of_matrix ?a _ _ = _ => 
-        let b := eval red in a in let b := changeStdLibToCore b in change a with b 
+ match goal with |- fun_of_matrix _ ?i ?j = _ =>  try simplify_ordinal i; try simplify_ordinal j end;
+ repeat
+  lazymatch goal  with
+  | |- fun_of_matrix (rowmx_of_list _) _ _ = _ => fail
+  | |- fun_of_matrix (mx_of_list_def _) _ _ = _ => fail
+  | |- fun_of_matrix ?a _ _ = _ => let b := eval red in a in change a with b
   end;
- unfold rowmx_of_list; simpl seq.size;
+ simpl seq.size;
  rewrite_matrix;
-  subst g; reflexivity
+ change (@FPStdLib.BMULT FPCompCert.nans FPStdLib.Tdouble) with (@BMULT FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BMINUS FPCompCert.nans FPStdLib.Tdouble) with (@BMINUS FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BPLUS FPCompCert.nans FPStdLib.Tdouble) with (@BPLUS FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BOPP FPCompCert.nans FPStdLib.Tdouble) with (@BOPP FPCompCert.nans Tdouble is_standard_Tdouble);
+ subst g; reflexivity
  | subst g;  exact H].
 
 Ltac realify := 
@@ -522,14 +521,23 @@ let H := fresh in
 let prop := constr:(forall x y : ftype Tdouble, f x y = g x y) in let prop := eval cbv beta in prop in 
 assert (H: prop);  [
   intros x y;
- unfold FShape.θ, FShape.dθ; simpl;
- match goal with |- fun_of_matrix ?a _ _ = _ => 
-        let b := eval red in a in change a with b 
+ match goal with |- fun_of_matrix _ ?i ?j = _ =>  try simplify_ordinal i; try simplify_ordinal j end;
+ repeat
+  lazymatch goal  with
+  | |- fun_of_matrix (rowmx_of_list _) _ _ = _ => fail
+  | |- fun_of_matrix (mx_of_list_def _) _ _ = _ => fail
+  | |- fun_of_matrix ?a _ _ = _ => let b := eval red in a in change a with b
   end;
- unfold shapes1dP1_float, shapes1dP1_fderiv;
- unfold rowmx_of_list; simpl seq.size;
-  match goal with |- ?A => let b := changeStdLibToCore A in change b end;
+ unfold shapes1dP1_float, shapes1dP1_fderiv, shapes1dP2_float, shapes1dP2_fderiv;
+ repeat match goal with |- context [col ?i _] =>  try simplify_ordinal i end;
+ repeat match goal with |- context [fun_of_matrix _ ?i _] =>  simplify_ordinal i end;
+ repeat match goal with |- context [fun_of_matrix _ _ ?j] =>  simplify_ordinal j end;
+ simpl seq.size;
  rewrite_matrix;
+ change (@FPStdLib.BMULT FPCompCert.nans FPStdLib.Tdouble) with (@BMULT FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BMINUS FPCompCert.nans FPStdLib.Tdouble) with (@BMINUS FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BPLUS FPCompCert.nans FPStdLib.Tdouble) with (@BPLUS FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BOPP FPCompCert.nans FPStdLib.Tdouble) with (@BOPP FPCompCert.nans Tdouble is_standard_Tdouble);
   subst g; reflexivity
  | subst g;  exact H].
 
@@ -633,7 +641,6 @@ Definition relate_2dP1deriv_0_1 :=
    ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 0) (Ordn 2 1))).
 Definition f_2dP1deriv_0_1 := ltac:(related_matrix2 relate_2dP1deriv_0_1).
 
-
 Definition relate_2dP1deriv_1_0 := 
    ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 1) (Ordn 2 0))).
 Definition f_2dP1deriv_1_0 := ltac:(related_matrix2 relate_2dP1deriv_1_0).
@@ -675,7 +682,6 @@ lra.
 Qed.
 
 Check ltac:(ShowBound acc_2dP1deriv). (* 1.11022302462516%F64 *)
-
 
 Lemma prove_roundoff_bound_2dP1deriv_0_0:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1deriv_0_0) acc_2dP1deriv.

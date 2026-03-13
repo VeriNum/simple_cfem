@@ -51,13 +51,129 @@ Ltac compute_size a :=  let x := constr:(size a) in
    let y := eval compute in x in exact y.
 
 Definition mx_of_list_def  {t: baseAddUMagmaType} (rl: seq (seq t))
- :=  @mx_of_listn t ltac:(compute_size rl) ltac:(compute_size (head nil rl)) rl.
+ :=  @mx_of_listn t (size rl) (size (head nil rl)) rl.
 
 Notation mx_of_list rl := ltac:(let m := constr:(size rl) in let m := eval compute in m
                                      in let n := constr:(size (head nil rl)) in let n := eval compute in n
                                      in let a := constr:(@mx_of_listn _ m n rl)
                                      in let b := eval cbv beta match fix delta [mx_of_listn rowmx_of_listn] in a
                                      in exact b)  (only parsing).
+
+
+Definition A := mx_of_list_def [:: [:: 1; 2; 3];  [:: 4; 5; 6]].
+
+Lemma mx_of_listE: forall [t: baseAddUMagmaType] (rl: seq (seq t)) (i: 'I_(size rl)) (j: 'I_(size (head nil rl))),
+     fun_of_matrix (mx_of_list_def rl) i j = 
+   nth zero (nth nil rl i) j.
+Proof.
+intros.
+unfold mx_of_list_def.
+destruct i as [i Hi].
+revert j; 
+set n := size _. clearbody n.
+intro j.
+revert i Hi j; induction rl; simpl; intros; [ lia | ].
+destruct i as [ | i].
+-
+simpl.
+unfold col_mx; rewrite mxE.
+unfold split. destruct (ltnP _ _); try (simpl in *; lia). rewrite ord1. clear i Hi.
+destruct j as [j Hj].  simpl.
+clear IHrl.
+revert n j Hj; induction a; simpl; intros.
++
+ rewrite nth_nil.
+clear. induction n; simpl; try lia. apply mxE.
++
+destruct n; try lia.
+destruct j; simpl; rewrite mxE;
+unfold split; destruct (ltnP _ _); try (simpl in *; lia).
+rewrite mxE. auto.
+simpl in *.
+assert (Hj': is_true (j<n)) by lia.
+replace  (@Ordinal n (j.+1 - 1) (@split_subproof 1 n (@Ordinal n.+1 j.+1 Hj) i)) 
+    with   (@Ordinal n j Hj') by (apply ord_inj; simpl; lia). clear i.
+rewrite IHa; auto.
+-
+destruct j as [j Hj].
+destruct j.
+simpl.
+rewrite mxE.
+unfold split; destruct (ltnP _ _); try (simpl in *; lia).
+rewrite IHrl.
+simpl. f_equal. f_equal. lia.
+simpl.
+rewrite mxE.
+unfold split; destruct (ltnP _ _); try (simpl in *; lia).
+rewrite IHrl.
+simpl.
+f_equal. f_equal. lia.
+Qed.
+
+Lemma row_mx_of_list: forall [t: baseAddUMagmaType] (rl: seq (seq t)) (i: 'I_(size rl)),
+     row i (mx_of_list_def rl) = @rowmx_of_listn t (size (head [::] rl)) (nth [::] rl i).
+Proof.
+intros.
+unfold mx_of_list_def.
+destruct i as [i Hi].
+simpl.
+set (n := size (head _ _)).
+clearbody n.
+revert i Hi; induction rl; simpl; intros; [lia | ].
+destruct i.
+replace (Ordinal Hi) with (lshift (size rl) (@Ordinal 1 0 isT)); [  | apply ord_inj; auto].
+change ((size rl) .+1) with (1 + size rl).
+rewrite rowKu.
+simpl.
+apply matrixP => i j. rewrite mxE ?ord1 //.
+simpl.
+rewrite -IHrl.
+assert (is_true (i<size rl)) by lia.
+replace (Ordinal Hi) with (rshift 1 (Ordinal H)); [  | apply ord_inj; auto].
+change ((size rl) .+1) with (1 + size rl).
+rewrite rowKd.
+f_equal. apply ord_inj; simpl; auto.
+Qed.
+
+Lemma col_mx_of_list: forall [t: baseAddUMagmaType] (rl: seq (seq t)) (j: 'I_(size (head [::] rl))),
+     col j (mx_of_list_def rl) = trmx (rowmx_of_listn (map (fun r => nth zero r (nat_of_ord j)) rl)).
+Proof.
+Admitted.
+
+Lemma rowmx_of_list_E: forall [t: baseAddUMagmaType] (rl: seq t) (i: 'I_1) (j: 'I_(size rl)),
+   fun_of_matrix (rowmx_of_list rl) i j = nth zero rl (nat_of_ord j).
+Proof.
+intros.
+destruct j as [j Hj].
+revert j Hj; induction rl; simpl; intros.
+lia.
+destruct j; rewrite mxE; simpl; unfold split; simpl;
+destruct (ltnP _ _); try lia.
+apply mxE.
+rewrite IHrl.
+simpl.
+f_equal.
+lia.
+Qed.
+
+Lemma rowmx_of_listn_E: forall [t: baseAddUMagmaType] [n] (rl: seq t) (i: 'I_1) (j: 'I_n),
+   fun_of_matrix (@rowmx_of_listn t n rl) i j = nth zero rl (nat_of_ord j).
+Proof.
+intros.
+revert rl j; induction n; intros. destruct j; lia.
+destruct j as [j Hj].
+simpl.
+destruct rl.
+rewrite nth_nil.
+rewrite mxE. auto.
+destruct j; rewrite mxE; simpl; unfold split; simpl;
+destruct (ltnP _ _); try lia.
+apply mxE.
+rewrite IHn.
+simpl.
+f_equal.
+lia.
+Qed.
 
 Module Test1.
 
@@ -366,6 +482,28 @@ Proof. reflexivity. Qed.
 Ltac rewrite_matrix := 
 repeat
 match goal with
+  | |- context [@fun_of_matrix ?T ?m ?n (@mx_of_list_def ?t ?rl) ?i ?j] =>
+     is_const_ordinal i; is_const_ordinal j; 
+   let a := constr:(@seq.nth (nmodule.Algebra.BaseAddUMagma.sort t)
+  (@nmodule.Algebra.zero _)
+  (@seq.nth (list (nmodule.Algebra.BaseAddUMagma.sort t)) nil rl
+     (@nat_of_ord
+        (@seq.size (list (nmodule.Algebra.BaseAddUMagma.sort t)) rl) i))
+  (@nat_of_ord
+     (@seq.size (nmodule.Algebra.BaseAddUMagma.sort t)
+        (@seq.head (list (nmodule.Algebra.BaseAddUMagma.sort t)) nil rl))
+     j))
+   in let a := eval cbv [seq.nth nat_of_ord] in a
+   in replace (@fun_of_matrix T m n (@mx_of_list_def t rl) i j) with a; [ | symmetry; apply  (@mx_of_listE t rl i j)]
+(*  | |- context [fun_of_matrix (mx_of_list_def ?rl) ?i ?j] => 
+     is_const_ordinal i; is_const_ordinal j; rewrite (mx_of_listE rl i j); simpl nth; simpl size
+*)
+  | |- context [row ?i (mx_of_list_def ?rl)] => is_const_ordinal i; rewrite (row_mx_of_list rl i); simpl nth; simpl size
+  | |- context [col ?j (mx_of_list_def ?rl)] => is_const_ordinal j; rewrite (col_mx_of_list rl j); simpl map; simpl size
+  | |- context [@row ?T ?m ?n ?i (trmx (@mx_of_list_def ?T' ?rl))] => 
+           rewrite -(@tr_col T n m i (@mx_of_list_def T' rl)) (col_mx_of_list rl i); simpl nth; simpl size
+  | |- context [fun_of_matrix (rowmx_of_list ?rl) ?i ?j] => is_const_ordinal j; rewrite (rowmx_of_list_E rl i j); simpl nth; simpl size
+  | |- context [fun_of_matrix (rowmx_of_listn ?rl) ?i ?j] => is_const_ordinal j; rewrite (rowmx_of_listn_E rl i j); simpl nth; simpl size
   | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 ?A ?B) ?i ?j ] => is_const_ordinal j;
     let j' := constr:(nat_of_ord j) in
      let j' := eval compute in j' in  
