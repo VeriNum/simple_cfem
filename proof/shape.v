@@ -67,6 +67,11 @@ rewrite mxE mul1r //.
 Qed.
 
 Definition convex_hull [n d] (vtx: 'M[R]_(d,n)) := sig (convex_combination vtx).
+
+
+Definition is_shape_deriv [d n] (θ : 'rV[R]_d -> 'rV[R]_n) (dθ: 'rV_d -> 'M[R]_(n,d)) :=
+   forall x, dθ x =  \matrix_(i<n,j<d) 'D_('e_j) θ x 0 i.
+
 End S.
 
 Import GRing.
@@ -75,19 +80,16 @@ Module Shape.
 Section S.
 Context {R : realType}.
 
-
-Definition dθ_ [d n: nat] (F: 'rV[R]_d -> 'rV[R]_n) (x: 'rV[R]_d) :  'M[R]_(n, d):=
-     \matrix_(i<n,j<d) 'D_('e_j) F x 0 i.
-
 Record shape : Type := {
   d : nat;
   nsh: nat;
   θ: 'rV_d -> 'rV_nsh;  (* nsh shape functions, each R^d->R *)
-  dθ := dθ_ θ;
+  dθ: 'rV_d -> 'M[R]_(nsh,d);
   vtx: 'M[R]_(nsh,d); 
   K  := convex_hull vtx;
   lagrangian: forall i j, θ (row i vtx) 0 j  = if i==j then 1 else 0;
-  diff: forall j: 'I_nsh, continuously_differentiable (fun i => θ i 0 j)
+  diff: forall j: 'I_nsh, continuously_differentiable (fun i => θ i 0 j);
+  deriv: is_shape_deriv θ dθ
 }.
 
 End S.
@@ -379,14 +381,23 @@ End S.
 
 Ltac rewrite_matrix_under :=
  let f := fresh "f" in let g := fresh "g" in let y := fresh "y" in 
-  lazymatch goal with
+ try
+  (lazymatch goal with
    | |- context [fun _ => fun_of_matrix _ _ _] =>  set f := (fun _ => fun_of_matrix _ _ _)
    | |- context [fun _ => row_mx _ _] =>  set f := (fun _ => row_mx _ _)
    | |- context [fun _ => rowmx_of_list _] =>  set f := (fun _ => rowmx_of_list _)
   end;
-   match type of f with ?t => evar (g: t) end;
-   replace f with g by (subst f g; extensionality y; rewrite_matrix; reflexivity);
-   subst g; clear f.
+  lazymatch type of f with ?t => evar (g: t) end;
+    replace f with g by (subst f g; extensionality y; rewrite_matrix1; rewrite_matrix; reflexivity);
+    subst g; clear f).
+
+Ltac simplify_ordinals :=
+      repeat match goal with
+      | |- context [fun_of_matrix _ ?i _] => simplify_ordinal i
+      | |- context [fun_of_matrix _ _ ?j] => simplify_ordinal j
+      | |- context [col ?i _] => simplify_ordinal i
+      | |- context [row ?i _] => simplify_ordinal i
+     end.
 
 Ltac prove_continuously_differentiable :=
 let j := fresh "j" in 
@@ -399,11 +410,7 @@ lazymatch goal with
       subst g; extensionality y;
       match goal with |- _ = fun_of_matrix (?f y) _ _ => unfold f end;
       try lazymatch goal with |- context [fun_of_matrix (?f (col _ _))] => unfold f end;
-      repeat match goal with
-      | |- context [fun_of_matrix _ ?i _] => simplify_ordinal i
-      | |- context [fun_of_matrix _ _ ?j] => simplify_ordinal j
-     end;
-      simpl;
+     simplify_ordinals;
       rewrite_matrix;
       reflexivity
     ]
@@ -539,37 +546,29 @@ destruct (i==j); auto.
 Qed.
 End S.
 
+Ltac showgoal := 
+ match goal with |- is_derive _ _ ?A _ => idtac "Showgoal:" A end.
+
 Ltac is_derive := repeat
+( try simple apply is_derive_cst;
   match goal with
-  | |- is_derive _ _ (fun _ => mul _ _) _ => apply is_deriveM
+  | |- is_derive _ _ (fun _ => mul _ _) _ => 
+       (* time "M" *) apply is_deriveM  (* This takes longer than we might like *)
   | |- is_derive _ _ (fun _ => add _ (opp _)) _ => apply is_deriveB
   | |- is_derive _ _ (fun _ => add _ _) _ => apply is_deriveD
   | |- is_derive _ _ (fun _ => opp _) _ => apply is_deriveN
-  | |- is_derive _ _ (fun=> _) _ => apply is_derive_cst
+  | |- is_derive _ _ (fun=> _) _ =>  apply is_derive_cst
   | |- is_derive ?x _ (fun _ => fun_of_matrix (col _ _) _ _) _ => apply (is_derive_col x)
+  | |- is_derive _ (delta_mx (Ordn _ 0) _)  _ _ => apply is_derive_coord_simple
   | |- is_derive _ 'e__ _ _ => apply is_derive_coord_simple
- end.
-
-Ltac unfold_dθ i j :=
-unfold Shape.dθ;
-match goal with |- Shape.dθ_ ?A _ = _ =>  let a := eval hnf in A in change A with a end;
-repeat
-lazymatch goal with
- | |- _ = row_mx _ _ => fail
- | |- _ = col_mx _ _ => fail
- | |- _ = mx_of_list _ => fail
- | |- _ = ?B => let b := eval red in B in change B with b
-end;
-apply matrixP => i j; simpl in i, j;
-match goal with |- _ = ?B => let rhs := fresh "rhs" in set rhs :=  B; rewrite ?mxE; subst rhs end;
-repeat match goal with |- context [fun_of_matrix (?F (col _ _)) _ _] => unfold F end.
+ end).
 
 Section S.
 Context {R : realType}.
 Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
     let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
 Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
-Definition shapes1dP1_deriv' (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
+Definition shapes1dP1_deriv (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
    let x := xm 0 0 in
    mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
 
@@ -579,73 +578,54 @@ test_I_n i; test_I_n j;
 try match goal with 
 | |- fun_of_matrix (?F (row i ?V)) 0 j =  if  i==j then _ else _ => rewrite /F /V
 end;
-try match goal with |- context [ fun_of_matrix (?F (col _ (row _ _))) _ _ ] => rewrite /F end;
-      repeat match goal with
-      | |- context [fun_of_matrix _ ?i _] => simplify_ordinal i
-      | |- context [fun_of_matrix _ _ ?j] => simplify_ordinal j
-     end;
+simplify_ordinals;
 rewrite_matrix;
 ord_enum_cases i; clear i; rewrite_matrix;
  ord_enum_cases j; clear j; rewrite_matrix;
 simpl; lra.
 
-Definition shapes1dP1 : @Shape.shape R.
-apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_vertices).
-- abstract prove_lagrangian.
-- abstract prove_continuously_differentiable.
-Defined.
-
 Ltac prove_deriv := 
-let x := fresh "x" in 
-extensionality x; simpl in x;
+let x := fresh "x" in intro x; symmetry;
+compute_addn;
 let i := fresh "i" in let j := fresh "j" in 
-unfold Shape.dθ;
-match goal with |- Shape.dθ_ ?A _ = _ =>  let a := eval hnf in A in change A with a end;
-repeat
-lazymatch goal with
- | |- _ = row_mx _ _ => fail
- | |- _ = col_mx _ _ => fail
- | |- _ = mx_of_list _ => fail
- | |- _ = ?B => let b := eval red in B in change B with b
-end;
 apply matrixP => i j; simpl in i, j;
-match goal with |- _ = ?B => let rhs := fresh "rhs" in set rhs :=  B; rewrite ?mxE; subst rhs end;
+match goal with |- _ ?A  => let a := fresh "a" in set a := A; rewrite mxE; subst a end;
 repeat match goal with |- context [fun_of_matrix (?F (col _ _)) _ _] => unfold F end;
 let f := fresh "f" in let g := fresh "g" in 
 set (f := fun _ => _); simpl size in f;
 match goal with |- _ = fun_of_matrix ?G _ _ => rewrite -(trmxK G); set g := trmx G end;
 assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //];
 subst f g;
-rewrite_matrix; rewrite_matrix_under; 
+simplify_ordinals;
+ord_enum_cases j; clear j;
+rewrite_matrix; rewrite_matrix_under;
 try (ord_enum_cases i; clear i; rewrite_matrix; rewrite_matrix_under);
 try (ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under);
 simpl map; simpl size;
-  apply is_derive_mx; intros i j; compute in i,j; ord1; rewrite !trmxE;
-    ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under; compute_addn;
-  (apply: is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
+  apply is_derive_mx; intros i j; compute in i,j; ord1; (*rewrite ?trmxE; *)
+  ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under;
+  (eapply is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 
-Lemma shapes1dP1_deriv: Shape.dθ shapes1dP1 = shapes1dP1_deriv'.
-Proof.
-prove_deriv.
-Qed.
+Definition shapes1dP1 : @Shape.shape R.
+apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_deriv shapes1dP1_vertices).
+- abstract prove_lagrangian.
+- abstract prove_continuously_differentiable.
+- abstract (unfold shapes1dP1_function, shapes1dP1_deriv; prove_deriv).
+Defined.
 
 Definition shapes1dP2_vertices : 'cV[R]_3 := mx_of_list [:: [:: -1:R] ; [:: 0]; [:: 1] ].
 Definition shapes1dP2_function (xm: 'rV_1) : 'rV_3 :=
     let x : R := xm 0 0 in rowmx_of_list [::   -(1/2)*(1-x)*x ;  (1-x)*(1+x);   (1/2)*x*(1+x)].
-Definition shapes1dP2_deriv' (xm: 'rV[R]_1) : 'M[R]_(3,1) :=
+Definition shapes1dP2_deriv (xm: 'rV[R]_1) : 'M[R]_(3,1) :=
    let x := xm 0 0 in
    mx_of_list ([:: [:: -1/2*(1-2*x)];  [:: -2*x]; [:: 1/2*(1+2*x)]] : list (list (R))).
 
 Definition shapes1dP2 : @Shape.shape R.
-apply (Shape.Build_shape 1 3 shapes1dP2_function shapes1dP2_vertices).
+apply (Shape.Build_shape 1 3 shapes1dP2_function shapes1dP2_deriv shapes1dP2_vertices).
 - abstract prove_lagrangian.
 - abstract prove_continuously_differentiable.
+- abstract (unfold shapes1dP2_function, shapes1dP2_deriv; prove_deriv).
 Defined.
-
-Lemma shapes1dP2_deriv: Shape.dθ shapes1dP2 = shapes1dP2_deriv'.
-Proof.
-prove_deriv.
-Qed.
 
 Definition shapes1dP3_vertices : 'cV[R]_4 := mx_of_list [::  [:: -1:R]; [:: -1/3]; [:: 1/3]; [:: 1]].
 Definition shapes1dP3_function (xm: 'rV_1) : 'rV_4 :=
@@ -654,7 +634,7 @@ Definition shapes1dP3_function (xm: 'rV_1) : 'rV_4 :=
                                    9/16*(1-x)*(1-3*x)*(1+x); 
                                    9/16*(1-x)*(1+3*x)*(1+x);
                                 -(1/16)*(1-3*x)*(1+3*x)*(1+x) ].
-Definition shapes1dP3_deriv' (xm: 'rV[R]_1) : 'M[R]_(4,1) :=
+Definition shapes1dP3_deriv (xm: 'rV[R]_1) : 'M[R]_(4,1) :=
    let x := xm 0 0 in
    mx_of_list ([:: [:: 1/16 * (1 + x*(18 + x*(-27)) )];  
                           [:: 9/16 * (-3 + x*(-2 + x*9)) ]; 
@@ -662,13 +642,11 @@ Definition shapes1dP3_deriv' (xm: 'rV[R]_1) : 'M[R]_(4,1) :=
                           [:: 1/16 * (-1 + x*(18 + x*27) )]] : list (list (R))).
 
 Definition shapes1dP3 : @Shape.shape R.
-apply (Shape.Build_shape 1 4 shapes1dP3_function shapes1dP3_vertices).
+apply (Shape.Build_shape 1 4 shapes1dP3_function shapes1dP3_deriv shapes1dP3_vertices).
 - abstract prove_lagrangian.
 - abstract prove_continuously_differentiable.
+- abstract (unfold shapes1dP3_function, shapes1dP3_deriv; prove_deriv).
 Defined.
-
-Lemma shapes1dP3_deriv: Shape.dθ shapes1dP3 = shapes1dP3_deriv'.
-Proof. prove_deriv. Qed.
 
 Definition shapes2dP1_vertices : 'M[R]_(4,2) := 
    mx_of_list [:: [:: -1:R; -1]; [:: 1; -1]; [:: 1;1]; [:: -1;1]].
@@ -678,11 +656,11 @@ Definition shapes2dP1_function (xy: 'rV[R]_2) : 'rV[R]_4 :=
    let Ny : 'rV_2 := shapes1dP1_function (col 1 xy) in
   rowmx_of_list [:: Nx 0 0 * Ny 0 0 ; Nx 0 1 * Ny 0 0 ; Nx 0 1 * Ny 0 1 ; Nx 0 0 * Ny 0 1 ].
 
-Definition shapes2dP1_deriv' (xm: 'rV[R]_2) : 'M[R]_(4,2) :=
+Definition shapes2dP1_deriv (xm: 'rV[R]_2) : 'M[R]_(4,2) :=
   let Nx := shapes1dP1_function (col 0 xm) in
-  let dNx := shapes1dP1_deriv' (col 0 xm) in
+  let dNx := shapes1dP1_deriv (col 0 xm) in
   let Ny := shapes1dP1_function (col 1 xm) in
-  let dNy := shapes1dP1_deriv' (col 1 xm) in
+  let dNy := shapes1dP1_deriv (col 1 xm) in
   let x := xm 0 0 in let y := xm 0 1 in
   mx_of_list ([:: [:: dNx 0 0 * Ny 0 0 ; Nx 0 0 * dNy 0 0 ];
                          [:: dNx 1 0 * Ny 0 0 ; Nx 0 1 * dNy 0 0 ];
@@ -690,13 +668,13 @@ Definition shapes2dP1_deriv' (xm: 'rV[R]_2) : 'M[R]_(4,2) :=
                          [:: dNx 0 0 * Ny 0 1 ; Nx 0 0 * dNy 1 0 ]]: list (list R)).
 
 Definition shapes2dP1 : @Shape.shape R.
-apply (Shape.Build_shape 2 4 shapes2dP1_function shapes2dP1_vertices).
-- abstract prove_lagrangian.
+apply (Shape.Build_shape 2 4 shapes2dP1_function shapes2dP1_deriv shapes2dP1_vertices).
+- abstract (unfold shapes2dP1_function, shapes1dP1_function, shapes2dP1_vertices; 
+                  prove_lagrangian).
 - abstract prove_continuously_differentiable.
+- abstract (unfold shapes2dP1_function, shapes2dP1_deriv, shapes1dP1_function, shapes1dP1_deriv;
+                  prove_deriv).
 Defined. 
-
-Lemma shapes2dP1_deriv: Shape.dθ shapes2dP1 = shapes2dP1_deriv'.
-Proof.  prove_deriv. Qed.
 
 Definition shapes2dT1_vertices : 'M[R]_(3,2) := 
     mx_of_list [:: [:: 0:R; 0]; [:: 1; 0]; [:: 0; 1]].
@@ -705,20 +683,18 @@ Definition shapes2dT1_function (xy: 'rV[R]_2) : 'rV[R]_3 :=
    let y : R := xy 0 1 in
    rowmx_of_list [:: 1-x-y; x; y]. 
 
-Definition shapes2dT1_deriv' (xm: 'rV[R]_2) : 'M[R]_(3,2) :=
+Definition shapes2dT1_deriv (xm: 'rV[R]_2) : 'M[R]_(3,2) :=
   let x := xm 0 0 in let y := xm 0 1 in
   mx_of_list ([:: [:: -1 ; -1 ];
                          [:: 1 ; 0 ];
                          [:: 0 ; 1]]: list (list R)).
 
 Definition shapes2dT1 : @Shape.shape R.
-apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_vertices).
+apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_deriv shapes2dT1_vertices).
 - abstract prove_lagrangian.
 - abstract prove_continuously_differentiable.
+- abstract (unfold shapes2dT1_function, shapes2dT1_deriv; prove_deriv).
 Defined.
-
-Lemma shapes2dT1_deriv: Shape.dθ shapes2dT1 = shapes2dT1_deriv'.
-Proof. prove_deriv. Qed.
 
 Definition shapes2dP2_vertices : 'M[R]_(9,2) := 
    mx_of_list [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]; [:: 0;0]].
@@ -730,10 +706,28 @@ Definition shapes2dP2_function (xy: 'rV[R]_2) : 'rV[R]_9 :=
                               Nx 0 2 * Ny 0 1 ; Nx 0 2 * Ny 0 2 ; Nx 0 1 * Ny 0 2;
                               Nx 0 0 * Ny 0 2 ; Nx 0 0 * Ny 0 1 ; Nx 0 1 * Ny 0 1 ].
 
+Definition shapes2dP2_deriv (xy: 'rV[R]_2) : 'M[R]_(9,2) :=
+   let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
+   let Ny : 'rV_3 := shapes1dP2_function (col 1 xy) in
+   let dNx : 'cV_3 := shapes1dP2_deriv (col 0 xy) in
+   let dNy : 'cV_3 := shapes1dP2_deriv (col 1 xy) in
+  mx_of_list [:: [:: dNx 0 0 * Ny 0 0; Nx 0 0 * dNy 0 0];
+                        [:: dNx 1 0 * Ny 0 0; Nx 0 1 * dNy 0 0];
+                        [:: dNx 2 0 * Ny 0 0; Nx 0 2 * dNy 0 0];
+                        [:: dNx 2 0 * Ny 0 1; Nx 0 2 * dNy 1 0];
+                        [:: dNx 2 0 * Ny 0 2; Nx 0 2 * dNy 2 0];
+                        [:: dNx 1 0 * Ny 0 2; Nx 0 1 * dNy 2 0];
+                        [:: dNx 0 0 * Ny 0 2; Nx 0 0 * dNy 2 0];
+                        [:: dNx 0 0 * Ny 0 1; Nx 0 0 * dNy 1 0];
+                        [:: dNx 1 0 * Ny 0 1; Nx 0 1 * dNy 1 0]].
+
 Definition shapes2dP2 : @Shape.shape R.
-apply (Shape.Build_shape 2 9 shapes2dP2_function shapes2dP2_vertices).
-- abstract prove_lagrangian.
-- abstract prove_continuously_differentiable.
+apply (Shape.Build_shape 2 9 shapes2dP2_function shapes2dP2_deriv shapes2dP2_vertices).
+- time "lagrangian" abstract (unfold shapes2dP2_function,  shapes1dP2_function, shapes2dP2_vertices;
+                                           prove_lagrangian).
+- time "cont_diff" abstract prove_continuously_differentiable.
+- time "is_deriv" abstract (unfold shapes2dP2_function, shapes2dP2_deriv, shapes1dP2_function, shapes1dP2_deriv;
+                  prove_deriv).
 Defined.
 
 Definition shapes2dS2_vertices : 'M[R]_(8,2) := 
@@ -746,10 +740,27 @@ Definition shapes2dS2_function (xy: 'rV[R]_2) : 'rV[R]_8 :=
                               Nx 0 2 * Ny 0 1 ; Nx 0 2 * Ny 0 2 ; Nx 0 1 * Ny 0 2;
                               Nx 0 0 * Ny 0 2 ; Nx 0 0 * Ny 0 1 ].
 
+Definition shapes2dS2_deriv (xy: 'rV[R]_2) : 'M[R]_(8,2) :=
+   let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
+   let Ny : 'rV_3 := shapes1dP2_function (col 1 xy) in
+   let dNx : 'cV_3 := shapes1dP2_deriv (col 0 xy) in
+   let dNy : 'cV_3 := shapes1dP2_deriv (col 1 xy) in
+  mx_of_list [:: [:: dNx 0 0 * Ny 0 0; Nx 0 0 * dNy 0 0];
+                        [:: dNx 1 0 * Ny 0 0; Nx 0 1 * dNy 0 0];
+                        [:: dNx 2 0 * Ny 0 0; Nx 0 2 * dNy 0 0];
+                        [:: dNx 2 0 * Ny 0 1; Nx 0 2 * dNy 1 0];
+                        [:: dNx 2 0 * Ny 0 2; Nx 0 2 * dNy 2 0];
+                        [:: dNx 1 0 * Ny 0 2; Nx 0 1 * dNy 2 0];
+                        [:: dNx 0 0 * Ny 0 2; Nx 0 0 * dNy 2 0];
+                        [:: dNx 0 0 * Ny 0 1; Nx 0 0 * dNy 1 0]].
+
 Definition shapes2dS2 : @Shape.shape R.
-apply (Shape.Build_shape 2 8 shapes2dS2_function shapes2dS2_vertices).
-- abstract prove_lagrangian.
-- abstract prove_continuously_differentiable.
+apply (Shape.Build_shape 2 8 shapes2dS2_function shapes2dS2_deriv shapes2dS2_vertices).
+- time "lagrangian" abstract (unfold shapes2dS2_function,  shapes1dP2_function, shapes2dS2_vertices;
+                                           prove_lagrangian).
+- time "cont_diff" abstract prove_continuously_differentiable.
+- time "is_deriv" abstract (unfold shapes2dS2_function, shapes2dS2_deriv, shapes1dP2_function, shapes1dP2_deriv;
+                  prove_deriv).
 Defined.
 
 End S.

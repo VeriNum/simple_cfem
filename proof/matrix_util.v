@@ -140,6 +140,14 @@ Lemma col_mx_of_list: forall [t: baseAddUMagmaType] (rl: seq (seq t)) (j: 'I_(si
 Proof.
 Admitted.
 
+Lemma row_mx_of_tr_list: 
+       forall [t: baseAddUMagmaType] (rl: seq (seq t)) (j: 'I_(size (head [::] rl))),
+     row j (trmx (mx_of_list rl)) = @rowmx_of_listn t (size rl) (map (fun r => nth zero r (nat_of_ord j)) rl).
+Proof.
+intros.
+rewrite -tr_col col_mx_of_list trmxK //.
+Qed.
+
 Lemma rowmx_of_list_E: forall [t: baseAddUMagmaType] (rl: seq t) (i: 'I_1) (j: 'I_(size rl)),
    fun_of_matrix (rowmx_of_list rl) i j = nth zero rl (nat_of_ord j).
 Proof.
@@ -400,7 +408,7 @@ rewrite <- col_lsubmx, row_mxKl. auto.
 rewrite <- col_rsubmx, row_mxKr. auto.
 Qed.
 
-Lemma col_E_specific: (* Integrate this into rewrite_matrix *)
+Lemma col_E_specific:
   forall [T: Type] [m n: nat] (A: 'M[T]_(m,n)) (k: 'I_n) (i: 'I_m) (j: 'I_1),
     fun_of_matrix (col k A) i j = A i k.
 Proof.
@@ -423,22 +431,45 @@ Ltac is_const_ordinal i := let j := eval hnf in i in match j with @Ordinal _ ?k 
 Lemma isF: false = false. 
 Proof. reflexivity. Qed.
 
-Ltac rewrite_matrix := 
-repeat
+Ltac zero_of rl :=
+ let lem := constr:(rowmx_of_list_E rl) in
+ match type of lem with _ -> _ -> @eq (nmodule.Algebra.BaseAddUMagma.sort ?t) _ _ =>
+  let z := constr:(@nmodule.Algebra.zero t)
+   in z
+ end.
+
+Ltac rewrite_matrix1 := 
 match goal with
   | |- context [@fun_of_matrix ?T ?m ?n (@mx_of_list ?t ?rl) ?i ?j] =>
      is_const_ordinal i; is_const_ordinal j; 
    let a := constr:(@seq.nth (nmodule.Algebra.BaseAddUMagma.sort t)
+        (* This use of nmodule.Algebra.zero is brittle especially if it were ever used with the floating-point UMagma.
+           So either a version the "zero_of" hack used in other clauses should be used here,
+           or ask the Hierarchy Builder experts for a more elegant solution *)
           (@nmodule.Algebra.zero _)
           (@seq.nth (list (nmodule.Algebra.BaseAddUMagma.sort t)) nil rl (nat_of_ord  i))  (nat_of_ord  j))
    in let a := eval cbv [seq.nth nat_of_ord] in a
    in replace (@fun_of_matrix T m n (@mx_of_list t rl) i j) with a; [ | symmetry; apply  (@mx_of_listE t rl i j)]
   | |- context [row ?i (mx_of_list ?rl)] => is_const_ordinal i; rewrite (row_mx_of_list rl i); simpl nth; simpl size
   | |- context [col ?j (mx_of_list ?rl)] => is_const_ordinal j; rewrite (col_mx_of_list rl j); simpl map; simpl size
-  | |- context [@row ?T ?m ?n ?i (trmx (@mx_of_list ?T' ?rl))] => 
-           rewrite -(@tr_col T n m i (@mx_of_list T' rl)) (col_mx_of_list rl i); simpl nth; simpl size
-  | |- context [fun_of_matrix (rowmx_of_list ?rl) ?i ?j] => is_const_ordinal j; rewrite (rowmx_of_list_E rl i j); simpl nth; simpl size
-  | |- context [fun_of_matrix (rowmx_of_listn ?rl) ?i ?j] => is_const_ordinal j; rewrite (rowmx_of_listn_E rl i j); simpl nth; simpl size
+  | |- context [@row ?T ?m ?n (@Ordinal ?N ?i ?H) (trmx (@mx_of_list ?T' ?rl))] => 
+        let b := constr:(map (fun r => nth zero r i) rl) in
+        let c := eval cbv [map nth] in b in
+          replace (@row T m n (@Ordinal N i H) (trmx (@mx_of_list T' rl))) with (@rowmx_of_listn  T' n c);
+             [ | symmetry; apply row_mx_of_tr_list];
+          simpl size
+  | |- context [@fun_of_matrix ?t ?M ?N (@rowmx_of_listn ?t' ?n' ?rl) ?i (@Ordinal ?n ?j ?Hj) ] => is_ground_nat j; 
+      let z := zero_of rl in
+      let b := constr:(nth z rl j) in let c := eval cbv [nth] in b in
+      replace (@fun_of_matrix t M N (@rowmx_of_listn t' n' rl) i (@Ordinal n j Hj)) with b;
+         [ | symmetry; apply (@rowmx_of_listn_E t n rl)];
+      change b with c
+  | |- context [@fun_of_matrix ?t ?M ?N (rowmx_of_list ?rl) ?i (@Ordinal ?n ?j ?Hj) ] => is_ground_nat j; 
+             let z := zero_of rl in
+             let b := constr:(seq.nth z rl j) in let c := eval cbv [seq.nth] in b in
+             replace (@fun_of_matrix t M N (rowmx_of_list rl) i (@Ordinal n j Hj)) with b;
+             [ | symmetry; apply (rowmx_of_list_E rl)];
+             change b with c
   | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 ?A ?B) ?i ?j ] => is_const_ordinal j;
     let j' := constr:(nat_of_ord j) in
      let j' := eval compute in j' in  
@@ -477,26 +508,6 @@ match goal with
     let k := constr:(subn i' m1) in let k := eval compute in k in 
     rewrite (@col_mxEd' T m1 m2 n a B i j isF  k erefl isT); clear a
  ]
-(*  this version of the previous two clauses is correct but can be MUCH slower 
-  | |- context [fun_of_matrix (@row_mx ?T ?m ?n1 ?n2 _ _) ?i ?j ] => is_const_ordinal j;
-             rewrite (@row_mxE T m n1 n2);
-              let H := fresh in 
-               destruct (Compare_dec.lt_dec (nat_of_ord _) n1) as [H | H];
-               simpl in H; simpl nat_of_ord;
-               [try (exfalso; clear - H; lia);
-                let ss := fresh "ss" in set (ss := @split_shift1 n1 _ _); rewrite (proof_irr ss isT); clear ss H
-              | try (exfalso; clear - H; lia);
-                let ss := fresh "ss" in set (ss := @split_shift2 n1 n2 _ _); rewrite (proof_irr ss isT); clear ss H ]
-  | |- context [fun_of_matrix (@col_mx ?T ?m1 ?m2 ?n _ _) ?i ?j ] =>  is_const_ordinal i;
-             rewrite (@col_mxE T m1 m2 n);
-              let H := fresh in 
-               destruct (Compare_dec.lt_dec (nat_of_ord _) m1) as [H | H];
-               simpl in H; simpl nat_of_ord;
-               [try (exfalso; clear - H; lia);
-                let ss := fresh "ss" in set (ss := @split_shift1 m1 _ _); rewrite (proof_irr ss isT); clear ss H
-              | try (exfalso; clear - H; lia); 
-                let ss := fresh "ss" in set (ss := @split_shift2 m1 m2 _ _); rewrite (proof_irr ss isT); clear ss H] 
-*)
    | |- context [@col ?T' ?m' ?n' ?j (@row_mx ?T ?m ?n1 ?n2 ?A ?B)] =>
              change m' with m; change n' with (n1+n2)%nat; change T' with T;
              rewrite (@col_row_E T m n1 n2 A B j);
@@ -528,6 +539,8 @@ match goal with
   | H: ~(nat_of_ord _ < _)%nat |- _ => simpl in H
   | _ => lia
        end.
+
+Ltac rewrite_matrix := repeat rewrite_matrix1.
 
 Lemma size_ord_enum: forall n, size (ord_enum n) = n.
 Proof.

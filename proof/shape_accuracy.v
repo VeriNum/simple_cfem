@@ -161,13 +161,14 @@ let H := fresh in
 let prop := constr:(forall x : ftype Tdouble, f x = g x) in let prop := eval cbv beta in prop in 
 assert (H: prop);  [
   intro x;
- match goal with |- fun_of_matrix _ ?i ?j = _ =>  try simplify_ordinal i; try simplify_ordinal j end;
+(* match goal with |- fun_of_matrix _ ?i ?j = _ =>  try simplify_ordinal i; try simplify_ordinal j end; *)
  repeat
   lazymatch goal  with
   | |- fun_of_matrix (rowmx_of_list _) _ _ = _ => fail
   | |- fun_of_matrix (mx_of_list _) _ _ = _ => fail
   | |- fun_of_matrix ?a _ _ = _ => let b := eval red in a in change a with b
   end;
+ simplify_ordinals;
  simpl seq.size;
  rewrite_matrix;
  change (@FPStdLib.BMULT FPCompCert.nans FPStdLib.Tdouble) with (@BMULT FPCompCert.nans Tdouble is_standard_Tdouble);
@@ -283,6 +284,77 @@ Ltac related_matrix f := let x :=
      fresh "x" in intro x;
     match type of (f x) with _ = ?t => let b := eval cbv beta in t in exact b end.
  
+(*
+Goal (fun x => FShape.θ shapes1dP1F (rowmx_of_list [x]) ord0 (Ordn 2 0)) = (fun x => x).
+
+let f := constr: (fun x => FShape.θ shapes1dP1F (rowmx_of_list [x]) ord0 (Ordn 2 0)) in 
+let x := fresh "x" in 
+let g := fresh "g" in 
+evar (g: ftype Tdouble -> ftype Tdouble);
+let H := fresh in 
+let prop := constr:(forall x : ftype Tdouble, f x = g x) in let prop := eval cbv beta in prop in 
+assert (H: prop);  [
+  intro x;
+(* match goal with |- fun_of_matrix _ ?i ?j = _ =>  try simplify_ordinal i; try simplify_ordinal j end; *)
+ repeat
+  lazymatch goal  with
+  | |- fun_of_matrix (rowmx_of_list _) _ _ = _ => fail
+  | |- fun_of_matrix (mx_of_list _) _ _ = _ => fail
+  | |- fun_of_matrix ?a _ _ = _ => let b := eval red in a in change a with b
+  end;
+ simplify_ordinals;
+ simpl seq.size
+| ].
+rewrite_matrix.
+
+match goal with
+  | |- context [@fun_of_matrix ?t ?M ?N (rowmx_of_list ?rl) ?i (@Ordinal ?n ?j ?Hj) ] => is_ground_nat j; 
+             let z := zero_of rl in
+             let b := constr:(seq.nth z rl j) in let c := eval cbv [seq.nth] in b in
+             replace (@fun_of_matrix t M N (rowmx_of_list rl) i (@Ordinal n j Hj)) with b;
+             [ | symmetry; apply (rowmx_of_list_E rl)];
+             change b with c
+end.
+{ 
+(*
+change (FPStdLib.ftype FPStdLib.Tdouble)
+ with (nmodule.Algebra.BaseAddUMagma.sort FPStdLib_ftype__canonical__Algebra_BaseAddUMagma).
+*)
+match goal with
+
+  | |- context [@fun_of_matrix ?T ?M ?N (rowmx_of_list ?rl) ?i (@Ordinal ?n ?j ?Hj) ] => is_ground_nat j; 
+
+let lem := constr:(rowmx_of_list_E rl i (@Ordinal n j Hj) ) in 
+match type of lem with @eq (nmodule.Algebra.BaseAddUMagma.sort ?t) _ _ => 
+   let z := constr:(@nmodule.Algebra.zero t) in
+   let b := constr:(seq.nth z rl j) in let c := eval cbv [seq.nth] in b in
+      replace (@fun_of_matrix T M N (rowmx_of_list rl) i (@Ordinal n j Hj)) with b;
+          [ | symmetry; apply (@rowmx_of_list_E t rl)];
+      change b with c
+end
+end.
+
+match goal with
+
+  | |- context [@fun_of_matrix ?t ?M ?N (rowmx_of_list ?rl) ?i (@Ordinal ?n ?j ?Hj) ] => is_ground_nat j; 
+      let b := constr:(seq.nth (@nmodule.Algebra.zero _) rl j) in let c := (*eval cbv [seq.nth] in*) b in
+      replace (@fun_of_matrix t M N (rowmx_of_list rl) i (@Ordinal n j Hj)) with b;
+          [ | symmetry; apply (@rowmx_of_list_E t rl)];
+      change b with c
+end.
+
+simpl zero.
+
+rewrite_matrix.
+ rewrite_matrix;
+ change (@FPStdLib.BMULT FPCompCert.nans FPStdLib.Tdouble) with (@BMULT FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BMINUS FPCompCert.nans FPStdLib.Tdouble) with (@BMINUS FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BPLUS FPCompCert.nans FPStdLib.Tdouble) with (@BPLUS FPCompCert.nans Tdouble is_standard_Tdouble);
+ change (@FPStdLib.BOPP FPCompCert.nans FPStdLib.Tdouble) with (@BOPP FPCompCert.nans Tdouble is_standard_Tdouble);
+ subst g; reflexivity
+ | subst g;  exact H].
+*)
+
 Definition relate_1dP1_0  
  := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (rowmx_of_list [x]) ord0 (Ordn 2 0))).
 Definition f_1dP1_0 := ltac:(related_matrix relate_1dP1_0).
@@ -985,7 +1057,6 @@ Lemma roundoff_bound_1dP1: roundoff_bound_lemma shapes1dP1
         (FShape.dθ shapes1dP1F) acc_1dP1d.
 Proof.
 red; simpl; intro x.
-rewrite shapes1dP1_deriv.
 simplify_vmap_of_rV.
 intro H; split; intros; revert H.
 -
@@ -1062,7 +1133,6 @@ Lemma roundoff_bound_1dP2: roundoff_bound_lemma shapes1dP2
         (FShape.dθ shapes1dP2F) acc_1dP2deriv.
 Proof.
 red; simpl; intro x.
-rewrite shapes1dP2_deriv.
 simplify_vmap_of_rV.
 intro H; split; intros; revert H.
 -
@@ -1140,7 +1210,6 @@ Lemma roundoff_bound_2dP1: roundoff_bound_lemma shapes2dP1
        (FShape.dθ shapes2dP1F) acc_2dP1deriv.
 Proof.
 red; simpl; intro x.
-rewrite shapes2dP1_deriv.
 simplify_vmap_of_rV.
 intro H; split; intros; revert H.
 match goal with |- _ -> _ /\ Rabs (fun_of_matrix (addmx (map_mx _ (?F ?x )) (oppmx (?G _))) _ _) <= _ => 
@@ -1179,7 +1248,7 @@ rewrite_matrix; rewrite ?mxE;
 unfold Defs.F2R; simpl;
 try reflexivity; try nra.
 -
-unfold shapes2dP1_fderiv, shapes2dP1_deriv', shapes1dP1_float, shapes1dP1_fderiv, shapes1dP1_deriv', shapes1dP1_function, rowmx_of_list.
+unfold shapes2dP1_fderiv, shapes2dP1_deriv, shapes1dP1_float, shapes1dP1_fderiv, shapes1dP1_deriv, shapes1dP1_function, rowmx_of_list.
 simpl seq.size.
 replace  (@nmodule.Algebra.zero
                                        (zmodp.fintype_ordinal__canonical__Algebra_BaseAddUMagma 1))with (@Ordinal 2 0 ssrbool.isT); [ | apply ord_inj; reflexivity].
@@ -1303,7 +1372,6 @@ Lemma roundoff_bound_2dT1: roundoff_bound_lemma shapes2dT1
         (FShape.dθ shapes2dT1F) acc_2dT1deriv.
 Proof.
 red; simpl; intro x.
-rewrite shapes2dT1_deriv.
 simplify_vmap_of_rV.
 intro H; split; intros; revert H.
 -
@@ -1343,7 +1411,7 @@ rewrite_matrix; rewrite ?mxE;
 unfold Defs.F2R; simpl;
 try reflexivity; try nra.
 -
-unfold shapes2dT1_fderiv, shapes2dT1_deriv', rowmx_of_list.
+unfold shapes2dT1_fderiv, shapes2dT1_deriv, rowmx_of_list.
 simpl seq.size.
 replace  (@nmodule.Algebra.zero
                                        (zmodp.fintype_ordinal__canonical__Algebra_BaseAddUMagma 1))with (@Ordinal 2 0 ssrbool.isT); [ | apply ord_inj; reflexivity].
