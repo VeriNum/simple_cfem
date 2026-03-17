@@ -5,21 +5,19 @@
 *)
 From mathcomp Require Import all_ssreflect ssralg ssrnum archimedean finfun.
 From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
-Import Order.TTheory GRing.Theory Num.Theory.
+Import Order.TTheory GRing.Theory Num.Theory GRing.
+From mathcomp.algebra_tactics Require Import ring lra.
 From CFEM Require Import matrix_util.
+From Stdlib Require Import Lia FunctionalExtensionality.
 
 Unset Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Set Bullet Behavior "Strict Subproofs".
 
-
-
 Local Open Scope R_scope.
 Local Open Scope order_scope.
 Local Open Scope ring_scope.
-
-From mathcomp.algebra_tactics Require Import ring lra.
 
 Section S.  
 Context {R : realType}.
@@ -27,17 +25,71 @@ Context {R : realType}.
 Definition continuously_differentiable [n] (f: 'rV[R]_n -> R) : Prop :=
   (forall x, differentiable f x) /\ forall i, continuous (derive f ^~ ('e_i)).
 
+Definition convex_combination [d n] (vtx: 'M[R]_(d,n)) (y: 'cV_d) : Prop :=
+   exists x: 'cV_n, (forall i, x i 0 >= 0)
+  /\   col_mx vtx (const_mx (m:=1) 1)  *m x = col_mx y (const_mx 1).
+
+Definition convex_hull [n d] (vtx: 'M[R]_(d,n)) := sig (convex_combination vtx).
+
+Definition is_shape_deriv [d n] (θ : 'rV[R]_d -> 'rV[R]_n) (dθ: 'rV_d -> 'M[R]_(n,d)) :=
+   forall x, dθ x =  \matrix_(i<n,j<d) 'D_('e_j) θ x 0 i.
+
+End S.
+
+Module Shape.
+Section S.
+Context {R : realType}.
+
+Record shape : Type := {
+  d : nat;
+  nsh: nat;
+  θ: 'rV[R]_d -> 'rV[R]_nsh;  (* nsh shape functions, each R^d->R *)
+  dθ: 'rV[R]_d -> 'M[R]_(nsh,d);
+  vtx: 'M[R]_(nsh,d); 
+  K  := convex_hull vtx;
+  lagrangian: forall i j, θ (row i vtx) 0 j  = if i==j then 1 else 0;
+  diff: forall j: 'I_nsh, continuously_differentiable (fun i => θ i 0 j);
+  deriv: is_shape_deriv θ dθ
+}.
+
+End S.
+End Shape.
+
+Lemma eq_differentiable: forall {K: numDomainType} {V W: normedModType K} 
+   (f g: NormedModule.sort V -> NormedModule.sort W) x,
+   f =1 g -> differentiable f x = differentiable g x.
+Proof.
+intros.
+assert (f=g) by (apply functional_extensionality; auto).
+subst; auto.
+Qed.
+
+Lemma eq_continuously_differentiable: forall {R: realType} [n]  (f g: ('rV_n -> Real.sort R) ),
+   f =1 g -> continuously_differentiable f = continuously_differentiable g.
+Proof.
+intros.
+assert (f=g) by (apply functional_extensionality; auto).
+subst; auto.
+Qed.
+
+Lemma eq_locked_continuously_differentiable: forall {R: realType} [n] (f g: ('rV_n -> Real.sort R) ),
+   f =1 g -> locked continuously_differentiable n f  = locked continuously_differentiable n g.
+Proof.
+intros.
+assert (f=g) by (apply functional_extensionality; auto).
+subst; auto.
+Qed.
+
+Section S.
+Context {R : realType}.
+
 Definition convex_combination' [d n] (vtx: 'M[R]_(d,n)) (y: 'cV_d) : Prop :=
    exists x: 'cV_n, (forall i, x i 0 >= 0) 
                               /\  \sum_i x i 0 = 1
                               /\  vtx *m x = y.
 
-Definition convex_combination [d n] (vtx: 'M[R]_(d,n)) (y: 'cV_d) : Prop :=
-   exists x: 'cV_n, (forall i, x i 0 >= 0)
-  /\   col_mx vtx (const_mx (m:=1) 1)  *m x = col_mx y (const_mx 1).
-
 Lemma convex_combination_e: forall d n vtx y, 
-   @convex_combination d n vtx y <-> @convex_combination' d n vtx y.
+   @convex_combination R d n vtx y <-> @convex_combination' d n vtx y.
 Proof.
 intros.
 split; intros [x [H H0]]; exists x; split; auto.
@@ -66,66 +118,6 @@ apply eq_bigr => i Hi.
 rewrite mxE mul1r //.
 Qed.
 
-Definition convex_hull [n d] (vtx: 'M[R]_(d,n)) := sig (convex_combination vtx).
-
-
-Definition is_shape_deriv [d n] (θ : 'rV[R]_d -> 'rV[R]_n) (dθ: 'rV_d -> 'M[R]_(n,d)) :=
-   forall x, dθ x =  \matrix_(i<n,j<d) 'D_('e_j) θ x 0 i.
-
-End S.
-
-Import GRing.
-
-Module Shape.
-Section S.
-Context {R : realType}.
-
-Record shape : Type := {
-  d : nat;
-  nsh: nat;
-  θ: 'rV_d -> 'rV_nsh;  (* nsh shape functions, each R^d->R *)
-  dθ: 'rV_d -> 'M[R]_(nsh,d);
-  vtx: 'M[R]_(nsh,d); 
-  K  := convex_hull vtx;
-  lagrangian: forall i j, θ (row i vtx) 0 j  = if i==j then 1 else 0;
-  diff: forall j: 'I_nsh, continuously_differentiable (fun i => θ i 0 j);
-  deriv: is_shape_deriv θ dθ
-}.
-
-End S.
-End Shape.
-
-From Stdlib Require Import Lia.
-From Stdlib Require Import FunctionalExtensionality.
-
-Lemma eq_differentiable: forall {K: numDomainType} {V W: normedModType K} 
-   (f g: NormedModule.sort V -> NormedModule.sort W) x,
-   f =1 g -> differentiable f x = differentiable g x.
-Proof.
-intros.
-assert (f=g) by (apply functional_extensionality; auto).
-subst; auto.
-Qed.
-
-Lemma eq_continuously_differentiable: forall {R: realType} [n]  (f g: ('rV_n -> Real.sort R) ),
-   f =1 g -> continuously_differentiable f = continuously_differentiable g.
-Proof.
-intros.
-assert (f=g) by (apply functional_extensionality; auto).
-subst; auto.
-Qed.
-
-
-Lemma eq_locked_continuously_differentiable: forall {R: realType} [n] (f g: ('rV_n -> Real.sort R) ),
-   f =1 g -> locked continuously_differentiable n f  = locked continuously_differentiable n g.
-Proof.
-intros.
-assert (f=g) by (apply functional_extensionality; auto).
-subst; auto.
-Qed.
-
-Section S.
-Context {R : realType}.
 
 Lemma derive_comp_mx: forall [n] (f: R -> Real.sort R), 
    (forall x, differentiable f x) ->
@@ -401,7 +393,7 @@ Ltac simplify_ordinals :=
 
 Ltac prove_continuously_differentiable :=
 let j := fresh "j" in 
-intro j; ord_enum_cases j; clear j;
+intro j; ord_enum_cases j;
 lazymatch goal with
   | |- continuously_differentiable ?f =>
       let g := fresh "g" in let y := fresh "y" in 
@@ -546,14 +538,10 @@ destruct (i==j); auto.
 Qed.
 End S.
 
-Ltac showgoal := 
- match goal with |- is_derive _ _ ?A _ => idtac "Showgoal:" A end.
-
 Ltac is_derive := repeat
 ( try simple apply is_derive_cst;
   match goal with
-  | |- is_derive _ _ (fun _ => mul _ _) _ => 
-       (* time "M" *) apply is_deriveM  (* This takes longer than we might like *)
+  | |- is_derive _ _ (fun _ => mul _ _) _ => apply is_deriveM  (* This takes longer than we might like *)
   | |- is_derive _ _ (fun _ => add _ (opp _)) _ => apply is_deriveB
   | |- is_derive _ _ (fun _ => add _ _) _ => apply is_deriveD
   | |- is_derive _ _ (fun _ => opp _) _ => apply is_deriveN
@@ -563,15 +551,6 @@ Ltac is_derive := repeat
   | |- is_derive _ 'e__ _ _ => apply is_derive_coord_simple
  end).
 
-Section S.
-Context {R : realType}.
-Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
-    let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
-Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
-Definition shapes1dP1_deriv (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
-   let x := xm 0 0 in
-   mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
-
 Ltac prove_lagrangian :=
 let i := fresh "i" in let j := fresh "j" in intros i j;
 test_I_n i; test_I_n j;
@@ -580,8 +559,8 @@ try match goal with
 end;
 simplify_ordinals;
 rewrite_matrix;
-ord_enum_cases i; clear i; rewrite_matrix;
- ord_enum_cases j; clear j; rewrite_matrix;
+ord_enum_cases i; rewrite_matrix;
+ ord_enum_cases j; rewrite_matrix;
 simpl; lra.
 
 Ltac prove_deriv := 
@@ -597,14 +576,23 @@ match goal with |- _ = fun_of_matrix ?G _ _ => rewrite -(trmxK G); set g := trmx
 assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //];
 subst f g;
 simplify_ordinals;
-ord_enum_cases j; clear j;
+ord_enum_cases j;
 rewrite_matrix; rewrite_matrix_under;
-try (ord_enum_cases i; clear i; rewrite_matrix; rewrite_matrix_under);
-try (ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under);
+try (ord_enum_cases i; rewrite_matrix; rewrite_matrix_under);
+try (ord_enum_cases j; rewrite_matrix; rewrite_matrix_under);
 simpl map; simpl size;
   apply is_derive_mx; intros i j; compute in i,j; ord1; (*rewrite ?trmxE; *)
-  ord_enum_cases j; clear j; rewrite_matrix; rewrite_matrix_under;
+  ord_enum_cases j; rewrite_matrix; rewrite_matrix_under;
   (eapply is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
+
+Section S.
+Context {R : realType}.
+Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
+    let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
+Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
+Definition shapes1dP1_deriv (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
+   let x := xm 0 0 in
+   mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
 
 Definition shapes1dP1 : @Shape.shape R.
 apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_deriv shapes1dP1_vertices).

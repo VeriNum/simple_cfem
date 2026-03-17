@@ -52,8 +52,8 @@ Qed.
 
 Hint Resolve ifptr_valid_pointer: valid_pointer.
 
-Definition shape_spec (shape: @FShape.shape the_type) : funspec :=
-   let '({| FShape.d := d; FShape.nsh := nsh; FShape.θ := θ; FShape.dθ := dθ |}) := shape in  
+Definition shape_spec (d nsh: nat) (shape: FShape.shape d nsh the_type) : funspec :=
+   let '({| FShape.θ := θ; FShape.dθ := dθ |}) := shape in  
   WITH shN: share, shxx:share, pN : val, pdN: val, x: 'rV[ftype the_type]_d, pxx: val
   PRE [ tptr the_ctype, tptr the_ctype, tptr the_ctype ]
     PROP(writable_share shN; readable_share shxx; is_pointer_or_null pN; is_pointer_or_null pdN)
@@ -68,13 +68,13 @@ Definition shape_spec (shape: @FShape.shape the_type) : funspec :=
              ifptr pdN (densematn shN (map_mx Some (dθ x)) pdN);
              densematn shxx (map_mx Some x) pxx).
 
-Definition shapes1dP1_spec := DECLARE _shapes1dP1 (shape_spec shapes1dP1F).
-Definition shapes1dP2_spec := DECLARE _shapes1dP2 (shape_spec shapes1dP2F).
-Definition shapes1dP3_spec := DECLARE _shapes1dP3 (shape_spec shapes1dP3F).
-Definition shapes2dP1_spec := DECLARE _shapes2dP1 (shape_spec shapes2dP1F).
-Definition shapes2dP2_spec := DECLARE _shapes2dP2 (shape_spec shapes2dP2F).
-Definition shapes2dS2_spec := DECLARE _shapes2dS2 (shape_spec shapes2dS2F).
-Definition shapes2dT1_spec := DECLARE _shapes2dT1 (shape_spec shapes2dT1F).
+Definition shapes1dP1_spec := DECLARE _shapes1dP1 (shape_spec _ _ shapes1dP1F).
+Definition shapes1dP2_spec := DECLARE _shapes1dP2 (shape_spec _ _ shapes1dP2F).
+Definition shapes1dP3_spec := DECLARE _shapes1dP3 (shape_spec _ _ shapes1dP3F).
+Definition shapes2dP1_spec := DECLARE _shapes2dP1 (shape_spec _ _ shapes2dP1F).
+Definition shapes2dP2_spec := DECLARE _shapes2dP2 (shape_spec _ _ shapes2dP2F).
+Definition shapes2dS2_spec := DECLARE _shapes2dS2 (shape_spec _ _ shapes2dS2F).
+Definition shapes2dT1_spec := DECLARE _shapes2dT1 (shape_spec _ _ shapes2dT1F).
 
 Definition shapes_ASI: funspecs :=
  [ shapes1dP1_spec; shapes1dP2_spec; shapes1dP3_spec; 

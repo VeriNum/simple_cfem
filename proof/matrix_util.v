@@ -614,9 +614,10 @@ Ltac ord_enum_cases j :=
  lazymatch type of j with ordinal ?n => 
   pattern j; 
   apply ord_enum_cases;
-  compute_ord_enum n;
-  repeat apply List.Forall_cons; try apply List.Forall_nil
- end.
+  compute_ord_enum n
+ end;
+ repeat apply List.Forall_cons; try apply List.Forall_nil;
+ clear j.
 
 Ltac simplify_ordinal i := 
    (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i isT  *)

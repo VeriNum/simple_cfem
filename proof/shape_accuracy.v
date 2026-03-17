@@ -1,6 +1,7 @@
 From CFEM Require Import shape shapefloat.
 From mathcomp Require Import Rstruct.
 Import matrix matrix_util fintype.
+Import shapefloat.Bounds.
 
 Require Import vcfloat.VCFloat.
 Require Import Interval.Tactic.
@@ -115,25 +116,6 @@ end;
 
 
 Existing Instance FPCompCert.nans.
-
-
-Definition firstn_canon_idents (n: nat) := map Pos.of_succ_nat (seq 0 n).
-
-Definition cuboid_bounds (i: ident) := Build_varinfo Tdouble i (-1) 1.
-Definition simplex_bounds (i: ident) := Build_varinfo Tdouble i 0 1.
-
-Ltac compute_boundsmap one_d_bound dim :=
- let bmlist := constr:(boundsmap_of_list (map one_d_bound (firstn_canon_idents dim))) in
- let a := eval cbv beta fix match delta 
-    [ cuboid_bounds simplex_bounds 
-     boundsmap_of_list firstn_canon_idents
-      map seq Pos.of_succ_nat Pos.succ  fold_left] in bmlist
-  in let b := compute_PTree a in
-   exact b.
-
-Definition cuboid_boundsmap_1d := ltac:(compute_boundsmap cuboid_bounds 1%nat).
-Definition cuboid_boundsmap_2d := ltac:(compute_boundsmap cuboid_bounds 2%nat).
-Definition simplex_boundsmap_2d := ltac:(compute_boundsmap simplex_bounds 2%nat).
 
 Ltac change_StdLib_to_Core :=
  change (@FPStdLib.BMULT FPCompCert.nans FPStdLib.Tdouble) with (@BMULT FPCompCert.nans Tdouble is_standard_Tdouble);
@@ -942,17 +924,17 @@ Qed.
 
 
 
-Definition roundoff_bound_lemma (s: Shape.shape) (bounds: boundsmap)
-    (Fθ: 'rV[ftype Tdouble]_(Shape.d s) -> 'rV_(Shape.nsh s)) (acc: R)
-    (Fdθ: 'rV[ftype Tdouble]_(Shape.d s) -> 'M[ftype Tdouble]_(Shape.nsh s, Shape.d s)) (accd: R)
+Definition roundoff_bound_lemma (s: Shape.shape)
+    (F: FShape.shape (Shape.d s) (Shape.nsh s) FPStdLib.Tdouble)
+    (acc accd: R)
  :=
   forall (x: 'rV[ftype Tdouble]_(Shape.d s)),
-       boundsmap_denote bounds (vmap_of_rV x) -> 
+       boundsmap_denote (FShape.bounds F) (vmap_of_rV x) -> 
      (forall (j: 'I_(Shape.nsh s)),
-       @FPCore.is_finite Tdouble (Fθ x ord0 j) = true /\
-       Rabs (addmx (map_mx (@FT2R Tdouble) (Fθ x)) (oppmx (Shape.θ s (map_mx FT2R x))) ord0 j) <= acc)
- /\  (forall i j, @FPCore.is_finite Tdouble (Fdθ x i j) = true /\
-       Rabs (addmx (map_mx (@FT2R Tdouble) (Fdθ x)) (oppmx (Shape.dθ s (map_mx FT2R x))) i j) <= accd).
+       @FPCore.is_finite Tdouble (FShape.θ F x ord0 j) = true /\
+       Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.θ F x)) (oppmx (Shape.θ s (map_mx FT2R x))) ord0 j) <= acc)
+ /\  (forall i j, @FPCore.is_finite Tdouble (FShape.dθ F x i j) = true /\
+       Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.dθ F x)) (oppmx (Shape.dθ s (map_mx FT2R x))) i j) <= accd).
 
 Ltac prove_vmaps_equal := 
 apply ProofIrrelevance.ProofIrrelevanceTheory.subset_eq_compat;
@@ -988,10 +970,8 @@ Ltac prepare_apply_roundoff_bound :=
  unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE;
  realify; rewrite Rplus_opp.
 
-Lemma roundoff_bound_1dP1: roundoff_bound_lemma shapes1dP1 
-        cuboid_boundsmap_1d
-        (FShape.θ shapes1dP1F) acc_1dP1
-        (FShape.dθ shapes1dP1F) acc_1dP1d.
+Lemma roundoff_bound_1dP1: 
+   roundoff_bound_lemma shapes1dP1 shapes1dP1F acc_1dP1 acc_1dP1d.
 Proof.
 red; simpl; intro x.
 simplify_vmap_of_rV.
@@ -999,21 +979,19 @@ intro H; split; intros; revert H.
 -
 unfold shapes1dP1_float, shapes1dP1_function.
 prepare_apply_roundoff_bound.
-ord_enum_cases j; clear j.
+ord_enum_cases j.
 apply_roundoff_bound prove_roundoff_bound_1dP1_0.
 apply_roundoff_bound prove_roundoff_bound_1dP1_1.
 -
 unfold shapes1dP1_fderiv, shapes1dP1_deriv.
 prepare_apply_roundoff_bound.
-ord_enum_cases i;  clear i.
+ord_enum_cases i.
 apply_roundoff_bound prove_roundoff_bound_1dP1deriv_0.
 apply_roundoff_bound prove_roundoff_bound_1dP1deriv_1.
 Qed.
 
 Lemma roundoff_bound_1dP2: roundoff_bound_lemma shapes1dP2 
-        cuboid_boundsmap_1d
-        (FShape.θ shapes1dP2F) acc_1dP2
-        (FShape.dθ shapes1dP2F) acc_1dP2deriv.
+         shapes1dP2F acc_1dP2 acc_1dP2deriv.
 Proof.
 red; simpl; intro x.
 simplify_vmap_of_rV.
@@ -1021,23 +999,21 @@ intro H; split; intros; revert H.
 -
 unfold shapes1dP2_float, shapes1dP2_function.
 prepare_apply_roundoff_bound.
-ord_enum_cases j; clear j.
+ord_enum_cases j.
 apply_roundoff_bound prove_roundoff_bound_1dP2_0.
 apply_roundoff_bound prove_roundoff_bound_1dP2_1.
 apply_roundoff_bound prove_roundoff_bound_1dP2_2.
 -
 unfold shapes1dP2_fderiv, shapes1dP2_deriv.
 prepare_apply_roundoff_bound.
-ord_enum_cases i; clear i.
+ord_enum_cases i.
 apply_roundoff_bound prove_roundoff_bound_1dP2deriv_0.
 apply_roundoff_bound prove_roundoff_bound_1dP2deriv_1.
 apply_roundoff_bound prove_roundoff_bound_1dP2deriv_2.
 Qed.
 
 Lemma roundoff_bound_2dP1: roundoff_bound_lemma shapes2dP1 
-        cuboid_boundsmap_2d
-        (FShape.θ shapes2dP1F) acc_2dP1
-       (FShape.dθ shapes2dP1F) acc_2dP1deriv.
+         shapes2dP1F acc_2dP1 acc_2dP1deriv.
 Proof.
 red; simpl; intro x.
 simplify_vmap_of_rV.
@@ -1045,7 +1021,7 @@ intro H; split; intros; revert H.
 -
 unfold shapes2dP1_float, shapes2dP1_function, shapes1dP1_float, shapes1dP1_function.
 prepare_apply_roundoff_bound.
-ord_enum_cases j; clear j.
+ord_enum_cases j.
 apply_roundoff_bound prove_roundoff_bound_2dP1_0.
 apply_roundoff_bound prove_roundoff_bound_2dP1_1.
 apply_roundoff_bound prove_roundoff_bound_2dP1_2.
@@ -1053,7 +1029,7 @@ apply_roundoff_bound prove_roundoff_bound_2dP1_3.
 -
 unfold shapes2dP1_fderiv, shapes2dP1_deriv, shapes1dP1_float, shapes1dP1_fderiv, shapes1dP1_deriv, shapes1dP1_function.
 prepare_apply_roundoff_bound.
-ord_enum_cases j; clear j; ord_enum_cases i; clear i.
+ord_enum_cases j; ord_enum_cases i.
 apply_roundoff_bound prove_roundoff_bound_2dP1deriv_0_0.
 apply_roundoff_bound prove_roundoff_bound_2dP1deriv_1_0.
 apply_roundoff_bound prove_roundoff_bound_2dP1deriv_2_0.
@@ -1068,16 +1044,12 @@ Qed.
 Definition acc_2dP2_deriv : R := 1.  (* Placeholder! *)
 
 Lemma roundoff_bound_2dP2: roundoff_bound_lemma shapes2dP2 
-        cuboid_boundsmap_2d
-        (FShape.θ shapes2dP2F) acc_2dP2
-        (FShape.dθ shapes2dP2F) acc_2dP2_deriv.
+                shapes2dP2F acc_2dP2 acc_2dP2_deriv.
 Proof. . . . Qed.
 *)
 
-Lemma roundoff_bound_2dT1: roundoff_bound_lemma shapes2dT1 
-        simplex_boundsmap_2d
-        (FShape.θ shapes2dT1F) acc_2dT1
-        (FShape.dθ shapes2dT1F) acc_2dT1deriv.
+Lemma roundoff_bound_2dT1: 
+  roundoff_bound_lemma shapes2dT1 shapes2dT1F acc_2dT1 acc_2dT1deriv.
 Proof.
 red; simpl; intro x.
 simplify_vmap_of_rV.
@@ -1085,14 +1057,14 @@ intro H; split; intros; revert H.
 -
 unfold shapes2dT1_float, shapes2dT1_function.
 prepare_apply_roundoff_bound.
-ord_enum_cases j; clear j.
+ord_enum_cases j.
 apply_roundoff_bound prove_roundoff_bound_2dT1_0.
 apply_roundoff_bound prove_roundoff_bound_2dT1_1.
 apply_roundoff_bound prove_roundoff_bound_2dT1_2.
 -
 unfold shapes2dT1_fderiv, shapes2dT1_deriv.
 prepare_apply_roundoff_bound.
-ord_enum_cases j; clear j; ord_enum_cases i; clear i.
+ord_enum_cases j; ord_enum_cases i.
 apply_roundoff_bound prove_roundoff_bound_2dT1deriv_0_0.
 apply_roundoff_bound prove_roundoff_bound_2dT1deriv_1_0.
 apply_roundoff_bound prove_roundoff_bound_2dT1deriv_2_0.
