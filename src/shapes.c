@@ -152,9 +152,9 @@ int shapes2dS2(double* N, double* dN, double* x)
 int shapes2dT1(double* N, double* dN, double* x)
 {
     if (N) {
-      densematn_set(N,1,0,0,  1-densematn_get(x,1,0,0)-densematn_get(x,1,0,1));
-      densematn_set(N,1,0,1,  densematn_get(x,1,0,0));
-      densematn_set(N,1,0,2,  densematn_get(x,1,0,1));
+      densematn_set(N,1,0,0,  1-densematn_get(x,2,0,0)-densematn_get(x,2,1,0));
+      densematn_set(N,1,0,1,  densematn_get(x,2,0,0));
+      densematn_set(N,1,0,2,  densematn_get(x,2,1,0));
     }
     if (dN) {
       densematn_set(dN,3,0,0, -1.0); densematn_set(dN,3,0,1, -1.0); 

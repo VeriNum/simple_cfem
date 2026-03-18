@@ -6,7 +6,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.16".
+  Definition version := "3.17".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
@@ -2895,7 +2895,7 @@ Definition f_shapes2dT1 := {|
                                    ((tptr tdouble) :: tint :: tint :: tint ::
                                     nil) tdouble cc_default))
             ((Etempvar _x (tptr tdouble)) ::
-             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 2) tint) ::
              (Econst_int (Int.repr 0) tint) ::
              (Econst_int (Int.repr 0) tint) :: nil))
           (Scall (Some _t'2)
@@ -2903,9 +2903,9 @@ Definition f_shapes2dT1 := {|
                                    ((tptr tdouble) :: tint :: tint :: tint ::
                                     nil) tdouble cc_default))
             ((Etempvar _x (tptr tdouble)) ::
+             (Econst_int (Int.repr 2) tint) ::
              (Econst_int (Int.repr 1) tint) ::
-             (Econst_int (Int.repr 0) tint) ::
-             (Econst_int (Int.repr 1) tint) :: nil)))
+             (Econst_int (Int.repr 0) tint) :: nil)))
         (Scall None
           (Evar _densematn_set (Tfunction
                                  ((tptr tdouble) :: tint :: tint :: tint ::
@@ -2924,7 +2924,7 @@ Definition f_shapes2dT1 := {|
                                    ((tptr tdouble) :: tint :: tint :: tint ::
                                     nil) tdouble cc_default))
             ((Etempvar _x (tptr tdouble)) ::
-             (Econst_int (Int.repr 1) tint) ::
+             (Econst_int (Int.repr 2) tint) ::
              (Econst_int (Int.repr 0) tint) ::
              (Econst_int (Int.repr 0) tint) :: nil))
           (Scall None
@@ -2942,9 +2942,9 @@ Definition f_shapes2dT1 := {|
                                    ((tptr tdouble) :: tint :: tint :: tint ::
                                     nil) tdouble cc_default))
             ((Etempvar _x (tptr tdouble)) ::
+             (Econst_int (Int.repr 2) tint) ::
              (Econst_int (Int.repr 1) tint) ::
-             (Econst_int (Int.repr 0) tint) ::
-             (Econst_int (Int.repr 1) tint) :: nil))
+             (Econst_int (Int.repr 0) tint) :: nil))
           (Scall None
             (Evar _densematn_set (Tfunction
                                    ((tptr tdouble) :: tint :: tint :: tint ::

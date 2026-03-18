@@ -135,6 +135,7 @@ assert (H: prop);  [
  repeat
   lazymatch goal  with
   | |- fun_of_matrix (rowmx_of_list _) _ _ = _ => fail
+  | |- fun_of_matrix (colmx_of_list _) _ _ = _ => fail
   | |- fun_of_matrix (mx_of_list _) _ _ = _ => fail
   | |- fun_of_matrix ?a _ _ = _ => let b := eval red in a in change a with b
   end;
@@ -169,14 +170,14 @@ rewrite mxE.
 f_equal. apply ord_inj; simpl. rewrite ord1. auto.
 Qed.
 
-Definition vmap_of_rV_list [n] (x: 'rV[ftype Tdouble]_n) :=
-      map (fun i => (Pos.of_succ_nat (nat_of_ord i), existT ftype _ (fun_of_matrix x ord0 i))) (ord_enum n).
+Definition vmap_of_cV_list [n] (x: 'cV[ftype Tdouble]_n) :=
+      map (fun i => (Pos.of_succ_nat (nat_of_ord i), existT ftype _ (fun_of_matrix x i ord0))) (ord_enum n).
 
-Lemma vmap_of_rV_list_valid: forall [n] (x: 'rV[ftype Tdouble]_n),
-  @valmap_valid empty_collection (valmap_of_list' (@vmap_of_rV_list n x)).
+Lemma vmap_of_cV_list_valid: forall [n] (x: 'cV[ftype Tdouble]_n),
+  @valmap_valid empty_collection (valmap_of_list' (@vmap_of_cV_list n x)).
 Proof.
 intros.
-unfold vmap_of_rV_list.
+unfold vmap_of_cV_list.
 unfold valmap_valid.
 intros.
 destruct ty as [t a].
@@ -197,16 +198,16 @@ rewrite Maps.PTree.gso in H by auto.
 apply IHl; auto.
 Qed.
 
-Definition  vmap_of_rV [n](x: 'rV[ftype Tdouble]_n) : valmap :=
-   @valmap_of_list empty_collection (vmap_of_rV_list x) (vmap_of_rV_list_valid x).
+Definition  vmap_of_cV [n](x: 'cV[ftype Tdouble]_n) : valmap :=
+   @valmap_of_list empty_collection (vmap_of_cV_list x) (vmap_of_cV_list_valid x).
 
-Ltac simplify_vmap_of_rV :=
-let u := fresh "u" in set (u := @vmap_of_rV _ _ );
+Ltac simplify_vmap_of_cV :=
+let u := fresh "u" in set (u := @vmap_of_cV _ _ );
   pattern u; subst u;
   let G := fresh "G" in 
   match goal with |- ?A _ => set (G:=A) end;
-  cbv [vmap_of_rV rowmx_of_list valmap_of_list valmap_of_list'
-                               vmap_of_rV_list make_valmap]; simpl seq.size;
+  cbv [vmap_of_cV rowmx_of_list valmap_of_list valmap_of_list'
+                               vmap_of_cV_list make_valmap]; simpl seq.size;
 let b := fresh "b" in 
 evar (b: Maps.PTree.tree {x : type & ftype x});
 let H := fresh in 
@@ -243,8 +244,8 @@ Definition x_vmap (x : ftype Tdouble) : valmap :=
  ltac:(make_valmap_of_list (x_vmap_list x)).
 
 
-Goal vmap_of_rV (rowmx_of_list [ Zconst Tdouble 3; Zconst Tdouble 4]) = x_vmap (Zconst Tdouble 0).
-   simplify_vmap_of_rV.
+Goal exists vm, vmap_of_cV (trmx (rowmx_of_list [Zconst Tdouble 3; Zconst Tdouble 4])) = vm.
+ eexists. simplify_vmap_of_cV. 
 Abort.
 
 Ltac related_matrix f := let x :=
@@ -252,12 +253,12 @@ Ltac related_matrix f := let x :=
     match type of (f x) with _ = ?t => let b := eval cbv beta in t in exact b end.
 
 Definition relate_1dP1_0  
- := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (rowmx_of_list [x]) ord0 (Ordn 2 0))).
+ := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (mx_of_list [[x]]) ord0 (Ordn 2 0))).
 Definition f_1dP1_0 := ltac:(related_matrix relate_1dP1_0).
 
 Goal f_1dP1_0 = fun x : ftype Tdouble => (0.5 * (1 - x))%F64.  reflexivity. Abort.  
 Definition   relate_1dP1_1
- := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (rowmx_of_list [x]) ord0 (Ordn 2 1))).
+ := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (mx_of_list [[x]]) ord0 (Ordn 2 1))).
 
 Definition f_1dP1_1 := ltac:(related_matrix relate_1dP1_1).
 
@@ -317,6 +318,12 @@ prove_roundoff_bound.
  do_interval.
 Qed.
 
+(*
+
+Definition shape_hull (s: Shape.shape) (sf: @FShape.shape (@Shape.d Rdefinitions.R s) (Shape.nsh s) FPStdLib.Tdouble) : Prop.
+
+*)
+
 Definition relate_1dP1deriv_0 := 
    ltac:(translate_matrix (fun x => shapes1dP1_fderiv (rowmx_of_list [x]) (Ordn 2 0) ord0)).
 Definition f_1dP1deriv_0 := ltac:(related_matrix relate_1dP1deriv_0).
@@ -352,15 +359,15 @@ prove_roundoff_bound.
 Qed.
 
 Definition relate_1dP2_0 := 
-   ltac:(translate_matrix (fun x => shapes1dP2_float  (rowmx_of_list [x]) ord0 (Ordn 3 0))).
+   ltac:(translate_matrix (fun x => shapes1dP2_float  (mx_of_list [[x]]) ord0 (Ordn 3 0))).
 Definition f_1dP2_0 := ltac:(related_matrix relate_1dP2_0).
 
 Definition relate_1dP2_1 := 
-   ltac:(translate_matrix (fun x => shapes1dP2_float  (rowmx_of_list [x]) ord0 (Ordn 3 1))).
+   ltac:(translate_matrix (fun x => shapes1dP2_float  (mx_of_list [[x]]) ord0 (Ordn 3 1))).
 Definition f_1dP2_1 := ltac:(related_matrix relate_1dP2_1).
 
 Definition relate_1dP2_2 := 
-   ltac:(translate_matrix (fun x => shapes1dP2_float  (rowmx_of_list [x]) ord0 (@Ordn 3 2))).
+   ltac:(translate_matrix (fun x => shapes1dP2_float  (mx_of_list [[x]]) ord0 (@Ordn 3 2))).
 Definition f_1dP2_2 := ltac:(related_matrix relate_1dP2_2).
 
 Derive acc_1dP2_1
@@ -427,15 +434,15 @@ Qed.
 
 
 Definition relate_1dP2deriv_0 := 
-   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (rowmx_of_list [x]) (Ordn 3 0) ord0)).
+   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (mx_of_list [[x]]) (Ordn 3 0) ord0)).
 Definition f_1dP2deriv_0 := ltac:(related_matrix relate_1dP2deriv_0).
 
 Definition relate_1dP2deriv_1 := 
-   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (rowmx_of_list [x]) (Ordn 3 1) ord0)).
+   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (mx_of_list [[x]]) (Ordn 3 1) ord0)).
 Definition f_1dP2deriv_1 := ltac:(related_matrix relate_1dP2deriv_1).
 
 Definition relate_1dP2deriv_2 := 
-   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (rowmx_of_list [x]) (Ordn 3 2) ord0)).
+   ltac:(translate_matrix (fun x => shapes1dP2_fderiv (mx_of_list [[x]]) (Ordn 3 2) ord0)).
 Definition f_1dP2deriv_2 := ltac:(related_matrix relate_1dP2deriv_2).
 
 
@@ -510,19 +517,19 @@ Ltac related_matrix2 f := let x := fresh "x" in intro x; let y := fresh "y" in i
     match type of (f x y) with _ = ?t => let b := eval cbv beta in t in exact b end.
 
 Definition relate_2dP1_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (Ordn 4 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 4 0))).
 Definition f_2dP1_0 := ltac:(related_matrix2 relate_2dP1_0).
 
 Definition relate_2dP1_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (Ordn 4 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 4 1))).
 Definition f_2dP1_1 := ltac:(related_matrix2 relate_2dP1_1).
 
 Definition relate_2dP1_2 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (Ordn 4 2))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 4 2))).
 Definition f_2dP1_2 := ltac:(related_matrix2 relate_2dP1_2).
 
 Definition relate_2dP1_3 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (rowmx_of_list [x;y]) ord0 (Ordn 4 3))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 4 3))).
 Definition f_2dP1_3 := ltac:(related_matrix2 relate_2dP1_3).
 
 Derive acc_2dP1_1
@@ -599,35 +606,35 @@ Qed.
 
 
 Definition relate_2dP1deriv_0_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 0) (Ordn 2 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 0) (Ordn 2 0))).
 Definition f_2dP1deriv_0_0 := ltac:(related_matrix2 relate_2dP1deriv_0_0).
 
 Definition relate_2dP1deriv_0_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 0) (Ordn 2 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 0) (Ordn 2 1))).
 Definition f_2dP1deriv_0_1 := ltac:(related_matrix2 relate_2dP1deriv_0_1).
 
 Definition relate_2dP1deriv_1_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 1) (Ordn 2 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 1) (Ordn 2 0))).
 Definition f_2dP1deriv_1_0 := ltac:(related_matrix2 relate_2dP1deriv_1_0).
 
 Definition relate_2dP1deriv_1_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 1) (Ordn 2 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 1) (Ordn 2 1))).
 Definition f_2dP1deriv_1_1 := ltac:(related_matrix2 relate_2dP1deriv_1_1).
 
 Definition relate_2dP1deriv_2_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 2) (Ordn 2 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 2) (Ordn 2 0))).
 Definition f_2dP1deriv_2_0 := ltac:(related_matrix2 relate_2dP1deriv_2_0).
 
 Definition relate_2dP1deriv_2_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 2) (Ordn 2 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 2) (Ordn 2 1))).
 Definition f_2dP1deriv_2_1 := ltac:(related_matrix2 relate_2dP1deriv_2_1).
 
 Definition relate_2dP1deriv_3_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 3) (Ordn 2 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 3) (Ordn 2 0))).
 Definition f_2dP1deriv_3_0 := ltac:(related_matrix2 relate_2dP1deriv_3_0).
 
 Definition relate_2dP1deriv_3_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (rowmx_of_list [x;y]) (Ordn 4 3) (Ordn 2 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 3) (Ordn 2 1))).
 Definition f_2dP1deriv_3_1 := ltac:(related_matrix2 relate_2dP1deriv_3_1).
 
 Derive acc_2dP1deriv
@@ -753,15 +760,15 @@ prove_rndval; interval.
 Qed.
 
 Definition relate_2dT1_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (rowmx_of_list [x;y]) ord0 (Ordn 3 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 3 0))).
 Definition f_2dT1_0 := ltac:(related_matrix2 relate_2dT1_0).
 
 Definition relate_2dT1_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (rowmx_of_list [x;y]) ord0 (Ordn 3 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 3 1))).
 Definition f_2dT1_1 := ltac:(related_matrix2 relate_2dT1_1).
 
 Definition relate_2dT1_2 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (rowmx_of_list [x;y]) ord0 (Ordn 3 2))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 3 2))).
 Definition f_2dT1_2 := ltac:(related_matrix2 relate_2dT1_2).
 
 Derive acc_2dT1_0
@@ -825,27 +832,27 @@ prove_rndval; interval.
 Qed.
 
 Definition relate_2dT1deriv_0_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 0) (Ordn 2 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (mx_of_list [[x];[y]]) (Ordn 3 0) (Ordn 2 0))).
 Definition f_2dT1deriv_0_0 := ltac:(related_matrix2 relate_2dT1deriv_0_0).
 
 Definition relate_2dT1deriv_0_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 0) (Ordn 2 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (mx_of_list [[x];[y]]) (Ordn 3 0) (Ordn 2 1))).
 Definition f_2dT1deriv_0_1 := ltac:(related_matrix2 relate_2dT1deriv_0_1).
 
 Definition relate_2dT1deriv_1_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 1) (Ordn 2 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (mx_of_list [[x];[y]]) (Ordn 3 1) (Ordn 2 0))).
 Definition f_2dT1deriv_1_0 := ltac:(related_matrix2 relate_2dT1deriv_1_0).
 
 Definition relate_2dT1deriv_1_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 1) (Ordn 2 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (mx_of_list [[x];[y]]) (Ordn 3 1) (Ordn 2 1))).
 Definition f_2dT1deriv_1_1 := ltac:(related_matrix2 relate_2dT1deriv_1_1).
 
 Definition relate_2dT1deriv_2_0 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 2) (Ordn 2 0))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (mx_of_list [[x];[y]]) (Ordn 3 2) (Ordn 2 0))).
 Definition f_2dT1deriv_2_0 := ltac:(related_matrix2 relate_2dT1deriv_2_0).
 
 Definition relate_2dT1deriv_2_1 := 
-   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (rowmx_of_list [x;y]) (Ordn 3 2) (Ordn 2 1))).
+   ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (mx_of_list [[x];[y]]) (Ordn 3 2) (Ordn 2 1))).
 Definition f_2dT1deriv_2_1 := ltac:(related_matrix2 relate_2dT1deriv_2_1).
 
 Definition acc_2dT1deriv : R := 0.
@@ -928,17 +935,84 @@ Definition roundoff_bound_lemma (s: Shape.shape)
     (F: FShape.shape (Shape.d s) (Shape.nsh s) FPStdLib.Tdouble)
     (acc accd: R)
  :=
-  forall (x: 'rV[ftype Tdouble]_(Shape.d s)),
-       boundsmap_denote (FShape.bounds F) (vmap_of_rV x) -> 
+  forall (x: 'cV[ftype Tdouble]_(Shape.d s)),
+       boundsmap_denote (FShape.bounds F) (vmap_of_cV x) -> 
      (forall (j: 'I_(Shape.nsh s)),
        @FPCore.is_finite Tdouble (FShape.θ F x ord0 j) = true /\
        Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.θ F x)) (oppmx (Shape.θ s (map_mx FT2R x))) ord0 j) <= acc)
  /\  (forall i j, @FPCore.is_finite Tdouble (FShape.dθ F x i j) = true /\
        Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.dθ F x)) (oppmx (Shape.dθ s (map_mx FT2R x))) i j) <= accd).
 
+Definition boundsmap_denoteR {coll : collection} [d] (bm : boundsmap) (x: 'cV[R]_d) : Prop :=
+forall i : 'I_d,
+match Maps.PTree.get (Pos.of_succ_nat (nat_of_ord i)) bm with
+    | Some {| var_type := t; var_name := i'; var_lobound := lo; var_hibound := hi |} =>
+         lo <= fun_of_matrix x i ord0 <= hi
+    | None => False
+    end.
+
+Definition shape_hull (s: Shape.shape) (sf: FShape.shape (Shape.d s) (@Shape.nsh RbaseSymbolsImpl_R__canonical__reals_Real s) FPStdLib.Tdouble)
+ := forall x: 'cV[R]_(Shape.d s), convex_combination (Shape.vtx s) x -> 
+           boundsmap_denoteR (FShape.bounds sf) x.
+
+Lemma add0r_transparent: forall n: nat , n = Nat.add n 0.
+Proof.
+induction n; simpl; auto.
+Defined.
+
+Lemma colmx_0r: forall [T] m n (A: 'M[T]_(m,n)) (B : 'M[T]_(0,n)), col_mx A B = 
+   eq_rect m (fun m => 'M[T]_(m,n)) A (ssrnat.addn m 0) (add0r_transparent m).
+Proof. intros.
+Admitted.
+
+Lemma rowmx_0r: forall [T] m n (A: 'M[T]_(m,n)) (B : 'M[T]_(m,0)), row_mx A B = 
+   eq_rect n (fun n => 'M[T]_(m,n)) A (ssrnat.addn n 0) (add0r_transparent n).
+Proof. intros.
+Admitted.
+
+
+Lemma mulmx_1x1: forall (A B: 'M[R]_1), mulmx A B = const_mx (A ord0 ord0 * B ord0 ord0).
+Proof.
+Admitted.
+
+Lemma addmx_1x1: forall (A B: 'M[R]_1), addmx A B = const_mx (A ord0 ord0 + B ord0 ord0).
+Proof.
+Admitted.
+
+Lemma shape_hull_1dP1: shape_hull shapes1dP1 shapes1dP1F.
+Proof.
+intros x H j.
+rewrite convex_combination_e in H.
+simpl in j.
+ord1. simpl. simpl in x.
+simpl in H.
+unfold shapes1dP1_vertices in H.
+destruct H as [c [? [? ?]]].
+subst x.
+simplify_ordinals.
+unfold mx_of_list; simpl.
+rewrite colmx_0r. rewrite rowmx_0r. simpl.
+rewrite <- (@vsubmxK _ 1 1 1 c).
+match goal with |- context [mulmx (row_mx ?A ?B) (col_mx ?C ?D)] => 
+   pose proof (mul_row_col A B C D)
+end.
+match type of H1 with ?A = _ => match goal with |- context [fun_of_matrix ?B] => change B with A end end.
+rewrite H1; clear H1.
+rewrite !mulmx_1x1.
+unfold nmodule.Algebra.add. simpl.
+ rewrite addmx_1x1.
+rewrite !const_mxE.
+pose proof (H ord0).
+pose proof (H (Ordn 2 1)).
+change ('cV[R]_(ssrnat.addn 1 1)) in c.
+replace (c (Ordn 2 1) _) with (fun_of_matrix (dsubmx c) ord0 ord0) in H2 by admit.
+replace (c ord0 _) with (fun_of_matrix (usubmx c) ord0 ord0) in H1 by admit.
+simpl in H0.
+Admitted.
+
 Ltac prove_vmaps_equal := 
 apply ProofIrrelevance.ProofIrrelevanceTheory.subset_eq_compat;
-cbv beta match fix delta [ vmap_of_rV_list ord_enum seq.iota seq.pmap eqtype.insub ];
+cbv beta match fix delta [ vmap_of_cV_list ord_enum seq.iota seq.pmap eqtype.insub ];
  repeat (destruct (@ssrbool.idP _); [ | lia]);
 cbv beta match fix zeta iota delta [ valmap_of_list' fold_left Maps.PTree.set Maps.PTree.set0 Maps.PTree.empty map ];
 simpl;
@@ -974,7 +1048,7 @@ Lemma roundoff_bound_1dP1:
    roundoff_bound_lemma shapes1dP1 shapes1dP1F acc_1dP1 acc_1dP1d.
 Proof.
 red; simpl; intro x.
-simplify_vmap_of_rV.
+simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
 unfold shapes1dP1_float, shapes1dP1_function.
@@ -994,7 +1068,7 @@ Lemma roundoff_bound_1dP2: roundoff_bound_lemma shapes1dP2
          shapes1dP2F acc_1dP2 acc_1dP2deriv.
 Proof.
 red; simpl; intro x.
-simplify_vmap_of_rV.
+simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
 unfold shapes1dP2_float, shapes1dP2_function.
@@ -1016,7 +1090,7 @@ Lemma roundoff_bound_2dP1: roundoff_bound_lemma shapes2dP1
          shapes2dP1F acc_2dP1 acc_2dP1deriv.
 Proof.
 red; simpl; intro x.
-simplify_vmap_of_rV.
+simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
 unfold shapes2dP1_float, shapes2dP1_function, shapes1dP1_float, shapes1dP1_function.
@@ -1052,7 +1126,7 @@ Lemma roundoff_bound_2dT1:
   roundoff_bound_lemma shapes2dT1 shapes2dT1F acc_2dT1 acc_2dT1deriv.
 Proof.
 red; simpl; intro x.
-simplify_vmap_of_rV.
+simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
 unfold shapes2dT1_float, shapes2dT1_function.

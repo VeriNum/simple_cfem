@@ -462,7 +462,7 @@ match goal with
       let z := zero_of rl in
       let b := constr:(nth z rl j) in let c := eval cbv [nth] in b in
       replace (@fun_of_matrix t M N (@rowmx_of_listn t' n' rl) i (@Ordinal n j Hj)) with b;
-         [ | symmetry; apply (@rowmx_of_listn_E t n rl)];
+         [ | symmetry; apply (@rowmx_of_listn_E t' n rl)];
       change b with c
   | |- context [@fun_of_matrix ?t ?M ?N (rowmx_of_list ?rl) ?i (@Ordinal ?n ?j ?Hj) ] => is_ground_nat j; 
              let z := zero_of rl in

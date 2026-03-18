@@ -22,8 +22,8 @@ Local Open Scope ring_scope.
 Section S.  
 Context {R : realType}.
 
-Definition continuously_differentiable [n] (f: 'rV[R]_n -> R) : Prop :=
-  (forall x, differentiable f x) /\ forall i, continuous (derive f ^~ ('e_i)).
+Definition continuously_differentiable [n] (f: 'cV[R]_n -> R) : Prop :=
+  (forall x, differentiable f x) /\ forall i, continuous (derive f ^~ (delta_mx i 0)).
 
 Definition convex_combination [d n] (vtx: 'M[R]_(d,n)) (y: 'cV_d) : Prop :=
    exists x: 'cV_n, (forall i, x i 0 >= 0)
@@ -31,8 +31,8 @@ Definition convex_combination [d n] (vtx: 'M[R]_(d,n)) (y: 'cV_d) : Prop :=
 
 Definition convex_hull [n d] (vtx: 'M[R]_(d,n)) := sig (convex_combination vtx).
 
-Definition is_shape_deriv [d n] (θ : 'rV[R]_d -> 'rV[R]_n) (dθ: 'rV_d -> 'M[R]_(n,d)) :=
-   forall x, dθ x =  \matrix_(i<n,j<d) 'D_('e_j) θ x 0 i.
+Definition is_shape_deriv [d n] (θ : 'cV[R]_d -> 'rV[R]_n) (dθ: 'cV_d -> 'M[R]_(n,d)) :=
+   forall x, dθ x =  \matrix_(i<n,j<d) 'D_(delta_mx j 0) θ x 0 i.
 
 End S.
 
@@ -43,11 +43,11 @@ Context {R : realType}.
 Record shape : Type := {
   d : nat;
   nsh: nat;
-  θ: 'rV[R]_d -> 'rV[R]_nsh;  (* nsh shape functions, each R^d->R *)
-  dθ: 'rV[R]_d -> 'M[R]_(nsh,d);
-  vtx: 'M[R]_(nsh,d); 
+  θ: 'cV[R]_d -> 'rV[R]_nsh;  (* nsh shape functions, each R^d->R *)
+  dθ: 'cV[R]_d -> 'M[R]_(nsh,d);
+  vtx: 'M[R]_(d,nsh); 
   K  := convex_hull vtx;
-  lagrangian: forall i j, θ (row i vtx) 0 j  = if i==j then 1 else 0;
+  lagrangian: forall i j, θ (col i vtx) 0 j  = if i==j then 1 else 0;
   diff: forall j: 'I_nsh, continuously_differentiable (fun i => θ i 0 j);
   deriv: is_shape_deriv θ dθ
 }.
@@ -64,7 +64,7 @@ assert (f=g) by (apply functional_extensionality; auto).
 subst; auto.
 Qed.
 
-Lemma eq_continuously_differentiable: forall {R: realType} [n]  (f g: ('rV_n -> Real.sort R) ),
+Lemma eq_continuously_differentiable: forall {R: realType} [n]  (f g: ('cV_n -> Real.sort R) ),
    f =1 g -> continuously_differentiable f = continuously_differentiable g.
 Proof.
 intros.
@@ -72,7 +72,7 @@ assert (f=g) by (apply functional_extensionality; auto).
 subst; auto.
 Qed.
 
-Lemma eq_locked_continuously_differentiable: forall {R: realType} [n] (f g: ('rV_n -> Real.sort R) ),
+Lemma eq_locked_continuously_differentiable: forall {R: realType} [n] (f g: ('cV_n -> Real.sort R) ),
    f =1 g -> locked continuously_differentiable n f  = locked continuously_differentiable n g.
 Proof.
 intros.
@@ -122,7 +122,7 @@ Qed.
 Lemma derive_comp_mx: forall [n] (f: R -> Real.sort R), 
    (forall x, differentiable f x) ->
   forall i : 'I_n.+1, 
-   'D_('e_i) (f \o (fun m : 'rV[R]_n.+1 => m 0 i)) = ('D_1 f) \o  (fun m: 'rV[R]_n.+1 => m 0 i).
+   'D_(delta_mx i 0) (f \o (fun m : 'cV[R]_n.+1 => m i 0)) = ('D_1 f) \o  (fun m: 'cV[R]_n.+1 => m i 0).
 Proof.
 intros.
 apply functional_extensionality => z.
@@ -134,15 +134,15 @@ assert (Hfg: forall x, differentiable (f \o g) x).
  move => x. simpl in x.  apply differentiable_comp; auto.
 simpl in *.
 pose proof deriveE (1: Real.sort R) (H (g z)).
-rewrite (deriveE ('e_i) (Hfg z)).
+rewrite (deriveE (delta_mx i 0) (Hfg z)).
 rewrite diff_comp; auto.
 rewrite /comp.
-rewrite -(deriveE ('e_i) (Hg z)).
-replace ('D_('e_i) g z) with (1: Real.sort R).
+rewrite -(deriveE (delta_mx i 0) (Hg z)).
+replace ('D_(delta_mx i 0) g z) with (1: Real.sort R).
 congruence.
 clear - g Hg.
-have @f : {linear 'rV[R]_n.+1 -> R}.
-  by exists (fun N : 'rV[R]_( _) => N 0 i); do 2![eexists]; do ?[constructor];
+have @f : {linear 'cV[R]_n.+1 -> R}.
+  by exists (fun N : 'cV[R]_( _) => N i 0); do 2![eexists]; do ?[constructor];
      rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
 rewrite deriveE //.
 change g with ( Linear.sort f).
@@ -156,7 +156,7 @@ Lemma derive_comp_mx_neq: forall [n] (f: R -> Real.sort R),
    (forall x, differentiable f x) ->
   forall i j : 'I_n.+1, 
    j != i ->
-   'D_('e_i) (f \o (fun m : 'rV[R]_n.+1 => m 0 j)) = (fun=>0).
+   'D_(delta_mx i 0) (f \o (fun m : 'cV[R]_n.+1 => m j 0)) = (fun=>0).
 Proof.
 intros.
 apply functional_extensionality => z.
@@ -168,16 +168,16 @@ assert (Hfg: forall x, differentiable (f \o g) x).
  move => x. simpl in x.  apply differentiable_comp; auto.
 simpl in *.
 pose proof deriveE (1: Real.sort R) (H (g z)).
-rewrite (deriveE ('e_i) (Hfg z)).
+rewrite (deriveE (delta_mx i 0) (Hfg z)).
 rewrite diff_comp; auto.
 rewrite /comp.
-rewrite -(deriveE ('e_i) (Hg z)).
-replace ('D_('e_i) g z) with (0: Real.sort R).
+rewrite -(deriveE (delta_mx i 0) (Hg z)).
+replace ('D_(delta_mx i 0) g z) with (0: Real.sort R).
 2:{
 rewrite deriveE; auto.
 clear - g Hg H0.
-have @f : {linear 'rV[R]_n.+1 -> R}.
-  by exists (fun N : 'rV[R]_( _) => N 0 j); do 2![eexists]; do ?[constructor];
+have @f : {linear 'cV[R]_n.+1 -> R}.
+  by exists (fun N : 'cV[R]_( _) => N j 0); do 2![eexists]; do ?[constructor];
      rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
 change g with ( Linear.sort f).
 rewrite diff_lin //.
@@ -202,7 +202,7 @@ etransitivity; [ etransitivity; [ | apply (@derive_comp_mx 0 f H ord0)] | reflex
 extensionality x. f_equal. apply matrixP. intros i j; rewrite !ord1 !mxE; auto.
 Qed.
 
-Inductive is_multivariate_polynomial [d] : ('rV[R]_d -> R) -> Prop :=
+Inductive is_multivariate_polynomial [d] : ('cV[R]_d -> R) -> Prop :=
 | IMP_const: forall (c: R), is_multivariate_polynomial (fun _ => c)
 | IMP_sum: forall a b, is_multivariate_polynomial a -> is_multivariate_polynomial b ->
             is_multivariate_polynomial (fun x => a x + b x)
@@ -219,30 +219,30 @@ split.
 simpl. intro. apply differentiable_cst.
 intro.
 set j := ('D_ _ _). simpl in j.
-replace j with (fun _:'rV[R]_d.+1 => @zero  (Real_sort__canonical__normed_module_NormedModule R)).
+replace j with (fun _:'cV[R]_d.+1 => @zero  (Real_sort__canonical__normed_module_NormedModule R)).
 intro.
 apply differentiable_continuous.
 apply differentiable_cst.
 symmetry.
 simpl in i.
 subst j.
-change (fun=>c) with ((fun _: R => c) \o (fun m: 'rV[R]_d.+1 => m 0 i)).
-change (('D_1 (fun _:R =>c)) \o (fun r: 'rV[R]_d.+1 => r 0 i) = fun=>0).
+change (fun=>c) with ((fun _: R => c) \o (fun m: 'cV[R]_d.+1 => m i 0)).
+change (('D_1 (fun _:R =>c)) \o (fun r: 'cV[R]_d.+1 => r i 0) = fun=>0).
 set f := (fun=>c).
 assert (forall y, is_derive y (1:R) f 0%R).
 move=> y;  apply: is_derive_eq.  auto.
 extensionality x.
 rewrite /comp.
-specialize (H (x 0 i)).
+specialize (H (x i 0)).
 apply derive_val.
 Qed.
 
 Lemma continuously_differentiable_vacuous: forall f, @continuously_differentiable R O f.
 intros.
 assert (exists c, f = fun=>c).
-  pose m := @const_mx R 1 O (0:R).
+  pose m := @const_mx R O 1 (0:R).
   exists (f m).
-  extensionality x. destruct x. destruct m. f_equal. apply matrixP. intros i j. destruct j. lia.
+  extensionality x. destruct x. destruct m. f_equal. apply matrixP. intros i j. destruct i. lia.
 destruct H as  [c H].
 subst f.
 split.  intro.
@@ -251,7 +251,7 @@ simpl. intro. destruct i. lia.
 Qed.
 
 Lemma continuously_differentiable_add:
-  forall [d] (a b: 'rV_d.+1 -> Real.sort R),
+  forall [d] (a b: 'cV_d.+1 -> Real.sort R),
    continuously_differentiable a ->
    continuously_differentiable b ->
    continuously_differentiable (a \+ b)%E.
@@ -263,13 +263,13 @@ simpl in *.
 split; simpl; intros.
 apply differentiableD; auto.
 pose proof @derive_comp_mx d.
-replace (fun _ => _) with (fun z : matrix (Real.sort R) 1 (S d) => add (derive a z (delta_mx zero i)) (derive b z (delta_mx zero i))).
+replace (fun _ => _) with (fun z : matrix (Real.sort R) (S d) 1 => add (derive a z (delta_mx i zero)) (derive b z (delta_mx i zero))).
 2: extensionality z; rewrite deriveD //; apply diff_derivable; auto.
 apply (@continuousD _ _ _ _ _ _ (Ca i x) (Cb i x)).
 Qed.
 
 Lemma continuously_differentiable_mul:
-  forall [d] (a b: 'rV_d.+1 -> Real.sort R),
+  forall [d] (a b: 'cV_d.+1 -> Real.sort R),
    continuously_differentiable a ->
    continuously_differentiable b ->
    continuously_differentiable (fun x => a x * b x).
@@ -281,12 +281,12 @@ simpl in *.
 split; simpl; intros.
 apply differentiableM; auto.
 pose proof @derive_comp_mx d.
-replace (fun _ => _) with (fun z : matrix (Real.sort R) 1 (S d) =>  (a z *: 'D_'e_i b z + b z *: 'D_'e_i a z)%E).
+replace (fun _ => _) with (fun z : matrix (Real.sort R) (S d) 1 =>  (a z *: 'D_(delta_mx i zero) b z + b z *: 'D_(delta_mx i zero) a z)%E).
 2: extensionality z; rewrite deriveM //; apply diff_derivable; auto.
 apply (@continuousD (reals_Real__to__Num_NumField R) (Real_sort__canonical__normed_module_NormedModule R)
   (@normed_module_NormedModule__to__topology_structure_Topological
      (Num_NumField__to__Num_NumDomain (reals_Real__to__Num_NumField R))
-     (matrix_matrix__canonical__normed_module_NormedModule (reals_Real__to__Num_NumField R) (S O) (S d)))).
+     (matrix_matrix__canonical__normed_module_NormedModule (reals_Real__to__Num_NumField R) (S d) (S O)))).
 unfold scale.
 simpl.
 apply (@continuousM _ _ _ _ _ (differentiable_continuous (Da x)) (Cb i x)).
@@ -294,12 +294,11 @@ apply (@continuousM _ _ _ _ _ (differentiable_continuous (Db x)) (Ca i x)).
 Qed.
 
 Lemma continously_differentiable_coord: 
-  forall [d] (i: 'I_1) (j: 'I_d.+1),
-continuously_differentiable (fun x : 'rV[R]_d.+1 => fun_of_matrix x i j).
+  forall [d] (i: 'I_d.+1) (j: 'I_1),
+continuously_differentiable (fun x : 'cV[R]_d.+1 => fun_of_matrix x i j).
 Proof.
 intros.
-rewrite ord1. clear i.
-rename j into i.
+rewrite ord1. clear j.
 split; simpl; intros.
 apply differentiable_coord.
 rename i0 into j.
@@ -342,7 +341,7 @@ rewrite eq_sym Hij //.
 Qed.
 
 Lemma multivariate_polynomial_continuously_differentiable: 
-  forall [d] (f: 'rV[R]_d -> R),
+  forall [d] (f: 'cV[R]_d -> R),
   is_multivariate_polynomial f ->
   continuously_differentiable f.
 Proof.
@@ -350,7 +349,7 @@ destruct d; [ intros; apply continuously_differentiable_vacuous | ].
 induction 1.
 - apply continuously_differentiable_cst.
 - apply continuously_differentiable_add; auto.
-- replace (fun _ => _) with (fun x: 'rV[R]_d.+1 => -1 * a x).
+- replace (fun _ => _) with (fun x: 'cV[R]_d.+1 => -1 * a x).
   apply continuously_differentiable_mul; auto.
   apply continuously_differentiable_cst.
   extensionality x. lra.
@@ -358,7 +357,7 @@ induction 1.
 - apply continously_differentiable_coord.
 - induction k.
  +
-  replace (fun _ => _) with (fun _: 'rV[R]_d.+1 => one R). 
+  replace (fun _ => _) with (fun _: 'cV[R]_d.+1 => one R). 
   apply continuously_differentiable_cst.
   extensionality x. rewrite expr0z //.
  + 
@@ -401,7 +400,7 @@ lazymatch goal with
      replace f with g; [ subst g |
       subst g; extensionality y;
       match goal with |- _ = fun_of_matrix (?f y) _ _ => unfold f end;
-      try lazymatch goal with |- context [fun_of_matrix (?f (col _ _))] => unfold f end;
+      try lazymatch goal with |- context [fun_of_matrix (?f (row _ _))] => unfold f end;
      simplify_ordinals;
       rewrite_matrix;
       reflexivity
@@ -493,20 +492,20 @@ Qed.
 Section S.
 Context {R : realType}.
 
-Lemma is_derive_col: forall [n](x: 'rV_n.+1) (i j: 'I_n.+1),
-  is_derive x 'e_i (fun y: 'rV[R]_n.+1 => fun_of_matrix (col j y) 0 0) (if i==j then 1 else 0).
+Lemma is_derive_row: forall [n](x: 'cV_n.+1) (i j: 'I_n.+1),
+  is_derive x (delta_mx i 0) (fun y: 'cV[R]_n.+1 => fun_of_matrix (row j y) 0 0) (if i==j then 1 else 0).
 Proof.
 intros.
-replace (fun _ => _) with (fun A: 'rV[R]_n.+1 => A ord0 j).
-2: extensionality A; symmetry; apply col__0.
+replace (fun _ => _) with (fun A: 'cV[R]_n.+1 => A j ord0).
+2: extensionality A; symmetry; apply row__0.
 split.
 -
 apply diff_derivable.
 apply differentiable_coord.
 -
 rewrite deriveE; [ | apply differentiable_coord].
-have @f : {linear 'rV[R]_n.+1 -> R}.
-  by exists (fun N : 'rV[R]_( _) => N ord0 j); do 2![eexists]; do ?[constructor];
+have @f : {linear 'cV[R]_n.+1 -> R}.
+  by exists (fun N : 'cV[R]_( _) => N j ord0); do 2![eexists]; do ?[constructor];
      rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
 change (fun _ => fun_of_matrix _ _ _) with (Linear.sort f).
 rewrite diff_lin.
@@ -517,7 +516,7 @@ Qed.
 
 
 Lemma is_derive_coord_simple:
- forall [n] (x: 'rV[R]_n) i j (z: 'I_1), is_derive x 'e_j (fun y => y z i) (if i==j then 1 else 0).
+ forall [n] (x: 'cV[R]_n) i j (z: 'I_1), is_derive x (delta_mx j 0) (fun y => y i z) (if i==j then 1 else 0).
 Proof.
 intros.
 simpl.
@@ -526,8 +525,8 @@ apply diff_derivable.
 apply differentiable_coord.
 -
 rewrite deriveE; [ | apply differentiable_coord].
-have @f : {linear 'rV[R]_n -> R}.
-  by exists (fun N : 'rV[R]_( _) => N z i); do 2![eexists]; do ?[constructor];
+have @f : {linear 'cV[R]_n -> R}.
+  by exists (fun N : 'cV[R]_( _) => N i z); do 2![eexists]; do ?[constructor];
      rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
 change (fun _ => fun_of_matrix _ _ _) with (Linear.sort f).
 rewrite diff_lin; [ | apply (@coord_continuous (Real.sort R))].
@@ -546,8 +545,9 @@ Ltac is_derive := repeat
   | |- is_derive _ _ (fun _ => add _ _) _ => apply is_deriveD
   | |- is_derive _ _ (fun _ => opp _) _ => apply is_deriveN
   | |- is_derive _ _ (fun=> _) _ =>  apply is_derive_cst
-  | |- is_derive ?x _ (fun _ => fun_of_matrix (col _ _) _ _) _ => apply (is_derive_col x)
+  | |- is_derive ?x _ (fun _ => fun_of_matrix (col _ _) _ _) _ => apply (is_derive_row x)
   | |- is_derive _ (delta_mx (Ordn _ 0) _)  _ _ => apply is_derive_coord_simple
+  | |- is_derive _ (delta_mx _ (Ordn _ 0)) _ _ => apply is_derive_coord_simple
   | |- is_derive _ 'e__ _ _ => apply is_derive_coord_simple
  end).
 
@@ -555,7 +555,7 @@ Ltac prove_lagrangian :=
 let i := fresh "i" in let j := fresh "j" in intros i j;
 test_I_n i; test_I_n j;
 try match goal with 
-| |- fun_of_matrix (?F (row i ?V)) 0 j =  if  i==j then _ else _ => rewrite /F /V
+| |- fun_of_matrix (?F (col i ?V)) 0 j =  if  i==j then _ else _ => rewrite /F /V
 end;
 simplify_ordinals;
 rewrite_matrix;
@@ -563,34 +563,38 @@ ord_enum_cases i; rewrite_matrix;
  ord_enum_cases j; rewrite_matrix;
 simpl; lra.
 
-Ltac prove_deriv := 
+Ltac prove_deriv :=
 let x := fresh "x" in intro x; symmetry;
 compute_addn;
 let i := fresh "i" in let j := fresh "j" in 
 apply matrixP => i j; simpl in i, j;
 match goal with |- _ ?A  => let a := fresh "a" in set a := A; rewrite mxE; subst a end;
-repeat match goal with |- context [fun_of_matrix (?F (col _ _)) _ _] => unfold F end;
+repeat match goal with |- context [fun_of_matrix (?F (row _ _)) _ _] => unfold F end;
 let f := fresh "f" in let g := fresh "g" in 
 set (f := fun _ => _); simpl size in f;
-match goal with |- _ = fun_of_matrix ?G _ _ => rewrite -(trmxK G); set g := trmx G end;
-assert (DERIV: is_derive x 'e_j f (row j g)); [ | destruct DERIV as [_ Hval]; rewrite Hval  trmxE row__0 //];
-subst f g;
+match goal with |- _ = fun_of_matrix ?G _ _ =>
+   assert (DERIV: is_derive x (delta_mx j 0) f (trmx (col j G)));
+     [ | destruct DERIV as [_ Hval]; rewrite Hval trmxE col__0 //]
+end;
+subst f;
 simplify_ordinals;
 ord_enum_cases j;
 rewrite_matrix; rewrite_matrix_under;
 try (ord_enum_cases i; rewrite_matrix; rewrite_matrix_under);
 try (ord_enum_cases j; rewrite_matrix; rewrite_matrix_under);
 simpl map; simpl size;
-  apply is_derive_mx; intros i j; compute in i,j; ord1; (*rewrite ?trmxE; *)
+  apply is_derive_mx; intros i j; compute in i,j; ord1;
+ rewrite ?trmxE;
   ord_enum_cases j; rewrite_matrix; rewrite_matrix_under;
-  (eapply is_derive_eq; [ is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
+  simpl NormedModule.sort;
+  (eapply is_derive_eq; [is_derive | simpl; repeat (progress change (scale ?A ?B) with (mul A B); simpl); lra]).
 
 Section S.
 Context {R : realType}.
-Definition shapes1dP1_function (xm: 'rV_1) : 'rV_(1 + 1) :=
+Definition shapes1dP1_function (xm: 'cV_1) : 'rV_(1 + 1) :=
     let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
-Definition shapes1dP1_vertices : 'cV[R]_2 := mx_of_list [:: [:: -1:R] ; [:: 1]].
-Definition shapes1dP1_deriv (xm: 'rV[R]_1) : 'M[R]_(2,1) :=
+Definition shapes1dP1_vertices : 'M[R]_(1,2) := mx_of_list [:: [:: -1; 1]].
+Definition shapes1dP1_deriv (xm: 'cV[R]_1) : 'M[R]_(2,1) :=
    let x := xm 0 0 in
    mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
 
@@ -601,7 +605,7 @@ apply (Shape.Build_shape 1 2 shapes1dP1_function shapes1dP1_deriv shapes1dP1_ver
 - abstract (unfold shapes1dP1_function, shapes1dP1_deriv; prove_deriv).
 Defined.
 
-Definition shapes1dP2_vertices : 'cV[R]_3 := mx_of_list [:: [:: -1:R] ; [:: 0]; [:: 1] ].
+Definition shapes1dP2_vertices : 'M[R]_(1,3) := mx_of_list [:: [:: -1; 0; 1] ].
 Definition shapes1dP2_function (xm: 'rV_1) : 'rV_3 :=
     let x : R := xm 0 0 in rowmx_of_list [::   -(1/2)*(1-x)*x ;  (1-x)*(1+x);   (1/2)*x*(1+x)].
 Definition shapes1dP2_deriv (xm: 'rV[R]_1) : 'M[R]_(3,1) :=
@@ -615,7 +619,7 @@ apply (Shape.Build_shape 1 3 shapes1dP2_function shapes1dP2_deriv shapes1dP2_ver
 - abstract (unfold shapes1dP2_function, shapes1dP2_deriv; prove_deriv).
 Defined.
 
-Definition shapes1dP3_vertices : 'cV[R]_4 := mx_of_list [::  [:: -1:R]; [:: -1/3]; [:: 1/3]; [:: 1]].
+Definition shapes1dP3_vertices : 'M[R]_(1,4) := mx_of_list [::  [:: -1; -1/3; 1/3; 1]].
 Definition shapes1dP3_function (xm: 'rV_1) : 'rV_4 :=
   let x: R := xm 0 0 in
    rowmx_of_list [::  -(1/16)*(1-x)*(1-3*x)*(1+3*x);  
@@ -636,20 +640,21 @@ apply (Shape.Build_shape 1 4 shapes1dP3_function shapes1dP3_deriv shapes1dP3_ver
 - abstract (unfold shapes1dP3_function, shapes1dP3_deriv; prove_deriv).
 Defined.
 
-Definition shapes2dP1_vertices : 'M[R]_(4,2) := 
-   mx_of_list [:: [:: -1:R; -1]; [:: 1; -1]; [:: 1;1]; [:: -1;1]].
+Definition shapes2dP1_vertices : 'M[R]_(2,4) :=
+   mx_of_list ([:: [:: -1; 1; 1; -1];
+                        [:: -1; -1; 1; 1]]: list (list R)).
 
-Definition shapes2dP1_function (xy: 'rV[R]_2) : 'rV[R]_4 :=
-   let Nx : 'rV_2 := shapes1dP1_function (col 0 xy) in
-   let Ny : 'rV_2 := shapes1dP1_function (col 1 xy) in
+Definition shapes2dP1_function (xy: 'cV[R]_2) : 'rV[R]_4 :=
+   let Nx : 'rV_2 := shapes1dP1_function (row 0 xy) in
+   let Ny : 'rV_2 := shapes1dP1_function (row 1 xy) in
   rowmx_of_list [:: Nx 0 0 * Ny 0 0 ; Nx 0 1 * Ny 0 0 ; Nx 0 1 * Ny 0 1 ; Nx 0 0 * Ny 0 1 ].
 
-Definition shapes2dP1_deriv (xm: 'rV[R]_2) : 'M[R]_(4,2) :=
-  let Nx := shapes1dP1_function (col 0 xm) in
-  let dNx := shapes1dP1_deriv (col 0 xm) in
-  let Ny := shapes1dP1_function (col 1 xm) in
-  let dNy := shapes1dP1_deriv (col 1 xm) in
-  let x := xm 0 0 in let y := xm 0 1 in
+Definition shapes2dP1_deriv (xm: 'cV[R]_2) : 'M[R]_(4,2) :=
+  let Nx := shapes1dP1_function (row 0 xm) in
+  let dNx := shapes1dP1_deriv (row 0 xm) in
+  let Ny := shapes1dP1_function (row 1 xm) in
+  let dNy := shapes1dP1_deriv (row 1 xm) in
+  let x := xm 0 0 in let y := xm 1 0 in
   mx_of_list ([:: [:: dNx 0 0 * Ny 0 0 ; Nx 0 0 * dNy 0 0 ];
                          [:: dNx 1 0 * Ny 0 0 ; Nx 0 1 * dNy 0 0 ];
                          [:: dNx 1 0 * Ny 0 1 ; Nx 0 1 * dNy 1 0 ];
@@ -661,18 +666,20 @@ apply (Shape.Build_shape 2 4 shapes2dP1_function shapes2dP1_deriv shapes2dP1_ver
                   prove_lagrangian).
 - abstract prove_continuously_differentiable.
 - abstract (unfold shapes2dP1_function, shapes2dP1_deriv, shapes1dP1_function, shapes1dP1_deriv;
-                  prove_deriv).
+                  time "prove_deriv 2dP1" prove_deriv).
 Defined. 
 
-Definition shapes2dT1_vertices : 'M[R]_(3,2) := 
-    mx_of_list [:: [:: 0:R; 0]; [:: 1; 0]; [:: 0; 1]].
-Definition shapes2dT1_function (xy: 'rV[R]_2) : 'rV[R]_3 :=
+Definition shapes2dT1_vertices : 'M[R]_(2,3) := 
+    mx_of_list [:: [:: 0; 1; 0];
+                          [:: 0; 0; 1]].
+
+Definition shapes2dT1_function (xy: 'cV[R]_2) : 'rV[R]_3 :=
    let x : R := xy 0 0 in
-   let y : R := xy 0 1 in
+   let y : R := xy 1 0 in
    rowmx_of_list [:: 1-x-y; x; y]. 
 
-Definition shapes2dT1_deriv (xm: 'rV[R]_2) : 'M[R]_(3,2) :=
-  let x := xm 0 0 in let y := xm 0 1 in
+Definition shapes2dT1_deriv (xm: 'cV[R]_2) : 'M[R]_(3,2) :=
+  let x := xm 0 0 in let y := xm 1 0 in
   mx_of_list ([:: [:: -1 ; -1 ];
                          [:: 1 ; 0 ];
                          [:: 0 ; 1]]: list (list R)).
@@ -684,21 +691,22 @@ apply (Shape.Build_shape 2 3 shapes2dT1_function shapes2dT1_deriv shapes2dT1_ver
 - abstract (unfold shapes2dT1_function, shapes2dT1_deriv; prove_deriv).
 Defined.
 
-Definition shapes2dP2_vertices : 'M[R]_(9,2) := 
-   mx_of_list [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]; [:: 0;0]].
+Definition shapes2dP2_vertices : 'M[R]_(2,9) := 
+   mx_of_list [:: [:: -1; 0; 1; 1; 1; 0; -1; -1; 0];
+                         [:: -1; -1; -1; 0; 1; 1; 1; 0; 0]].
 
-Definition shapes2dP2_function (xy: 'rV[R]_2) : 'rV[R]_9 :=
-   let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
-   let Ny : 'rV_3 := shapes1dP2_function (col 1 xy) in
+Definition shapes2dP2_function (xy: 'cV[R]_2) : 'rV[R]_9 :=
+   let Nx : 'rV_3 := shapes1dP2_function (row 0 xy) in
+   let Ny : 'rV_3 := shapes1dP2_function (row 1 xy) in
   rowmx_of_list [:: Nx 0 0 * Ny 0 0 ; Nx 0 1 * Ny 0 0 ; Nx 0 2 * Ny 0 0;
                               Nx 0 2 * Ny 0 1 ; Nx 0 2 * Ny 0 2 ; Nx 0 1 * Ny 0 2;
                               Nx 0 0 * Ny 0 2 ; Nx 0 0 * Ny 0 1 ; Nx 0 1 * Ny 0 1 ].
 
-Definition shapes2dP2_deriv (xy: 'rV[R]_2) : 'M[R]_(9,2) :=
-   let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
-   let Ny : 'rV_3 := shapes1dP2_function (col 1 xy) in
-   let dNx : 'cV_3 := shapes1dP2_deriv (col 0 xy) in
-   let dNy : 'cV_3 := shapes1dP2_deriv (col 1 xy) in
+Definition shapes2dP2_deriv (xy: 'cV[R]_2) : 'M[R]_(9,2) :=
+   let Nx : 'rV_3 := shapes1dP2_function (row 0 xy) in
+   let Ny : 'rV_3 := shapes1dP2_function (row 1 xy) in
+   let dNx : 'cV_3 := shapes1dP2_deriv (row 0 xy) in
+   let dNy : 'cV_3 := shapes1dP2_deriv (row 1 xy) in
   mx_of_list [:: [:: dNx 0 0 * Ny 0 0; Nx 0 0 * dNy 0 0];
                         [:: dNx 1 0 * Ny 0 0; Nx 0 1 * dNy 0 0];
                         [:: dNx 2 0 * Ny 0 0; Nx 0 2 * dNy 0 0];
@@ -718,21 +726,22 @@ apply (Shape.Build_shape 2 9 shapes2dP2_function shapes2dP2_deriv shapes2dP2_ver
                   prove_deriv).
 Defined.
 
-Definition shapes2dS2_vertices : 'M[R]_(8,2) := 
-   mx_of_list [:: [:: -1:R;-1]; [:: 0; -1]; [:: 1;-1]; [:: 1;0]; [:: 1;1]; [:: 0;1]; [:: -1;1]; [:: -1;0]].
+Definition shapes2dS2_vertices : 'M[R]_(2,8) := 
+   mx_of_list [:: [:: -1; 0; 1; 1; 1; 0; -1; -1];
+                         [:: -1; -1; -1; 0; 1; 1; 1; 0]].
 
-Definition shapes2dS2_function (xy: 'rV[R]_2) : 'rV[R]_8 :=
-   let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
-   let Ny : 'rV_3 := shapes1dP2_function (col 1 xy) in
+Definition shapes2dS2_function (xy: 'cV[R]_2) : 'rV[R]_8 :=
+   let Nx : 'rV_3 := shapes1dP2_function (row 0 xy) in
+   let Ny : 'rV_3 := shapes1dP2_function (row 1 xy) in
   rowmx_of_list [:: Nx 0 0 * Ny 0 0 ; Nx 0 1 * Ny 0 0 ; Nx 0 2 * Ny 0 0;
                               Nx 0 2 * Ny 0 1 ; Nx 0 2 * Ny 0 2 ; Nx 0 1 * Ny 0 2;
                               Nx 0 0 * Ny 0 2 ; Nx 0 0 * Ny 0 1 ].
 
-Definition shapes2dS2_deriv (xy: 'rV[R]_2) : 'M[R]_(8,2) :=
-   let Nx : 'rV_3 := shapes1dP2_function (col 0 xy) in
-   let Ny : 'rV_3 := shapes1dP2_function (col 1 xy) in
-   let dNx : 'cV_3 := shapes1dP2_deriv (col 0 xy) in
-   let dNy : 'cV_3 := shapes1dP2_deriv (col 1 xy) in
+Definition shapes2dS2_deriv (xy: 'cV[R]_2) : 'M[R]_(8,2) :=
+   let Nx : 'rV_3 := shapes1dP2_function (row 0 xy) in
+   let Ny : 'rV_3 := shapes1dP2_function (row 1 xy) in
+   let dNx : 'cV_3 := shapes1dP2_deriv (row 0 xy) in
+   let dNy : 'cV_3 := shapes1dP2_deriv (row 1 xy) in
   mx_of_list [:: [:: dNx 0 0 * Ny 0 0; Nx 0 0 * dNy 0 0];
                         [:: dNx 1 0 * Ny 0 0; Nx 0 1 * dNy 0 0];
                         [:: dNx 2 0 * Ny 0 0; Nx 0 2 * dNy 0 0];
@@ -744,10 +753,10 @@ Definition shapes2dS2_deriv (xy: 'rV[R]_2) : 'M[R]_(8,2) :=
 
 Definition shapes2dS2 : @Shape.shape R.
 apply (Shape.Build_shape 2 8 shapes2dS2_function shapes2dS2_deriv shapes2dS2_vertices).
-- time "lagrangian" abstract (unfold shapes2dS2_function,  shapes1dP2_function, shapes2dS2_vertices;
+- time "lagrangian 2dS2" abstract (unfold shapes2dS2_function,  shapes1dP2_function, shapes2dS2_vertices;
                                            prove_lagrangian).
-- time "cont_diff" abstract prove_continuously_differentiable.
-- time "is_deriv" abstract (unfold shapes2dS2_function, shapes2dS2_deriv, shapes1dP2_function, shapes1dP2_deriv;
+- time "cont_diff 2dS2" abstract prove_continuously_differentiable.
+- time "is_deriv 2dS2" abstract (unfold shapes2dS2_function, shapes2dS2_deriv, shapes1dP2_function, shapes1dP2_deriv;
                   prove_deriv).
 Defined.
 

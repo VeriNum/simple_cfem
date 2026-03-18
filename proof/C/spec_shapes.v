@@ -54,7 +54,7 @@ Hint Resolve ifptr_valid_pointer: valid_pointer.
 
 Definition shape_spec (d nsh: nat) (shape: FShape.shape d nsh the_type) : funspec :=
    let '({| FShape.θ := θ; FShape.dθ := dθ |}) := shape in  
-  WITH shN: share, shxx:share, pN : val, pdN: val, x: 'rV[ftype the_type]_d, pxx: val
+  WITH shN: share, shxx:share, pN : val, pdN: val, x: 'cV[ftype the_type]_d, pxx: val
   PRE [ tptr the_ctype, tptr the_ctype, tptr the_ctype ]
     PROP(writable_share shN; readable_share shxx; is_pointer_or_null pN; is_pointer_or_null pdN)
     PARAMS( pN; pdN; pxx)
