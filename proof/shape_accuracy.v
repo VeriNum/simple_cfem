@@ -930,11 +930,20 @@ prove_rndval; interval.
 Qed.
 
 
+Definition bounds_enclose (s: Shape.shape) (bm: boundsmap) : Prop :=
+ forall i: 'I_(Shape.d s),
+  match Maps.PTree.get (Pos.of_succ_nat (nat_of_ord i)) bm with
+    | Some {| var_type := t; var_name := i'; var_lobound := lo; var_hibound := hi |} =>
+      forall k: 'I_(Shape.nsh s),
+         lo <= Shape.vtx s i k <= hi
+    | None => False
+    end.
 
 Definition roundoff_bound_lemma (s: Shape.shape)
     (F: FShape.shape (Shape.d s) (Shape.nsh s) FPStdLib.Tdouble)
     (acc accd: R)
  :=
+  bounds_enclose s (FShape.bounds F) /\
   forall (x: 'cV[ftype Tdouble]_(Shape.d s)),
        boundsmap_denote (FShape.bounds F) (vmap_of_cV x) -> 
      (forall (j: 'I_(Shape.nsh s)),
@@ -943,72 +952,6 @@ Definition roundoff_bound_lemma (s: Shape.shape)
  /\  (forall i j, @FPCore.is_finite Tdouble (FShape.dθ F x i j) = true /\
        Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.dθ F x)) (oppmx (Shape.dθ s (map_mx FT2R x))) i j) <= accd).
 
-Definition boundsmap_denoteR {coll : collection} [d] (bm : boundsmap) (x: 'cV[R]_d) : Prop :=
-forall i : 'I_d,
-match Maps.PTree.get (Pos.of_succ_nat (nat_of_ord i)) bm with
-    | Some {| var_type := t; var_name := i'; var_lobound := lo; var_hibound := hi |} =>
-         lo <= fun_of_matrix x i ord0 <= hi
-    | None => False
-    end.
-
-Definition shape_hull (s: Shape.shape) (sf: FShape.shape (Shape.d s) (@Shape.nsh RbaseSymbolsImpl_R__canonical__reals_Real s) FPStdLib.Tdouble)
- := forall x: 'cV[R]_(Shape.d s), convex_combination (Shape.vtx s) x -> 
-           boundsmap_denoteR (FShape.bounds sf) x.
-
-Lemma add0r_transparent: forall n: nat , n = Nat.add n 0.
-Proof.
-induction n; simpl; auto.
-Defined.
-
-Lemma colmx_0r: forall [T] m n (A: 'M[T]_(m,n)) (B : 'M[T]_(0,n)), col_mx A B = 
-   eq_rect m (fun m => 'M[T]_(m,n)) A (ssrnat.addn m 0) (add0r_transparent m).
-Proof. intros.
-Admitted.
-
-Lemma rowmx_0r: forall [T] m n (A: 'M[T]_(m,n)) (B : 'M[T]_(m,0)), row_mx A B = 
-   eq_rect n (fun n => 'M[T]_(m,n)) A (ssrnat.addn n 0) (add0r_transparent n).
-Proof. intros.
-Admitted.
-
-
-Lemma mulmx_1x1: forall (A B: 'M[R]_1), mulmx A B = const_mx (A ord0 ord0 * B ord0 ord0).
-Proof.
-Admitted.
-
-Lemma addmx_1x1: forall (A B: 'M[R]_1), addmx A B = const_mx (A ord0 ord0 + B ord0 ord0).
-Proof.
-Admitted.
-
-Lemma shape_hull_1dP1: shape_hull shapes1dP1 shapes1dP1F.
-Proof.
-intros x H j.
-rewrite convex_combination_e in H.
-simpl in j.
-ord1. simpl. simpl in x.
-simpl in H.
-unfold shapes1dP1_vertices in H.
-destruct H as [c [? [? ?]]].
-subst x.
-simplify_ordinals.
-unfold mx_of_list; simpl.
-rewrite colmx_0r. rewrite rowmx_0r. simpl.
-rewrite <- (@vsubmxK _ 1 1 1 c).
-match goal with |- context [mulmx (row_mx ?A ?B) (col_mx ?C ?D)] => 
-   pose proof (mul_row_col A B C D)
-end.
-match type of H1 with ?A = _ => match goal with |- context [fun_of_matrix ?B] => change B with A end end.
-rewrite H1; clear H1.
-rewrite !mulmx_1x1.
-unfold nmodule.Algebra.add. simpl.
- rewrite addmx_1x1.
-rewrite !const_mxE.
-pose proof (H ord0).
-pose proof (H (Ordn 2 1)).
-change ('cV[R]_(ssrnat.addn 1 1)) in c.
-replace (c (Ordn 2 1) _) with (fun_of_matrix (dsubmx c) ord0 ord0) in H2 by admit.
-replace (c ord0 _) with (fun_of_matrix (usubmx c) ord0 ord0) in H1 by admit.
-simpl in H0.
-Admitted.
 
 Ltac prove_vmaps_equal := 
 apply ProofIrrelevance.ProofIrrelevanceTheory.subset_eq_compat;
@@ -1044,10 +987,24 @@ Ltac prepare_apply_roundoff_bound :=
  unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE;
  realify; rewrite Rplus_opp.
 
+Ltac prove_bounds_enclose :=
+ let i := fresh "i" in let k := fresh "k" in 
+red; simpl; intro i; ord_enum_cases i; simpl; intro k; ord_enum_cases k;
+ repeat
+  lazymatch goal  with
+  | |- _ <= fun_of_matrix (rowmx_of_list _) _ _ <=  _ => fail
+  | |- _ <= fun_of_matrix (colmx_of_list _) _ _ <= _ => fail
+  | |- _ <= fun_of_matrix (mx_of_list _) _ _ <= _ => fail
+  | |- _ <= fun_of_matrix ?a _ _ <= _ => let b := eval red in a in change a with b
+ end;
+ rewrite_matrix; realify; lra.
+
 Lemma roundoff_bound_1dP1: 
    roundoff_bound_lemma shapes1dP1 shapes1dP1F acc_1dP1 acc_1dP1d.
 Proof.
-red; simpl; intro x.
+split.
+prove_bounds_enclose.
+simpl; intro x.
 simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
@@ -1067,7 +1024,9 @@ Qed.
 Lemma roundoff_bound_1dP2: roundoff_bound_lemma shapes1dP2 
          shapes1dP2F acc_1dP2 acc_1dP2deriv.
 Proof.
-red; simpl; intro x.
+split.
+prove_bounds_enclose.
+simpl; intro x.
 simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
@@ -1089,7 +1048,9 @@ Qed.
 Lemma roundoff_bound_2dP1: roundoff_bound_lemma shapes2dP1 
          shapes2dP1F acc_2dP1 acc_2dP1deriv.
 Proof.
-red; simpl; intro x.
+split.
+prove_bounds_enclose.
+simpl; intro x.
 simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
@@ -1125,7 +1086,9 @@ Proof. . . . Qed.
 Lemma roundoff_bound_2dT1: 
   roundoff_bound_lemma shapes2dT1 shapes2dT1F acc_2dT1 acc_2dT1deriv.
 Proof.
-red; simpl; intro x.
+split.
+prove_bounds_enclose.
+simpl; intro x.
 simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
