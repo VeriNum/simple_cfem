@@ -1,6 +1,9 @@
+(** * CFEM.C.verif_shapes1d:  VST correctness proofs for 1-dimensional shape functions *)
+
 Require Import CFEM.C.verif_shapes_base.
 
 Lemma body_shapes1dP1: semax_body Vprog Gprog f_shapes1dP1 shapes1dP1_spec.
+(* begin details *)
 Proof.
 unfold shapes1dP1_spec, shape_spec, shapes1dP1F.
 start_function.
@@ -62,8 +65,10 @@ thaw PN.
 forward.
 cancel.
 Qed.
+(* end details *)
 
 Lemma body_shapes1dP2: semax_body Vprog Gprog f_shapes1dP2 shapes1dP2_spec.
+(* begin details *)
 Proof.
 unfold shapes1dP2_spec, shape_spec, shapes1dP2F.
 start_function.
@@ -128,8 +133,10 @@ thaw PN.
 forward.
 cancel.
 Qed.
+(* end details *)
 
 Lemma body_shapes1dP3: semax_body Vprog Gprog f_shapes1dP3 shapes1dP3_spec.
+(* begin details *)
 Proof.
 unfold shapes1dP3_spec, shape_spec, shapes1dP3F.
 start_function.
@@ -196,3 +203,4 @@ thaw PN.
 forward.
 cancel.
 Qed.
+(* end details *)

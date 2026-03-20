@@ -1,6 +1,8 @@
+(** * CFEM.VSU_shapes:  Verified Software Unit for all the C shape functions *)
 From CFEM Require Import C.verif_shapes_base C.verif_shapes1d C.verif_shapes2d verif_shapes2dP2.
 Require Import VST.floyd.VSU.
 
+(** Proof that all 7 shape functions, collectively, satisfy the entire Shape API spec  #<a id=VSU># *)
 Definition shapesVSU: @VSU NullExtension.Espec
          shapes_E shapes_imported_specs 
          ltac:(QPprog prog) shapes_ASI (fun _ => TT).

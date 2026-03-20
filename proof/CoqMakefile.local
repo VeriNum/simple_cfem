@@ -1,7 +1,11 @@
 #
-COQDOCEXTRAFLAGS= -g --no-lib-name --with-header header.html --index genindex --lib-subtitles --interpolate -utf8
+COQDOCEXTRAFLAGS= -g --no-lib-name --with-header header.html --index genindex --lib-subtitles --interpolate --parse-comments -utf8
 
-publish: html
+#   standard "make clean" removes the html directory entirely.  So we gotta do this hack:
+html/index.html: html index.html
+	cp index.html html/index.html
+
+publish: html html/index.html
 	cd ../gh-pages; git submodule update
 	cd ../gh-pages; mkdir -p proofdoc
 	cp html/* ../gh-pages/proofdoc

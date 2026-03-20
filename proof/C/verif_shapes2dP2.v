@@ -1,3 +1,4 @@
+(** * CFEM.C.verif_shapes2dP2:  VST correctness proofs for 2dP2 shape function *)
 Require Import CFEM.C.verif_shapes_base.
 
 Lemma split_matrix_rows :
@@ -12,6 +13,7 @@ densematn sh B (@field_address spec_densemat.CompSpecs (tarray the_ctype (Z.of_n
 Admitted. (* Put this in densemat_lemmas *)
 
 Lemma body_shapes2dP2: semax_body Vprog Gprog f_shapes2dP2 shapes2dP2_spec.
+(* begin details *)
 Proof.
 unfold shapes2dP2_spec, shape_spec, shapes2dP2F.
 start_function.
@@ -201,4 +203,5 @@ replace (@ord0 1) with (@Ordinal 2 0 (eq_refl _)) by (apply ord_inj; reflexivity
 rewrite Hrow_x.
 apply derives_refl.
 Qed.
+(* end details *)
 

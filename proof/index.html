@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>Simple FEM in C: Correctness Proof</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+<h1>Simple FEM in C: Correctness Proof</h1>
+<h2>Author: Andrew W. Appel</h2>
+</div>
+
+<p>
+
+<big>
+The goal of this project is build a Rocq proof of the correctness and accuracy of the <a href=../index.html>Simple FEM in C</a> program.
+The C sources are documented <a href=../index.html>there</a>.
+<p>
+At present just a few modules are specified and proved, as described below.
+</big>
+
+<div id="main">
+  <h2>Shape functions</h2>
+  Thus far in the project, the main things verified are,
+  <ul><li><b>Dense matrix functions</b> (in the LAProof library, see specifications in <a href="https://verinum.org/LAProof/LAProof.C.spec_densemat.html">spec_densemat</a>
+      and verifications in <a href="https://verinum.org/LAProof/LAProof.C.verif_densemat.html">verif_densemat</a>,
+      <a href="https://verinum.org/LAProof/LAProof.C.verif_densemat_mult.html">verif_densemat_mult</a>,
+      <a href="https://verinum.org/LAProof/LAProof.C.verif_densemat_cholesky.html">verif_densemat_cholesky</a>.
+    <li><b>Shape functions.</b>
+      Read the description <a href=https://verinum.org/simple_cfem#shape-functions>here</a>;
+      See the <a href=https://github.com/VeriNum/simple_cfem/blob/main/src/shapes.c>C program</a>;
+      Then, to see how it works for, e.g., the 2dP1 shape function, visit these pages:
+      <ol>
+	<li><a href=CFEM.shape.html#shape>Real-valued functional model</a>
+        <li><a href=CFEM.shape.html#2dP1>2dP1 instance of real-valued functional model</a>
+	<li><a href=CFEM.shapefloat.html#FShape>Float-valued functional model</a>
+        <li><a href=CFEM.shapefloat.html#2dP1>2dP1 instance of float-valued functional model</a>
+	<li><a href=CFEM.shape_accuracy.html#RBL>General form of shape accuracy theorem</a>
+        <li><a href=CFEM.shape_accuracy.html#2dP1>2dP1 instance of shape accuracy theorem</a>
+	<li><a href=CFEM.C.spec_shapes.html#spec_shape>General form of function specification for C shape functions</a>
+	<li><a href=CFEM.C.verif_shapes2d.html#2dP1>2dP1 C program correctness proof</a>
+	<li><a href=CFEM.C.VSU_shapes.html#VSU>C program correctness proof for entire shapes API</a>
+     </ol>
+  </ul>
+	
+<h2>Rocq modules</h2>
+<dl>
+  <dt><a href="CFEM.matrix_util.html">matrix_util</a>
+    <dd>Utility lemmas and tactics for rewriting matrix expressions
+  <dt><a href="CFEM.shape.html">shapes</a>
+    <dd>Functional models of shape functions, including proofs that they are Lagrangian and continuously differentiable. 
+  <dt><a href="CFEM.shapefloat.html">shapefloat</a>
+    <dd>Functional models of float-valued shape functions
+  <dt><a href="CFEM.shape_accuracy.html">shape_accuracy</a>
+    <dd>Roundoff-error bounds for float-valued shape functions
+  <dt><a href="CFEM.C.spec_shapes.html">C.spec_shapes</a>
+    <dd>VST function spec for shape functions
+  <dt><a href="CFEM.C.verif_shapes_base.html">C.verif_shapes_base</a>
+    <dd>Preamble for the VST verifications of shape functions
+      <dt><a href="CFEM.C.verif_shapes1d.html">C.verif_shapes1d</a>,
+	  <a href="CFEM.C.verif_shapes2d.html">C.verif_shapes2d</a>, 
+          <a href="CFEM.C.verif_shapes2dP2.html">C.verif_shapes2dP2</a>
+    <dd>VST verifications of 1-dimensional and 2-dimensional shape functions
+
+  <dt><a href="https://verinum.org/LAProof/LAProof.C.matrix_model.html">matrix_model</a>
+<dd>Functional models of matrix operations.  We describe floating-point matrices using the
+      <a href=https://math-comp.github.io/>Mathematical Components</a> library,
+and present functional models of operations such as access to
+matrix elements, 
+Cholesky decomposition (inner-product algorithm),
+Cholesky solve by forward substitution and back substitution, etc.
+<p>
+  These functional models are agnostic about whether the matrix representation
+  is dense, banded, sparse, or otherwise; mapping the matrix values to their
+  representations in C programs is done in (for example)
+  <a href="CFEM.spec_densemat.html">spec_densemat</a>,
+  <a href="CFEM.spec_densemat.html">spec_bandmat</a>, etc.
+  Of course, there is no guarantee that you'd want to use exactly the same
+  algorithm (e.g., for Cholesky) on band matrices that you'd use on dense
+  matrices.
+</li>
+<dt><a href="https://verinum.org/LAProof/LAProof.C.spec_densemat.html">LAProof.C.spec_densemat</a><dd>VST specifications of functions on dense matrices, with some explanation of how to
+    specify the connection of C programs to MathComp functional models.
+    <br>&nbsp;
+</li>
+<dt><a href="https://verinum.org/LAProof/LAProof.C.verif_densemat.html">LAProof.C.verif_densemat</a><dd>VST proofs of basic functions on dense matrices.</li>
+<dt><a href="https://verinum.org/LAProof/LAProof.C.verif_densemat_mult.html">LAProof.C.verif_densemat_mult</a><dd>VST proofs of dense matrix multiply.</li>
+<dt><a href="https://verinum.org/LAProof/LAProof.C.verif_densemat_cholesky.html">LAProof.C.verif_densemat_cholesky</a><dd>VST proofs of dense matrix Cholesky factoring and Cholesky solve (back-subst, forward_subst).</li>
+</dl>
+
+Many other pages in the <a href=toc.html>Table of Contents</a> are just placeholders right now.
+<p>
+<a href="genindex.html">Index of names</a>.
+</div>
+</div>
+</body>
+</html>

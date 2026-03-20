@@ -1,5 +1,17 @@
 (** * CFEM.shapefloat:  floating-point shape functions*)
 
+(** These floating-point shape functions are functional models of the C-language shape functions
+   (and derivatives of the shape functions).
+   They do not have properties such as "Lagrangian" and "this is truly the derivative of that"
+   because of floating-point roundoff.  Instead, we will (in #<a href=CFEM.shape_accuracy>shape_accuracy</a>#)
+   prove that these functions accurately approximate the real-valued functions in #<a href=CFEM.shape>shape</a>#).
+
+   But in this file we purposely do not import, or depend on, the real-valued shape functions.
+   That's because, when proving that the C functions correctly implement these float-valued functions, it's
+   not even necessary to consider the real-valued functions, and we want to minimize the dependency chain.
+*)
+
+(* begin details : Require Imports and Open Scope, etc. *)
 From mathcomp Require Import all_boot finfun all_algebra all_analysis all_reals.
 Require Import CFEM.matrix_util.
 From vcfloat Require Import FPCompCert FPStdLib.
@@ -17,13 +29,23 @@ Local Open Scope ring_scope.
 From mathcomp.algebra_tactics Require Import ring lra.
 Import GRing.
 
-Definition BOPP {NANS: Nans} [ty] :  ftype ty -> ftype ty := 
-   Binary.Bopp (fprec ty) (femax ty) (FPCore.opp_nan (fprec ty) (femax ty) (fprec_gt_one ty)).
-
 From HB Require Import structures.
 HB.instance Definition xx := hasAdd.Build _ (@BPLUS _ Tdouble).
 HB.instance Definition yy := hasZero.Build _ (0%F64 : ftype Tdouble).
+(* end details *)
 
+(** ** Bounds *)
+(** Each set of d-dimensional shape functions will come with a bounding box that limits its domain.
+    The functions are not required to be defined (or finite) outside this bounding box, and the 
+    proofs of roundoff accuracy will be limited to within the box.  We will also prove (in #<a href=CFEM.shape_accuracy>shape_accuracy</a>#)
+    that all the vertices are contained within the bounding box.  But here we don't even need to mention
+    the vertices, since the C shape functions don't even know that they exist.
+
+    We defined these bounds using the terminology of the VCFloat library.  VCFloat is a tool
+    for automated floating-point roundoff-error proofs.  A [boundsmap] is a lookup table, indexed
+    by dimension.  So, for a 2-dimensional cuboid, we can look up the positive numbers 1 and 2,
+    and for each of these dimensions, the bounds are (-1,1).  Simplex bounds range over (0,1) in
+    each dimension. *)
 Module Bounds.
 
 Import Rdefinitions List.
@@ -31,9 +53,11 @@ Require Import vcfloat.Automate.
 
 Definition firstn_canon_idents (n: nat) := map Pos.of_succ_nat (seq 0 n).
 
-Definition cuboid_bounds (i: AST.ident) := Build_varinfo FPCore.Tdouble i (-1) 1.
-Definition simplex_bounds (i: AST.ident) := Build_varinfo FPCore.Tdouble i 0 1.
+Definition cuboid_bounds (i: AST.ident) := Build_varinfo FPCore.Tdouble i (-1) 1.  (* -1 to 1 *)
+Definition simplex_bounds (i: AST.ident) := Build_varinfo FPCore.Tdouble i 0 1.    (*  0 to 1 *)
 
+(** This tactic computes the boundsmap for a dim-dimensional element whose class (cuboid/simplex)
+   is given by one_d_bound. *)
 Ltac compute_boundsmap one_d_bound dim :=
  let bmlist := constr:(boundsmap_of_list (map one_d_bound (firstn_canon_idents dim))) in
  let a := eval cbv beta fix match delta 
@@ -50,6 +74,12 @@ Definition simplex_boundsmap_2d : boundsmap := ltac:(compute_boundsmap simplex_b
 
 End Bounds.
 
+(** ** FShape #<a id=FShape># *)
+
+(** [FShape.shape] contains the floating-point functions for the shape functions [FShape.θ], 
+   their derivatives [FShape.dθ], and [FShape.bounds].  These are intended to correspond to the 
+   real-valued functions [Shape.θ] and [Shape.dθ] and the bounding box of [Shape.vtx].
+   The parameter [t] is a float-point precision such as single-precision or double-precision. *)
 Module FShape.
 
 Record shape (d nsh: nat) (t: type) : Type := {
@@ -61,8 +91,11 @@ Arguments Build_shape [d nsh t] _ _ .
 Arguments θ [d nsh t] _ _.
 Arguments dθ [d nsh t] _ _.
 Arguments bounds [d nsh t] _.
-End FShape.  
+End FShape.
 
+(** * Instances *)
+
+(** ** 1dP1:  1-dimension, degree 1 *)
 
 Definition shapes1dP1_float (xm: 'cV[ftype Tdouble]_1) : 'rV[ftype Tdouble]_2 :=
    let x : ftype Tdouble := xm 0 0 in
@@ -76,6 +109,9 @@ Definition shapes1dP1_fderiv (xm: 'cV[ftype Tdouble]_1) : 'M[ftype Tdouble]_(2,1
 Definition shapes1dP1F : FShape.shape 1 2 Tdouble :=
       FShape.Build_shape shapes1dP1_float shapes1dP1_fderiv Bounds.cuboid_boundsmap_1d.
 
+
+(** ** 1dP2:  1-dimension, degree 2 *)
+
 Definition shapes1dP2_float (xm: 'cV[ftype Tdouble]_1) : 'rV[ftype Tdouble]_3 :=
    let x : ftype Tdouble := xm 0 0 in
    rowmx_of_list [:: -0.5*(1-x)*x; (1-x)*(1+x); 0.5*x*(1+x)]%F64.
@@ -87,6 +123,7 @@ Definition shapes1dP2_fderiv (xm: 'rV[ftype Tdouble]_1) : 'M[ftype Tdouble]_(3,1
 Definition shapes1dP2F : FShape.shape 1 3 Tdouble :=
       FShape.Build_shape shapes1dP2_float shapes1dP2_fderiv Bounds.cuboid_boundsmap_1d.
 
+(** ** 1dP3:  1-dimension, degree 3 *)
 
 Definition shapes1dP3_float (xm: 'cV[ftype Tdouble]_1) : 'rV[ftype Tdouble]_4 :=
    let x : ftype Tdouble := xm 0 0 in
@@ -104,6 +141,8 @@ Definition shapes1dP3_fderiv (xm: 'cV[ftype Tdouble]_1) : 'M[ftype Tdouble]_(4,1
 
 Definition shapes1dP3F : FShape.shape 1 4 Tdouble :=
       FShape.Build_shape shapes1dP3_float shapes1dP3_fderiv Bounds.cuboid_boundsmap_1d.
+
+(** ** 2dP1:  2-dimension, degree 1  #<a id=2dP1># *)
 
 Definition shapes2dP1_float (xm: 'cV[ftype Tdouble]_2) : 'rV[ftype Tdouble]_4 :=
    let Nx := shapes1dP1_float (row 0 xm) 0 in
@@ -123,6 +162,8 @@ Definition shapes2dP1_fderiv (xm: 'cV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(4,2
  
 Definition shapes2dP1F : FShape.shape 2 4 Tdouble :=
       FShape.Build_shape shapes2dP1_float shapes2dP1_fderiv Bounds.cuboid_boundsmap_2d.
+
+(** ** 2dP2:  2-dimension, degree 2, with center point *)
 
 Definition shapes2dP2_float (xm: 'cV[ftype Tdouble]_2) : 'rV[ftype Tdouble]_9 :=
    let Nx := shapes1dP2_float (row 0 xm) 0 in
@@ -149,6 +190,7 @@ Definition shapes2dP2_fderiv (xm: 'cV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(9,2
 Definition shapes2dP2F : FShape.shape 2 9 Tdouble :=
       FShape.Build_shape shapes2dP2_float shapes2dP2_fderiv Bounds.cuboid_boundsmap_2d.
 
+(** ** 2dS2:  2-dimension, degree 2, without center point (Serendipity element) *)
 Definition shapes2dS2_float (xm: 'cV[ftype Tdouble]_2) : 'rV[ftype Tdouble]_8 :=
    let Nx := shapes1dP2_float (row 0 xm) 0 in
    let Ny := shapes1dP2_float (row 1 xm) 0 in
@@ -173,6 +215,8 @@ Definition shapes2dS2_fderiv (xm: 'cV[ftype Tdouble]_2) : 'M[ftype Tdouble]_(8,2
 Definition shapes2dS2F : FShape.shape 2 8 Tdouble :=
       FShape.Build_shape shapes2dS2_float shapes2dS2_fderiv Bounds.cuboid_boundsmap_2d.
 
+
+(** ** 2dT2:  2-dimension triangle, degree 1 *)
 
 Definition shapes2dT1_float (xy: 'cV[ftype Tdouble]_2) : 'rV[ftype Tdouble]_3 :=
    let x : ftype Tdouble := xy 0 0 in

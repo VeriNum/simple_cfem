@@ -2,6 +2,7 @@ From mathcomp Require Import all_boot.
 From mathcomp Require Import all_algebra.
 From mathcomp.zify Require Import ssrZ zify.
 From HB Require Import structures.
+From Stdlib Require Import FunctionalExtensionality.
 Import GRing.
 
 Unset Implicit Arguments.
@@ -542,6 +543,36 @@ match goal with
 
 Ltac rewrite_matrix := repeat rewrite_matrix1.
 
+Ltac rewrite_matrix_under :=
+ let f := fresh "f" in let g := fresh "g" in let y := fresh "y" in 
+ try
+  (lazymatch goal with
+   | |- context [fun _ => fun_of_matrix _ _ _] =>  set f := (fun _ => fun_of_matrix _ _ _)
+   | |- context [fun _ => row_mx _ _] =>  set f := (fun _ => row_mx _ _)
+   | |- context [fun _ => rowmx_of_list _] =>  set f := (fun _ => rowmx_of_list _)
+  end;
+  lazymatch type of f with ?t => evar (g: t) end;
+    replace f with g by (subst f g; extensionality y; rewrite_matrix1; rewrite_matrix; reflexivity);
+    subst g; clear f).
+
+Ltac simplify_ordinal i := 
+   (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i isT  *)
+      lazymatch i with @Ordn _ _  => fail | _ => idtac end;
+      let j := eval compute in i in
+      let n := constr:(nat_of_ord j) in let n1 := eval hnf in n in 
+         is_ground_nat n1; 
+         match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
+             replace i with (@Ordn k n1) by (apply ord_inj; reflexivity)
+        end end.
+
+Ltac simplify_ordinals :=
+      repeat match goal with
+      | |- context [fun_of_matrix _ ?i _] => simplify_ordinal i
+      | |- context [fun_of_matrix _ _ ?j] => simplify_ordinal j
+      | |- context [col ?i _] => simplify_ordinal i
+      | |- context [row ?i _] => simplify_ordinal i
+     end.
+
 Lemma size_ord_enum: forall n, size (ord_enum n) = n.
 Proof.
 intros.
@@ -619,13 +650,4 @@ Ltac ord_enum_cases j :=
  repeat apply List.Forall_cons; try apply List.Forall_nil;
  clear j.
 
-Ltac simplify_ordinal i := 
-   (* If i reduces to a constant ordinal, replace it with the canonical   @Ordinal n i isT  *)
-      lazymatch i with @Ordn _ _  => fail | _ => idtac end;
-      let j := eval compute in i in
-      let n := constr:(nat_of_ord j) in let n1 := eval hnf in n in 
-         is_ground_nat n1; 
-         match type of j with ?t => let t' := eval hnf in t in match t' with ordinal ?k => 
-             replace i with (@Ordn k n1) by (apply ord_inj; reflexivity)
-        end end.
 

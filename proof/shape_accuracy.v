@@ -1,3 +1,12 @@
+(** * CFEM.shape_accuracy:  Roundoff-error bounds for shape functions *)
+
+(**  We prove:
+  - Within the bounding box, each of the floating-point shape functions approximates the real-valued shape functions within specified error bounds
+  - Wiithin the bounding box, each of the floating-point shape-derivative functions approximates the real-valued ones within specified bounds
+  - The vertices of the Shape all fit within the bounding box of the FShape.
+*)
+
+(* begin details : Require Imports and Open Scope, etc. *)
 From CFEM Require Import shape shapefloat.
 From mathcomp Require Import Rstruct.
 Import matrix matrix_util fintype.
@@ -12,7 +21,9 @@ From LAProof Require Import matrix_model.
 Set Bullet Behavior "Strict Subproofs".
 
 Open Scope R_scope.
+(* end details *)
 
+(* begin hide *)
 Ltac prove_roundoff_bound2 ::=
  (* Remove this when we are using a VCFloat in which https://github.com/VeriNum/vcfloat/issues/34
    is fixed. *)
@@ -113,10 +124,85 @@ end;
   let y := eval cbv - [Rdiv IZR] in x in
   change x with y
  end.
+(* end hide *)
 
-
+(** Not-a-number propagation rules:  Use the same ones that CompCert uses (on this target architecture) *)
 Existing Instance FPCompCert.nans.
 
+(** * The Shape Accuracy Property *)
+
+(** First, let's get some supporting definitions out of the way: *)
+Definition vmap_of_cV_list [n] (x: 'cV[ftype Tdouble]_n) :=
+      map (fun i => (Pos.of_succ_nat (nat_of_ord i), existT ftype _ (fun_of_matrix x i ord0))) (ord_enum n).
+
+Lemma vmap_of_cV_list_valid: forall [n] (x: 'cV[ftype Tdouble]_n),
+  @valmap_valid empty_collection (valmap_of_list' (@vmap_of_cV_list n x)).
+(* begin details *)
+Proof.
+intros.
+unfold vmap_of_cV_list.
+unfold valmap_valid.
+intros.
+destruct ty as [t a].
+simpl.
+unfold valmap_of_list' in H.
+rewrite <- fold_left_rev_right in H.
+rewrite <- map_rev in H.
+revert H.
+induction (rev (ord_enum n)); intros.
+inversion H.
+simpl in H.
+destruct (Pos.eq_dec id  (Pos.of_succ_nat (@nat_of_ord n a0))).
+subst id.
+rewrite Maps.PTree.gss in H.
+assert (t = Tdouble) by congruence.
+subst; hnf; auto.
+rewrite Maps.PTree.gso in H by auto.
+apply IHl; auto.
+Qed.
+(* end details *)
+
+Definition  vmap_of_cV [n](x: 'cV[ftype Tdouble]_n) : valmap :=
+   @valmap_of_list empty_collection (vmap_of_cV_list x) (vmap_of_cV_list_valid x).
+
+(** *** bounds_enclose:
+   A given boundsmap (cuboid bounding box) really does contain
+   all the vertices of a shape. *)
+Definition bounds_enclose (s: Shape.shape) (bm: boundsmap) : Prop :=
+ forall i: 'I_(Shape.d s),
+  match Maps.PTree.get (Pos.of_succ_nat (nat_of_ord i)) bm with
+    | Some {| var_type := t; var_name := i'; var_lobound := lo; var_hibound := hi |} =>
+      forall k: 'I_(Shape.nsh s),
+         lo <= Shape.vtx s i k <= hi
+    | None => False
+    end.
+
+(** *** roundoff_bound_lemma: The accuracy proof of a set of shape functions #<a href=RBL># *)
+
+(** Given [s] that is a set of real-valued shape functions (and derivatives, and vertices),
+   and given [F] that is a set of float-valued shape functions (and bounding box), then
+ - The bounding box of [F] encloses the vertices of [s]
+ - The float-valued shape functions approximate the real-valued shape functions within [acc].
+ - The float-valued shape derivative functions approximate the real-valued shape derivative functions within [accd].
+*)
+
+Definition roundoff_bound_lemma (s: Shape.shape)
+    (F: FShape.shape (Shape.d s) (Shape.nsh s) FPStdLib.Tdouble)
+    (acc accd: R)
+ :=
+  bounds_enclose s (FShape.bounds F) /\
+  forall (x: 'cV[ftype Tdouble]_(Shape.d s)),
+       boundsmap_denote (FShape.bounds F) (vmap_of_cV x) -> 
+     (forall (j: 'I_(Shape.nsh s)),
+       @FPCore.is_finite Tdouble (FShape.θ F x ord0 j) = true /\
+       Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.θ F x)) (oppmx (Shape.θ s (map_mx FT2R x))) ord0 j) <= acc)
+ /\  (forall i j, @FPCore.is_finite Tdouble (FShape.dθ F x i j) = true /\
+       Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.dθ F x)) (oppmx (Shape.dθ s (map_mx FT2R x))) i j) <= accd).
+
+(** In the remainder of this file, we develop the lemmas and tactics useful in proving this for each
+  of our elements, and then prove it for each element. *)
+
+(** ** Utility tactics and lemmas*)
 Ltac change_StdLib_to_Core :=
  change (@FPStdLib.BMULT FPCompCert.nans FPStdLib.Tdouble) with (@BMULT FPCompCert.nans Tdouble is_standard_Tdouble);
  change (@FPStdLib.BMINUS FPCompCert.nans FPStdLib.Tdouble) with (@BMINUS FPCompCert.nans Tdouble is_standard_Tdouble);
@@ -146,6 +232,38 @@ assert (H: prop);  [
  subst g; reflexivity
  | subst g;  exact H].
 
+Ltac related_matrix f := let x :=
+     fresh "x" in intro x;
+    match type of (f x) with _ = ?t => let b := eval cbv beta in t in exact b end.
+
+Ltac translate_matrix2 f := 
+let x := fresh "x" in let y := fresh "y" in 
+let g := fresh "g" in 
+evar (g: ftype Tdouble -> ftype Tdouble -> ftype Tdouble);
+let H := fresh in 
+let prop := constr:(forall x y : ftype Tdouble, f x y = g x y) in let prop := eval cbv beta in prop in 
+assert (H: prop);  [
+  intros x y;
+ match goal with |- fun_of_matrix _ ?i ?j = _ =>  try simplify_ordinal i; try simplify_ordinal j end;
+ repeat
+  lazymatch goal  with
+  | |- fun_of_matrix (rowmx_of_list _) _ _ = _ => fail
+  | |- fun_of_matrix (mx_of_list _) _ _ = _ => fail
+  | |- fun_of_matrix ?a _ _ = _ => let b := eval red in a in change a with b
+  end;
+ unfold shapes1dP1_float, shapes1dP1_fderiv, shapes1dP2_float, shapes1dP2_fderiv;
+ repeat match goal with |- context [col ?i _] =>  try simplify_ordinal i end;
+ repeat match goal with |- context [fun_of_matrix _ ?i _] =>  simplify_ordinal i end;
+ repeat match goal with |- context [fun_of_matrix _ _ ?j] =>  simplify_ordinal j end;
+ simpl seq.size;
+ rewrite_matrix;
+ change_StdLib_to_Core;
+  subst g; reflexivity
+ | subst g;  exact H].
+
+Ltac related_matrix2 f := let x := fresh "x" in intro x; let y := fresh "y" in intro y;
+    match type of (f x y) with _ = ?t => let b := eval cbv beta in t in exact b end.
+
 Ltac realify := 
 try change (@nmodule.Algebra.add _) with Rplus;
 try change (@nmodule.Algebra.opp _) with Ropp;
@@ -160,6 +278,7 @@ try change (@nmodule.Algebra.zero _) with 0;
 repeat change (nmodule.Algebra.natmul _ ?i) with (INR i).
 
 Lemma rowmx_of_list_1: forall [T] (x: 'M[T]_1), rowmx_of_list [x ord0 ord0] = x.
+(* begin details *)
 Proof.
 intros.
 unfold rowmx_of_list; apply matrixP; intros ? ?. simpl in y.
@@ -169,37 +288,7 @@ destruct (ssrnat.ltnP 0 1); try lia.
 rewrite mxE.
 f_equal. apply ord_inj; simpl. rewrite ord1. auto.
 Qed.
-
-Definition vmap_of_cV_list [n] (x: 'cV[ftype Tdouble]_n) :=
-      map (fun i => (Pos.of_succ_nat (nat_of_ord i), existT ftype _ (fun_of_matrix x i ord0))) (ord_enum n).
-
-Lemma vmap_of_cV_list_valid: forall [n] (x: 'cV[ftype Tdouble]_n),
-  @valmap_valid empty_collection (valmap_of_list' (@vmap_of_cV_list n x)).
-Proof.
-intros.
-unfold vmap_of_cV_list.
-unfold valmap_valid.
-intros.
-destruct ty as [t a].
-simpl.
-unfold valmap_of_list' in H.
-rewrite <- fold_left_rev_right in H.
-rewrite <- map_rev in H.
-revert H.
-induction (rev (ord_enum n)); intros.
-inversion H.
-simpl in H.
-destruct (Pos.eq_dec id  (Pos.of_succ_nat (@nat_of_ord n a0))).
-subst id.
-rewrite Maps.PTree.gss in H.
-assert (t = Tdouble) by congruence.
-subst; hnf; auto.
-rewrite Maps.PTree.gso in H by auto.
-apply IHl; auto.
-Qed.
-
-Definition  vmap_of_cV [n](x: 'cV[ftype Tdouble]_n) : valmap :=
-   @valmap_of_list empty_collection (vmap_of_cV_list x) (vmap_of_cV_list_valid x).
+(* end details *)
 
 Ltac simplify_vmap_of_cV :=
 let u := fresh "u" in set (u := @vmap_of_cV _ _ );
@@ -243,25 +332,6 @@ Definition x_vmap_list (x : ftype Tdouble) :=
 Definition x_vmap (x : ftype Tdouble) : valmap :=
  ltac:(make_valmap_of_list (x_vmap_list x)).
 
-
-Goal exists vm, vmap_of_cV (trmx (rowmx_of_list [Zconst Tdouble 3; Zconst Tdouble 4])) = vm.
- eexists. simplify_vmap_of_cV. 
-Abort.
-
-Ltac related_matrix f := let x :=
-     fresh "x" in intro x;
-    match type of (f x) with _ = ?t => let b := eval cbv beta in t in exact b end.
-
-Definition relate_1dP1_0  
- := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (mx_of_list [[x]]) ord0 (Ordn 2 0))).
-Definition f_1dP1_0 := ltac:(related_matrix relate_1dP1_0).
-
-Goal f_1dP1_0 = fun x : ftype Tdouble => (0.5 * (1 - x))%F64.  reflexivity. Abort.  
-Definition   relate_1dP1_1
- := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (mx_of_list [[x]]) ord0 (Ordn 2 1))).
-
-Definition f_1dP1_1 := ltac:(related_matrix relate_1dP1_1).
-
 Local Ltac function_arity t :=
   lazymatch t with _ -> ?B => let n := function_arity B in constr:(S n) | _ => constr:(O) end.
 
@@ -272,9 +342,106 @@ Ltac reify_function f :=
         in exact e'
    end.
 
+Ltac prove_vmaps_equal := 
+apply ProofIrrelevance.ProofIrrelevanceTheory.subset_eq_compat;
+cbv beta match fix delta [ vmap_of_cV_list ord_enum seq.iota seq.pmap eqtype.insub ];
+ repeat (destruct (@ssrbool.idP _); [ | lia]);
+cbv beta match fix zeta iota delta [ valmap_of_list' fold_left Maps.PTree.set Maps.PTree.set0 Maps.PTree.empty map ];
+simpl;
+repeat f_equal; apply ord_inj; auto.
+
+
+Ltac apply_roundoff_bound B := 
+ simplify_ordinals; rewrite_matrix;
+ try change (ssralg.GRing.one _) with 1; try change (nmodule.Algebra.zero _) with 0;
+ let H := fresh in intro H;
+ generalize (B _ H); clear H;
+ realify; 
+ rewrite ?Rplus_opp;
+ unfold prove_roundoff_bound, roundoff_error_bound;
+ match goal with vmap:= _ : valmap |- _ /\ Rabs (FT2R ?F - ?X) <= _ -> _ /\ Rabs (FT2R ?F' - ?X') <= _  => 
+ replace F' with F; [replace X' with X; [tauto | ] | ];
+ simpl;
+ cbv [env_ vmap proj1_sig Maps.PTree.get Maps.PTree.get' typesize_eq_dec Defs.F2R]; simpl;
+ try reflexivity; try nra
+end.
+
+Ltac prepare_apply_roundoff_bound := 
+ change_StdLib_to_Core;
+ try change (ssralg.GRing.one _) with 1; try change (nmodule.Algebra.zero _) with 0;
+ match goal with VALID: valmap_valid _, vmap:= _ : valmap  |-  _  => 
+   revert VALID vmap; simplify_ordinals; intros VALID vmap
+ end;
+ rewrite_matrix;
+ unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE;
+ realify; rewrite Rplus_opp.
+
+Ltac prove_bounds_enclose :=
+ let i := fresh "i" in let k := fresh "k" in 
+red; simpl; intro i; ord_enum_cases i; simpl; intro k; ord_enum_cases k;
+ repeat
+  lazymatch goal  with
+  | |- _ <= fun_of_matrix (rowmx_of_list _) _ _ <=  _ => fail
+  | |- _ <= fun_of_matrix (colmx_of_list _) _ _ <= _ => fail
+  | |- _ <= fun_of_matrix (mx_of_list _) _ _ <= _ => fail
+  | |- _ <= fun_of_matrix ?a _ _ <= _ => let b := eval red in a in change a with b
+ end;
+ rewrite_matrix; realify; lra.
+
+(** * Instances: accuracy proofs for all the elements *)
+
+(** ** 1dP1: 1-dimensional, degree 1 *)
+
+(** *** Extracting the floating-point shape functions into "ordinary" floating-point operations *)
+(** The VCFloat tool can prove roundoff-error bounds for functions from #\(R^n \rightarrow R\)#,
+   or rather, for floating-point functions that are intended to approximate those real-valued functions.
+   Since our shape functions are from #\(F^d \rightarrow F^{nsh}\)#, we must first extract each
+   of the columns of the row-vector ['cV_nsh] that represents #\(F^{nsh}\)#, and recast it into
+   the floating-point operators that VCFloat recognizes.  This is done by the [translate_matrix] tactic.
+*)
+
+Definition relate_1dP1_0  (* first shape function *)
+ := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (mx_of_list [[x]]) ord0 (Ordn 2 0))).
+
+(** From the following [Check] command you can see what [translate_matrix] does.
+  It has taken the jth shape function (in this case, j=Ordn 2 0, that is, shape function 0 of 2),
+   and produced a proof that it's equal to (0.5 * (1-x)), with 0.5, *, and - interpreted as 64-bit float operators *)
+Check relate_1dP1_0.  (*
+  relate_1dP1_0:  forall x : ftype Tdouble,
+       FShape.θ shapes1dP1F (mx_of_list [[x]]) ord0 (Ordn 2 0) = (0.5 * (1 - x))%F64
+*)
+
+(** And the [related_matrix] tactic grabs just the function (fun x => 0.5 * (1-x)) without the proof *)
+Definition f_1dP1_0 := ltac:(related_matrix relate_1dP1_0).
+(** Test that this really worked: *)
+Goal f_1dP1_0 = fun x : ftype Tdouble => (0.5 * (1 - x))%F64.  reflexivity. Abort.  
+
+Definition   relate_1dP1_1
+ := ltac:(translate_matrix (fun x => FShape.θ shapes1dP1F (mx_of_list [[x]]) ord0 (Ordn 2 1))).
+
+Definition f_1dP1_1 := ltac:(related_matrix relate_1dP1_1).
+
+(** *** Calculating the error bound *)
+
+(** VCFloat's basic theorem is 
+  [ forall vmap,  prove_roundoff_bound boundsmap vmap F  acc], where
+ - [F] is the syntax tree describing a floating-point function of n variables,
+ - [vmap] is basically a vector of n variables,
+ - [boundsmap] is the lower and upper bounds for each of the n variables,
+ - [acc] is a real number giving the accuracy bound.
+ The theorem states that for any input [vmap] within the range [boundsmap], the difference between
+ [F(vmap)] interpreted as a floating-point function, and [F(vmap)] interpreted as a real function,
+  is less than or equal to [acc].
+
+  VCFloat can prove such theorems; and when used with the [Derive] command, it can also 
+  calculate the value of [acc].
+*)
+
+(** calculate what the 1dP1 bound should be (also prove it, but we'll throw away this proof  *)
 Derive acc_1dP1_0
  in  (forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP1_0)  acc_1dP1_0)
  as derive_roundoff_bound_1dP1_0.
+(* begin show *)
 Proof.
 intros.
 prove_roundoff_bound.
@@ -287,13 +454,24 @@ prove_roundoff_bound.
 match goal with |- 0 <= ?acc - ?A => assert (acc = A) by (unfold acc; reflexivity) end.
 lra.
 Qed.
+(* end show *)
 
 Check ltac:(ShowBound acc_1dP1_0).  (* 1.1102230246251587e-16%F64 *)
 
+(** So, the bound is just under 1.2 * 10^-16.  We'll use 12/(10^17) as the value.
+     To keep things simple, we'll use the same bound for all the shape functions in a given element.
+     The true bound might be different for the different shape functions, so we'll just use the biggest one.
+     The automation shown here doesn't automatically choose the biggest one, we have to figure that out
+     by trial and error. *)
+
 Definition acc_1dP1 : R := 12 / IZR (Z.pow_pos 10 17).
 
+(** *** first shape function *)
+
+(** This is the standard recipe for using VCFloat *)
 Lemma prove_roundoff_bound_1dP1_0:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP1_0) acc_1dP1.
+(* begin show *)
 Proof.
 intros.
 prove_roundoff_bound.
@@ -304,9 +482,12 @@ prove_rndval; interval.
  prune_terms (cutoff 30).
  do_interval.
 Qed.
+(* end show *)
 
+(** *** second shape function *)
 Lemma prove_roundoff_bound_1dP1_1:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP1_1) acc_1dP1.
+(* begin details *)
 Proof.
 intros.
 prove_roundoff_bound.
@@ -317,12 +498,9 @@ prove_roundoff_bound.
  prune_terms (cutoff 30).
  do_interval.
 Qed.
+(* end details *)
 
-(*
-
-Definition shape_hull (s: Shape.shape) (sf: @FShape.shape (@Shape.d Rdefinitions.R s) (Shape.nsh s) FPStdLib.Tdouble) : Prop.
-
-*)
+(** *** derivative function accuracy bounds *)
 
 Definition relate_1dP1deriv_0 := 
    ltac:(translate_matrix (fun x => shapes1dP1_fderiv (rowmx_of_list [x]) (Ordn 2 0) ord0)).
@@ -358,6 +536,36 @@ prove_roundoff_bound.
  rewrite Rminus_diag. rewrite Rabs_R0. apply Rle_refl.
 Qed.
 
+(** *** 1dP1 main result *)
+(** Bundle together all the accuracy proofs for 1dP1 into a single theorem *)
+Lemma roundoff_bound_1dP1: 
+   roundoff_bound_lemma shapes1dP1 shapes1dP1F acc_1dP1 acc_1dP1d.
+(* begin show *)
+Proof.
+split.
+prove_bounds_enclose.
+simpl; intro x.
+simplify_vmap_of_cV.
+intro H; split; intros; revert H.
+-
+unfold shapes1dP1_float, shapes1dP1_θ.
+prepare_apply_roundoff_bound.
+ord_enum_cases j.
+apply_roundoff_bound prove_roundoff_bound_1dP1_0.
+apply_roundoff_bound prove_roundoff_bound_1dP1_1.
+-
+unfold shapes1dP1_fderiv, shapes1dP1_dθ.
+prepare_apply_roundoff_bound.
+ord_enum_cases i.
+apply_roundoff_bound prove_roundoff_bound_1dP1deriv_0.
+apply_roundoff_bound prove_roundoff_bound_1dP1deriv_1.
+Qed.
+(* end show *)
+
+(** ** 1dP2: 1-dimensional, degree 2 *)
+
+(** *** Extracting the floating-point shape functions into "ordinary" floating-point operations *)
+
 Definition relate_1dP2_0 := 
    ltac:(translate_matrix (fun x => shapes1dP2_float  (mx_of_list [[x]]) ord0 (Ordn 3 0))).
 Definition f_1dP2_0 := ltac:(related_matrix relate_1dP2_0).
@@ -370,9 +578,11 @@ Definition relate_1dP2_2 :=
    ltac:(translate_matrix (fun x => shapes1dP2_float  (mx_of_list [[x]]) ord0 (@Ordn 3 2))).
 Definition f_1dP2_2 := ltac:(related_matrix relate_1dP2_2).
 
+(** calculate what the 1dP2 bound should be (also prove it, but we'll throw away this proof  *)
 Derive acc_1dP2_1
  in  (forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP2_1)  acc_1dP2_1)
  as derive_roundoff_bound_1dP_1.
+(* begin details *)
 Proof.
 intros.
 prove_roundoff_bound.
@@ -385,14 +595,16 @@ prove_roundoff_bound.
 match goal with |- 0 <= ?acc - ?A => assert (acc = A) by (unfold acc; reflexivity) end.
 lra.
 Qed.
+(* end details *)
 
 Check ltac:(ShowBound acc_1dP2_1). (* 1.3322676295501908e-15%F64 *)
 
-
 Definition acc_1dP2: R := 14 / IZR (Z.pow_pos 10 14).
 
+(** *** first shape function *)
 Lemma prove_roundoff_bound_1dP2_0:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP2_0) acc_1dP2.
+(* begin details *)
 Proof.
 intros.
 prove_roundoff_bound.
@@ -403,7 +615,9 @@ prove_rndval; interval.
  prune_terms (cutoff 30).
  do_interval.
 Qed.
+(* end details *)
 
+(** *** second shape function *)
 Lemma prove_roundoff_bound_1dP2_1:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP2_1) acc_1dP2.
 Proof.
@@ -417,7 +631,7 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
-
+(** *** third shape function *)
 Lemma prove_roundoff_bound_1dP2_2:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_1d vmap ltac:(reify_function f_1dP2_2) acc_1dP2.
 Proof.
@@ -431,7 +645,7 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
-
+(** *** shape derivative functions *)
 
 Definition relate_1dP2deriv_0 := 
    ltac:(translate_matrix (fun x => shapes1dP2_fderiv (mx_of_list [[x]]) (Ordn 3 0) ord0)).
@@ -444,7 +658,6 @@ Definition f_1dP2deriv_1 := ltac:(related_matrix relate_1dP2deriv_1).
 Definition relate_1dP2deriv_2 := 
    ltac:(translate_matrix (fun x => shapes1dP2_fderiv (mx_of_list [[x]]) (Ordn 3 2) ord0)).
 Definition f_1dP2deriv_2 := ltac:(related_matrix relate_1dP2deriv_2).
-
 
 Definition acc_1dP2deriv : R := 4 / IZR (Z.pow_pos 10 16).
 
@@ -488,33 +701,37 @@ prove_roundoff_bound.
  do_interval.
 Qed.
 
-Ltac translate_matrix2 f := 
-let x := fresh "x" in let y := fresh "y" in 
-let g := fresh "g" in 
-evar (g: ftype Tdouble -> ftype Tdouble -> ftype Tdouble);
-let H := fresh in 
-let prop := constr:(forall x y : ftype Tdouble, f x y = g x y) in let prop := eval cbv beta in prop in 
-assert (H: prop);  [
-  intros x y;
- match goal with |- fun_of_matrix _ ?i ?j = _ =>  try simplify_ordinal i; try simplify_ordinal j end;
- repeat
-  lazymatch goal  with
-  | |- fun_of_matrix (rowmx_of_list _) _ _ = _ => fail
-  | |- fun_of_matrix (mx_of_list _) _ _ = _ => fail
-  | |- fun_of_matrix ?a _ _ = _ => let b := eval red in a in change a with b
-  end;
- unfold shapes1dP1_float, shapes1dP1_fderiv, shapes1dP2_float, shapes1dP2_fderiv;
- repeat match goal with |- context [col ?i _] =>  try simplify_ordinal i end;
- repeat match goal with |- context [fun_of_matrix _ ?i _] =>  simplify_ordinal i end;
- repeat match goal with |- context [fun_of_matrix _ _ ?j] =>  simplify_ordinal j end;
- simpl seq.size;
- rewrite_matrix;
- change_StdLib_to_Core;
-  subst g; reflexivity
- | subst g;  exact H].
+(** *** 1dP2 main result *)
+(** Bundle together all the accuracy proofs for 1dP2 into a single theorem *)
+Lemma roundoff_bound_1dP2: roundoff_bound_lemma shapes1dP2 
+         shapes1dP2F acc_1dP2 acc_1dP2deriv.
+(* begin details *)
+Proof.
+split.
+prove_bounds_enclose.
+simpl; intro x.
+simplify_vmap_of_cV.
+intro H; split; intros; revert H.
+-
+unfold shapes1dP2_float, shapes1dP2_θ.
+prepare_apply_roundoff_bound.
+ord_enum_cases j.
+apply_roundoff_bound prove_roundoff_bound_1dP2_0.
+apply_roundoff_bound prove_roundoff_bound_1dP2_1.
+apply_roundoff_bound prove_roundoff_bound_1dP2_2.
+-
+unfold shapes1dP2_fderiv, shapes1dP2_dθ.
+prepare_apply_roundoff_bound.
+ord_enum_cases i.
+apply_roundoff_bound prove_roundoff_bound_1dP2deriv_0.
+apply_roundoff_bound prove_roundoff_bound_1dP2deriv_1.
+apply_roundoff_bound prove_roundoff_bound_1dP2deriv_2.
+Qed.
+(* end details *)
 
-Ltac related_matrix2 f := let x := fresh "x" in intro x; let y := fresh "y" in intro y;
-    match type of (f x y) with _ = ?t => let b := eval cbv beta in t in exact b end.
+(** ** 2dP1: 2-dimensional, degree 1 *)
+
+(** *** Extracting the floating-point shape functions into "ordinary" floating-point operations *)
 
 Definition relate_2dP1_0 := 
    ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 4 0))).
@@ -532,6 +749,7 @@ Definition relate_2dP1_3 :=
    ltac:(translate_matrix2 (fun x y => shapes2dP1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 4 3))).
 Definition f_2dP1_3 := ltac:(related_matrix2 relate_2dP1_3).
 
+(** calculate what the 2dP1 bound should be (also prove it, but we'll throw away this proof  *)
 Derive acc_2dP1_1
  in  (forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1_1)  acc_2dP1_1)
  as derive_roundoff_bound_2dP1_1.
@@ -552,6 +770,7 @@ Check ltac:(ShowBound acc_2dP1_1). (* 3.33066907387548e-16%F64 *)
 
 Definition acc_2dP1: R := 4 / IZR (Z.pow_pos 10 16).
 
+(** *** four shape functions *)
 Lemma prove_roundoff_bound_2dP1_0:  
     forall vmap,  prove_roundoff_bound cuboid_boundsmap_2d vmap ltac:(reify_function f_2dP1_0) acc_2dP1.
 Proof.
@@ -604,7 +823,7 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
-
+(** *** shape derivative functions *)
 Definition relate_2dP1deriv_0_0 := 
    ltac:(translate_matrix2 (fun x y => shapes2dP1_fderiv (mx_of_list [[x];[y]]) (Ordn 4 0) (Ordn 2 0))).
 Definition f_2dP1deriv_0_0 := ltac:(related_matrix2 relate_2dP1deriv_0_0).
@@ -759,6 +978,45 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
+(** *** 2dP1 main result #<a id=2dP1># *)
+(** Bundle together all the accuracy proofs for 2dP1 into a single theorem *)
+Lemma roundoff_bound_2dP1: roundoff_bound_lemma shapes2dP1 
+         shapes2dP1F acc_2dP1 acc_2dP1deriv.
+(* begin details *)
+Proof.
+split.
+prove_bounds_enclose.
+simpl; intro x.
+simplify_vmap_of_cV.
+intro H; split; intros; revert H.
+-
+unfold shapes2dP1_float, shapes2dP1_θ, shapes1dP1_float, shapes1dP1_θ.
+prepare_apply_roundoff_bound.
+ord_enum_cases j.
+apply_roundoff_bound prove_roundoff_bound_2dP1_0.
+apply_roundoff_bound prove_roundoff_bound_2dP1_1.
+apply_roundoff_bound prove_roundoff_bound_2dP1_2.
+apply_roundoff_bound prove_roundoff_bound_2dP1_3.
+-
+unfold shapes2dP1_fderiv, shapes2dP1_dθ, shapes1dP1_float, shapes1dP1_fderiv, shapes1dP1_dθ, shapes1dP1_θ.
+prepare_apply_roundoff_bound.
+ord_enum_cases j; ord_enum_cases i.
+apply_roundoff_bound prove_roundoff_bound_2dP1deriv_0_0.
+apply_roundoff_bound prove_roundoff_bound_2dP1deriv_1_0.
+apply_roundoff_bound prove_roundoff_bound_2dP1deriv_2_0.
+apply_roundoff_bound prove_roundoff_bound_2dP1deriv_3_0.
+apply_roundoff_bound prove_roundoff_bound_2dP1deriv_0_1.
+apply_roundoff_bound prove_roundoff_bound_2dP1deriv_1_1.
+apply_roundoff_bound prove_roundoff_bound_2dP1deriv_2_1.
+apply_roundoff_bound prove_roundoff_bound_2dP1deriv_3_1.
+Qed.
+(* end details *)
+
+(** *** 2dT1 main result *)
+(** ** 2dT1: 2-dimensional triangle, degree 1 *)
+
+(** *** Extracting the floating-point shape functions into "ordinary" floating-point operations *)
+
 Definition relate_2dT1_0 := 
    ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 3 0))).
 Definition f_2dT1_0 := ltac:(related_matrix2 relate_2dT1_0).
@@ -771,6 +1029,7 @@ Definition relate_2dT1_2 :=
    ltac:(translate_matrix2 (fun x y => shapes2dT1_float  (mx_of_list [[x];[y]]) ord0 (Ordn 3 2))).
 Definition f_2dT1_2 := ltac:(related_matrix2 relate_2dT1_2).
 
+(** calculate what the 2dP1 bound should be (also prove it, but we'll throw away this proof  *)
 Derive acc_2dT1_0
  in  (forall vmap,  prove_roundoff_bound simplex_boundsmap_2d vmap ltac:(reify_function f_2dT1_0)  acc_2dT1_0)
  as derive_roundoff_bound_2dT1_0.
@@ -789,8 +1048,9 @@ Qed.
 
 Check ltac:(ShowBound acc_2dT1_0). (* 5.551115123125793e-16%F64 *)
 
-
 Definition acc_2dT1: R := 6 / IZR (Z.pow_pos 10 16).
+
+(** *** three shape functions *)
 
 Lemma prove_roundoff_bound_2dT1_0:  
     forall vmap,  prove_roundoff_bound simplex_boundsmap_2d vmap ltac:(reify_function f_2dT1_0) acc_2dT1.
@@ -831,6 +1091,7 @@ prove_rndval; interval.
  do_interval.
 Qed.
 
+(** *** shape derivative functions *)
 Definition relate_2dT1deriv_0_0 := 
    ltac:(translate_matrix2 (fun x y => shapes2dT1_fderiv (mx_of_list [[x];[y]]) (Ordn 3 0) (Ordn 2 0))).
 Definition f_2dT1deriv_0_0 := ltac:(related_matrix2 relate_2dT1deriv_0_0).
@@ -929,162 +1190,11 @@ prove_rndval; interval.
  rewrite Rminus_diag. rewrite Rabs_R0. apply Rle_refl.
 Qed.
 
-
-Definition bounds_enclose (s: Shape.shape) (bm: boundsmap) : Prop :=
- forall i: 'I_(Shape.d s),
-  match Maps.PTree.get (Pos.of_succ_nat (nat_of_ord i)) bm with
-    | Some {| var_type := t; var_name := i'; var_lobound := lo; var_hibound := hi |} =>
-      forall k: 'I_(Shape.nsh s),
-         lo <= Shape.vtx s i k <= hi
-    | None => False
-    end.
-
-Definition roundoff_bound_lemma (s: Shape.shape)
-    (F: FShape.shape (Shape.d s) (Shape.nsh s) FPStdLib.Tdouble)
-    (acc accd: R)
- :=
-  bounds_enclose s (FShape.bounds F) /\
-  forall (x: 'cV[ftype Tdouble]_(Shape.d s)),
-       boundsmap_denote (FShape.bounds F) (vmap_of_cV x) -> 
-     (forall (j: 'I_(Shape.nsh s)),
-       @FPCore.is_finite Tdouble (FShape.θ F x ord0 j) = true /\
-       Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.θ F x)) (oppmx (Shape.θ s (map_mx FT2R x))) ord0 j) <= acc)
- /\  (forall i j, @FPCore.is_finite Tdouble (FShape.dθ F x i j) = true /\
-       Rabs (addmx (map_mx (@FT2R Tdouble) (FShape.dθ F x)) (oppmx (Shape.dθ s (map_mx FT2R x))) i j) <= accd).
-
-
-Ltac prove_vmaps_equal := 
-apply ProofIrrelevance.ProofIrrelevanceTheory.subset_eq_compat;
-cbv beta match fix delta [ vmap_of_cV_list ord_enum seq.iota seq.pmap eqtype.insub ];
- repeat (destruct (@ssrbool.idP _); [ | lia]);
-cbv beta match fix zeta iota delta [ valmap_of_list' fold_left Maps.PTree.set Maps.PTree.set0 Maps.PTree.empty map ];
-simpl;
-repeat f_equal; apply ord_inj; auto.
-
-
-Ltac apply_roundoff_bound B := 
- simplify_ordinals; rewrite_matrix;
- try change (ssralg.GRing.one _) with 1; try change (nmodule.Algebra.zero _) with 0;
- let H := fresh in intro H;
- generalize (B _ H); clear H;
- realify; 
- rewrite ?Rplus_opp;
- unfold prove_roundoff_bound, roundoff_error_bound;
- match goal with vmap:= _ : valmap |- _ /\ Rabs (FT2R ?F - ?X) <= _ -> _ /\ Rabs (FT2R ?F' - ?X') <= _  => 
- replace F' with F; [replace X' with X; [tauto | ] | ];
- simpl;
- cbv [env_ vmap proj1_sig Maps.PTree.get Maps.PTree.get' typesize_eq_dec Defs.F2R]; simpl;
- try reflexivity; try nra
-end.
-
-Ltac prepare_apply_roundoff_bound := 
- change_StdLib_to_Core;
- try change (ssralg.GRing.one _) with 1; try change (nmodule.Algebra.zero _) with 0;
- match goal with VALID: valmap_valid _, vmap:= _ : valmap  |-  _  => 
-   revert VALID vmap; simplify_ordinals; intros VALID vmap
- end;
- rewrite_matrix;
- unfold addmx, oppmx, map2_mx, map_mx; rewrite !mxE;
- realify; rewrite Rplus_opp.
-
-Ltac prove_bounds_enclose :=
- let i := fresh "i" in let k := fresh "k" in 
-red; simpl; intro i; ord_enum_cases i; simpl; intro k; ord_enum_cases k;
- repeat
-  lazymatch goal  with
-  | |- _ <= fun_of_matrix (rowmx_of_list _) _ _ <=  _ => fail
-  | |- _ <= fun_of_matrix (colmx_of_list _) _ _ <= _ => fail
-  | |- _ <= fun_of_matrix (mx_of_list _) _ _ <= _ => fail
-  | |- _ <= fun_of_matrix ?a _ _ <= _ => let b := eval red in a in change a with b
- end;
- rewrite_matrix; realify; lra.
-
-Lemma roundoff_bound_1dP1: 
-   roundoff_bound_lemma shapes1dP1 shapes1dP1F acc_1dP1 acc_1dP1d.
-Proof.
-split.
-prove_bounds_enclose.
-simpl; intro x.
-simplify_vmap_of_cV.
-intro H; split; intros; revert H.
--
-unfold shapes1dP1_float, shapes1dP1_function.
-prepare_apply_roundoff_bound.
-ord_enum_cases j.
-apply_roundoff_bound prove_roundoff_bound_1dP1_0.
-apply_roundoff_bound prove_roundoff_bound_1dP1_1.
--
-unfold shapes1dP1_fderiv, shapes1dP1_deriv.
-prepare_apply_roundoff_bound.
-ord_enum_cases i.
-apply_roundoff_bound prove_roundoff_bound_1dP1deriv_0.
-apply_roundoff_bound prove_roundoff_bound_1dP1deriv_1.
-Qed.
-
-Lemma roundoff_bound_1dP2: roundoff_bound_lemma shapes1dP2 
-         shapes1dP2F acc_1dP2 acc_1dP2deriv.
-Proof.
-split.
-prove_bounds_enclose.
-simpl; intro x.
-simplify_vmap_of_cV.
-intro H; split; intros; revert H.
--
-unfold shapes1dP2_float, shapes1dP2_function.
-prepare_apply_roundoff_bound.
-ord_enum_cases j.
-apply_roundoff_bound prove_roundoff_bound_1dP2_0.
-apply_roundoff_bound prove_roundoff_bound_1dP2_1.
-apply_roundoff_bound prove_roundoff_bound_1dP2_2.
--
-unfold shapes1dP2_fderiv, shapes1dP2_deriv.
-prepare_apply_roundoff_bound.
-ord_enum_cases i.
-apply_roundoff_bound prove_roundoff_bound_1dP2deriv_0.
-apply_roundoff_bound prove_roundoff_bound_1dP2deriv_1.
-apply_roundoff_bound prove_roundoff_bound_1dP2deriv_2.
-Qed.
-
-Lemma roundoff_bound_2dP1: roundoff_bound_lemma shapes2dP1 
-         shapes2dP1F acc_2dP1 acc_2dP1deriv.
-Proof.
-split.
-prove_bounds_enclose.
-simpl; intro x.
-simplify_vmap_of_cV.
-intro H; split; intros; revert H.
--
-unfold shapes2dP1_float, shapes2dP1_function, shapes1dP1_float, shapes1dP1_function.
-prepare_apply_roundoff_bound.
-ord_enum_cases j.
-apply_roundoff_bound prove_roundoff_bound_2dP1_0.
-apply_roundoff_bound prove_roundoff_bound_2dP1_1.
-apply_roundoff_bound prove_roundoff_bound_2dP1_2.
-apply_roundoff_bound prove_roundoff_bound_2dP1_3.
--
-unfold shapes2dP1_fderiv, shapes2dP1_deriv, shapes1dP1_float, shapes1dP1_fderiv, shapes1dP1_deriv, shapes1dP1_function.
-prepare_apply_roundoff_bound.
-ord_enum_cases j; ord_enum_cases i.
-apply_roundoff_bound prove_roundoff_bound_2dP1deriv_0_0.
-apply_roundoff_bound prove_roundoff_bound_2dP1deriv_1_0.
-apply_roundoff_bound prove_roundoff_bound_2dP1deriv_2_0.
-apply_roundoff_bound prove_roundoff_bound_2dP1deriv_3_0.
-apply_roundoff_bound prove_roundoff_bound_2dP1deriv_0_1.
-apply_roundoff_bound prove_roundoff_bound_2dP1deriv_1_1.
-apply_roundoff_bound prove_roundoff_bound_2dP1deriv_2_1.
-apply_roundoff_bound prove_roundoff_bound_2dP1deriv_3_1.
-Qed.
-
-(*
-Definition acc_2dP2_deriv : R := 1.  (* Placeholder! *)
-
-Lemma roundoff_bound_2dP2: roundoff_bound_lemma shapes2dP2 
-                shapes2dP2F acc_2dP2 acc_2dP2_deriv.
-Proof. . . . Qed.
-*)
-
+(** *** 2dT1 main result *)
+(** Bundle together all the accuracy proofs for 2dT1 into a single theorem *)
 Lemma roundoff_bound_2dT1: 
   roundoff_bound_lemma shapes2dT1 shapes2dT1F acc_2dT1 acc_2dT1deriv.
+(* begin details *)
 Proof.
 split.
 prove_bounds_enclose.
@@ -1092,14 +1202,14 @@ simpl; intro x.
 simplify_vmap_of_cV.
 intro H; split; intros; revert H.
 -
-unfold shapes2dT1_float, shapes2dT1_function.
+unfold shapes2dT1_float, shapes2dT1_θ.
 prepare_apply_roundoff_bound.
 ord_enum_cases j.
 apply_roundoff_bound prove_roundoff_bound_2dT1_0.
 apply_roundoff_bound prove_roundoff_bound_2dT1_1.
 apply_roundoff_bound prove_roundoff_bound_2dT1_2.
 -
-unfold shapes2dT1_fderiv, shapes2dT1_deriv.
+unfold shapes2dT1_fderiv, shapes2dT1_dθ.
 prepare_apply_roundoff_bound.
 ord_enum_cases j; ord_enum_cases i.
 apply_roundoff_bound prove_roundoff_bound_2dT1deriv_0_0.
@@ -1109,6 +1219,13 @@ apply_roundoff_bound prove_roundoff_bound_2dT1deriv_0_1.
 apply_roundoff_bound prove_roundoff_bound_2dT1deriv_1_1.
 apply_roundoff_bound prove_roundoff_bound_2dT1deriv_2_1.
 Qed.
+(* end details *)
 
+(** ** 2dP2: 2-dimensional, degree 2 *)
+
+(** Not yet done *)
+(** ** 2dS2: 2-dimensional, degree 2, Serendipity *)
+
+(** Not yet done *)
 
 

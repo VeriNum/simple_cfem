@@ -1,3 +1,6 @@
+(** * CFEM.C.verif_shapes2d:  VST correctness proofs for 2-dimensional shape functions *)
+(** except that 2dP2 is in another file *)
+
 Require Import CFEM.C.verif_shapes_base.
 
 Lemma split_matrix_rows :
@@ -11,8 +14,9 @@ densematn sh A p *
 densematn sh B (@field_address spec_densemat.CompSpecs (tarray the_ctype (Z.of_nat n1 + Z.of_nat n2)) (SUB (Z.of_nat n1)) p).
 Admitted.
 
-
+(** #<a id=2dP1># *)
 Lemma body_shapes2dP1: semax_body Vprog Gprog f_shapes2dP1 shapes2dP1_spec.
+(* begin details *)
 Proof.
 unfold shapes2dP1_spec, shape_spec, shapes2dP1F.
 start_function.
@@ -153,8 +157,10 @@ replace (@ord0 1) with (@Ordinal 2 0 (eq_refl _)) by (apply ord_inj; reflexivity
 rewrite Hrow_x.
 apply derives_refl.
 Qed.
+(* end details *)
 
 Lemma body_shapes2dS2: semax_body Vprog Gprog f_shapes2dS2 shapes2dS2_spec.
+(* begin details *)
 Proof.
 unfold shapes2dS2_spec, shape_spec, shapes2dS2F.
 start_function.
@@ -335,8 +341,10 @@ replace (@ord0 1) with (@Ordinal 2 0 (eq_refl _)) by (apply ord_inj; reflexivity
 rewrite Hrow_x.
 apply derives_refl.
 Qed.
+(* end details *)
 
 Lemma body_shapes2dT1: semax_body Vprog Gprog f_shapes2dT1 shapes2dT1_spec.
+(* begin details *)
 Proof.
 unfold shapes2dT1_spec, shape_spec, shapes2dT1F.
 start_function.
@@ -400,5 +408,5 @@ entailer!!.
 thaw PN.
 forward.
 Qed.
-
+(* end details *)
 
