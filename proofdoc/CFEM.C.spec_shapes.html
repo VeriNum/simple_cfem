@@ -1,0 +1,247 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>CFEM: Simple C Finite Element Method, Verified</title>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var h1 = document.querySelector('h1');
+  if (h1) document.title = h1.textContent.trim();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+<h1 class="libtitle">CFEM.C.spec_shapes: VST function specification for shape</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+
+<div class="paragraph"> </div>
+
+  For each kind of finite element (1dP1, 1dP2, 2dP1, 2dT1, etc.) the C program has a single
+  function that calculates all the shape functions and their derivatives, as matrix values.
+  We can give a single, generic specification for all these C functions, calculated from
+  the functional model of the FShape. 
+</div>
+<div class="code">
+
+<br/>
+</div>
+<details><summary>Require Imports and Open Scope, etc. </summary><div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">VST.floyd.proofauto</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">CFEM.C</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.shapes.html#"><span class="id" title="library">shapes</span></a>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">vcfloat</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">FPStdCompCert</span> <span class="id" title="library">FPStdLib</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">VSTlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">spec_math</span> <span class="id" title="library">spec_malloc</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">LAProof.accuracy_proofs</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">solve_model</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">LAProof.C</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">VSU_densemat</span> <span class="id" title="library">spec_alloc</span> <span class="id" title="library">floatlib</span> <span class="id" title="library">matrix_model</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Coq.Classes.RelationClasses</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">ssreflect</span> <span class="id" title="library">ssrbool</span> <span class="id" title="library">ssrfun</span> <span class="id" title="library">eqtype</span> <span class="id" title="library">ssrnat</span> <span class="id" title="library">seq</span> <span class="id" title="library">choice</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">fintype</span> <span class="id" title="library">finfun</span> <span class="id" title="library">bigop</span> <span class="id" title="library">finset</span> <span class="id" title="library">fingroup</span> <span class="id" title="library">perm</span> <span class="id" title="library">order</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">div</span> <span class="id" title="library">ssralg</span> <span class="id" title="library">countalg</span> <span class="id" title="library">finalg</span> <span class="id" title="library">zmodp</span> <span class="id" title="library">matrix</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp.zify</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">ssrZ</span> <span class="id" title="library">zify</span>.<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="module">fintype</span> <span class="id" title="module">matrix</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="library">LAProof.accuracy_proofs.export</span>.<br/>
+<span class="id" title="keyword">Module</span> <a id="F" class="idref" href="#F"><span class="id" title="module">F</span></a> := <span class="id" title="module">LAProof.accuracy_proofs.mv_mathcomp.F</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now we undo all the settings that mathcomp has modified 
+</div>
+<div class="code">
+<span class="id" title="keyword">Unset Implicit Arguments</span>.<br/>
+<span class="id" title="keyword">Unset</span> <span class="id" title="keyword">Strict</span> <span class="id" title="keyword">Implicit</span>.<br/>
+<span class="id" title="keyword">Unset</span> <span class="id" title="keyword">Printing</span> <span class="id" title="keyword">Implicit</span> <span class="id" title="var">Defensive</span>.<br/>
+<span class="id" title="keyword">Set</span> <span class="id" title="var">Bullet</span> <span class="id" title="var">Behavior</span> "Strict Subproofs".<br/>
+
+<br/>
+#[<span class="id" title="var">export</span>] <span class="id" title="keyword">Instance</span> <a id="CompSpecs" class="idref" href="#CompSpecs"><span class="id" title="instance">CompSpecs</span></a> : <span class="id" title="class">compspecs</span>. <span class="id" title="var">make_compspecs</span> <a class="idref" href="CFEM.C.shapes.html#prog"><span class="id" title="definition">prog</span></a>. <span class="id" title="keyword">Defined</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="Vprog" class="idref" href="#Vprog"><span class="id" title="definition">Vprog</span></a> : <span class="id" title="definition">varspecs</span>. <span class="id" title="var">mk_varspecs</span> <a class="idref" href="CFEM.C.shapes.html#prog"><span class="id" title="definition">prog</span></a>. <span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.nonexpansive.html#"><span class="id" title="library">CFEM.C.nonexpansive</span></a>.<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="module">spec_densemat</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">logic</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.shapefloat.html#"><span class="id" title="library">CFEM.shapefloat</span></a>.<br/>
+</div>
+</details><div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The C program calculate the shapes, or derivatives (respectively), only if the
+  corresponding pointer (at which to store the result) is non-NULL.  So we need a
+  function for "optional" memory predicates. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="ifptr" class="idref" href="#ifptr"><span class="id" title="definition">ifptr</span></a> (<a id="p:1" class="idref" href="#p:1"><span class="id" title="binder">p</span></a>: <span class="id" title="inductive">val</span>) (<a id="A:2" class="idref" href="#A:2"><span class="id" title="binder">A</span></a>: <span class="id" title="definition">mpred</span>) : <span class="id" title="definition">mpred</span> :=<br/>
+&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="CFEM.C.spec_shapes.html#p:1"><span class="id" title="variable">p</span></a> <span class="id" title="keyword">with</span> <span class="id" title="constructor">Vptr</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> ⇒ <a class="idref" href="CFEM.C.spec_shapes.html#A:2"><span class="id" title="variable">A</span></a>  |  <span class="id" title="var">_</span> ⇒ <span class="id" title="method">emp</span>  <span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The standard boilerplate lemma for any user-defined mpred 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="ifptr_valid_pointer" class="idref" href="#ifptr_valid_pointer"><span class="id" title="lemma">ifptr_valid_pointer</span></a>: <span class="id" title="keyword">∀</span> <a id="p:4" class="idref" href="#p:4"><span class="id" title="binder">p</span></a> (<a id="A:5" class="idref" href="#A:5"><span class="id" title="binder">A</span></a>: <span class="id" title="inductive">val</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="definition">mpred</span>), <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">is_pointer_or_null</span> <a class="idref" href="CFEM.C.spec_shapes.html#p:4"><span class="id" title="variable">p</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><a class="idref" href="CFEM.C.spec_shapes.html#A:5"><span class="id" title="variable">A</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#p:4"><span class="id" title="variable">p</span></a> <span class="id" title="notation">|--</span> <span class="id" title="definition">valid_pointer</span> <a class="idref" href="CFEM.C.spec_shapes.html#p:4"><span class="id" title="variable">p</span></a><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#p:4"><span class="id" title="variable">p</span></a> (<a class="idref" href="CFEM.C.spec_shapes.html#A:5"><span class="id" title="variable">A</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#p:4"><span class="id" title="variable">p</span></a>) <span class="id" title="notation">|--</span> <span class="id" title="definition">valid_pointer</span> <a class="idref" href="CFEM.C.spec_shapes.html#p:4"><span class="id" title="variable">p</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Hint Resolve</span> <span class="id" title="var">ifptr_valid_pointer</span>: <span class="id" title="var">valid_pointer</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab2"></a><h2 class="section"><span class="inlinecode"><a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a></span>:  VST funspec of C shape function    <a id=spec_shape></h2>
+
+ Given <span class="inlinecode"><a class="idref" href="CFEM.shapefloat.html#FShape.shape"><span class="id" title="record">shape</span></a></span>, which is a floating-point functional model of shape-functions, 
+  specify the C function. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="shape_spec" class="idref" href="#shape_spec"><span class="id" title="definition">shape_spec</span></a> (<a id="d:6" class="idref" href="#d:6"><span class="id" title="binder">d</span></a> <a id="nsh:7" class="idref" href="#nsh:7"><span class="id" title="binder">nsh</span></a>: <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) (<a id="shape:8" class="idref" href="#shape:8"><span class="id" title="binder">shape</span></a>: <a class="idref" href="CFEM.shapefloat.html#FShape.shape"><span class="id" title="record">FShape.shape</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#d:6"><span class="id" title="variable">d</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#nsh:7"><span class="id" title="variable">nsh</span></a> <span class="id" title="definition">the_type</span>) : <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> '({| <a class="idref" href="CFEM.shapefloat.html#8fb2eeca45421cf6da0a9feb3c07ecf6"><span class="id" title="projection">FShape.θ</span></a> := <span class="id" title="var">θ</span>; <a class="idref" href="CFEM.shapefloat.html#f03db630d0a465e118edc64850e52a1e"><span class="id" title="projection">FShape.dθ</span></a> := <span class="id" title="var">dθ</span> |}) := <a class="idref" href="CFEM.C.spec_shapes.html#shape:8"><span class="id" title="variable">shape</span></a> <span class="id" title="tactic">in</span>  <br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="shN:10" class="idref" href="#shN:10"><span class="id" title="binder"><span id="shN:16" class="id">shN</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">share</span><span class="id" title="notation">,</span> <a id="shxx:11" class="idref" href="#shxx:11"><span class="id" title="binder"><span id="shxx:17" class="id">shxx</span></span></a><span class="id" title="notation">:</span><span class="id" title="definition">share</span><span class="id" title="notation">,</span> <a id="pN:12" class="idref" href="#pN:12"><span class="id" title="binder"><span id="pN:18" class="id">pN</span></span></a> <span class="id" title="notation">:</span> <span class="id" title="inductive">val</span><span class="id" title="notation">,</span> <a id="pdN:13" class="idref" href="#pdN:13"><span class="id" title="binder"><span id="pdN:19" class="id">pdN</span></span></a><span class="id" title="notation">:</span> <span class="id" title="inductive">val</span><span class="id" title="notation">,</span> <a id="x:14" class="idref" href="#x:14"><span class="id" title="binder"><span id="x:20" class="id">x</span></span></a><span class="id" title="notation">:</span> <span class="id" title="notation">'</span><span class="id" title="notation">cV</span><span class="id" title="notation">[</span><span class="id" title="definition">ftype</span> <span class="id" title="definition">the_type</span><span class="id" title="notation">]</span><span class="id" title="notation">_d</span><span class="id" title="notation">,</span> <a id="pxx:15" class="idref" href="#pxx:15"><span class="id" title="binder"><span id="pxx:21" class="id">pxx</span></span></a><span class="id" title="notation">:</span> <span class="id" title="inductive">val</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tptr</span> <span class="id" title="definition">the_ctype</span><span class="id" title="notation">,</span> <span class="id" title="definition">tptr</span> <span class="id" title="definition">the_ctype</span><span class="id" title="notation">,</span> <span class="id" title="definition">tptr</span> <span class="id" title="definition">the_ctype</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><span class="id" title="definition">writable_share</span> <a class="idref" href="CFEM.C.spec_shapes.html#shN:10"><span class="id" title="variable">shN</span></a><span class="id" title="notation">;</span> <span class="id" title="definition">readable_share</span> <a class="idref" href="CFEM.C.spec_shapes.html#shxx:11"><span class="id" title="variable">shxx</span></a><span class="id" title="notation">;</span> <span class="id" title="definition">is_pointer_or_null</span> <a class="idref" href="CFEM.C.spec_shapes.html#pN:12"><span class="id" title="variable">pN</span></a><span class="id" title="notation">;</span> <span class="id" title="definition">is_pointer_or_null</span> <a class="idref" href="CFEM.C.spec_shapes.html#pdN:13"><span class="id" title="variable">pdN</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_shapes.html#pN:12"><span class="id" title="variable">pN</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_shapes.html#pdN:13"><span class="id" title="variable">pdN</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_shapes.html#pxx:15"><span class="id" title="variable">pxx</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#pN:12"><span class="id" title="variable">pN</span></a> (<span class="id" title="definition">densematn</span> <a class="idref" href="CFEM.C.spec_shapes.html#shN:10"><span class="id" title="variable">shN</span></a> (@<span class="id" title="definition">const_mx</span> (<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a>(<span class="id" title="definition">ftype</span> <span class="id" title="definition">the_type</span>)) 1 <a class="idref" href="CFEM.C.spec_shapes.html#nsh:7"><span class="id" title="variable">nsh</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a>) <a class="idref" href="CFEM.C.spec_shapes.html#pN:12"><span class="id" title="variable">pN</span></a>)<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#pdN:13"><span class="id" title="variable">pdN</span></a> (<span class="id" title="definition">densematn</span> <a class="idref" href="CFEM.C.spec_shapes.html#shN:10"><span class="id" title="variable">shN</span></a> (@<span class="id" title="definition">const_mx</span> (<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a>(<span class="id" title="definition">ftype</span> <span class="id" title="definition">the_type</span>)) <a class="idref" href="CFEM.C.spec_shapes.html#nsh:7"><span class="id" title="variable">nsh</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#d:6"><span class="id" title="variable">d</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a>) <a class="idref" href="CFEM.C.spec_shapes.html#pdN:13"><span class="id" title="variable">pdN</span></a>)<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">densematn</span> <a class="idref" href="CFEM.C.spec_shapes.html#shxx:11"><span class="id" title="variable">shxx</span></a> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#x:14"><span class="id" title="variable">x</span></a>) <a class="idref" href="CFEM.C.spec_shapes.html#pxx:15"><span class="id" title="variable">pxx</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">()</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">(</span><span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.spec_shapes.html#nsh:7"><span class="id" title="variable">nsh</span></a>)<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#pN:18"><span class="id" title="variable">pN</span></a> (<span class="id" title="definition">densematn</span> <a class="idref" href="CFEM.C.spec_shapes.html#shN:16"><span class="id" title="variable">shN</span></a> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<span class="id" title="var">θ</span> <a class="idref" href="CFEM.C.spec_shapes.html#x:20"><span class="id" title="variable">x</span></a>)) <a class="idref" href="CFEM.C.spec_shapes.html#pN:18"><span class="id" title="variable">pN</span></a>)<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#pdN:19"><span class="id" title="variable">pdN</span></a> (<span class="id" title="definition">densematn</span> <a class="idref" href="CFEM.C.spec_shapes.html#shN:16"><span class="id" title="variable">shN</span></a> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<span class="id" title="var">dθ</span> <a class="idref" href="CFEM.C.spec_shapes.html#x:20"><span class="id" title="variable">x</span></a>)) <a class="idref" href="CFEM.C.spec_shapes.html#pdN:19"><span class="id" title="variable">pdN</span></a>)<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="definition">densematn</span> <a class="idref" href="CFEM.C.spec_shapes.html#shxx:17"><span class="id" title="variable">shxx</span></a> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#x:20"><span class="id" title="variable">x</span></a>) <a class="idref" href="CFEM.C.spec_shapes.html#pxx:21"><span class="id" title="variable">pxx</span></a><span class="id" title="notation">)</span>.<br/>
+</div>
+
+<div class="doc">
+What this means:
+  This spec, when instantiated for a particular dimension <span class="inlinecode"><a class="idref" href="CFEM.shape.html#Shape.d"><span class="id" title="projection">d</span></a></span>, number of shape functions <span class="inlinecode"><a class="idref" href="CFEM.shape.html#Shape.nsh"><span class="id" title="projection">nsh</span></a></span>, floating-point
+   precision <span class="inlinecode"><a class="idref" href="CFEM.C.spec_matrix.html#the_type"><span class="id" title="abbreviation">the_type</span></a></span> and FShape on <span class="inlinecode"><a class="idref" href="CFEM.shape.html#pointwise_derivable.n"><span class="id" title="variable">n</span></a></span>, <span class="inlinecode"><a class="idref" href="CFEM.shape.html#Shape.d"><span class="id" title="projection">d</span></a></span> and <span class="inlinecode"><a class="idref" href="CFEM.C.spec_matrix.html#the_type"><span class="id" title="abbreviation">the_type</span></a></span>, gives a funspec as follows.
+<ul class="doclist">
+<li> For all permission shares <span class="inlinecode"><span class="id" title="var">shN</span></span> for accessing the shape matrix, and <span class="inlinecode"><span class="id" title="var">shxx</span></span> for accessing the input vector
+
+</li>
+<li> For all pointers <span class="inlinecode"><span class="id" title="var">pN</span></span> for where to store the function values, <span class="inlinecode"><span class="id" title="var">pdN</span></span> for where to store the derivative values, and <span class="inlinecode"><span class="id" title="var">pxx</span></span> for accessing the vector <span class="inlinecode"><span class="id" title="var">x</span></span>,
+
+</li>
+<li> For all <span class="inlinecode"><span class="id" title="var">x</span></span> that's a vector of <span class="inlinecode"><a class="idref" href="CFEM.shape.html#Shape.d"><span class="id" title="projection">d</span></a></span> floating-pointer numbers in precision <span class="inlinecode"><a class="idref" href="CFEM.C.spec_matrix.html#the_type"><span class="id" title="abbreviation">the_type</span></a></span>,
+
+</li>
+</ul>
+  PRECONDITION: all three function parameters in C have C-language type pointer-to-float,
+<ul class="doclist">
+<li> PROP: assume the share <span class="inlinecode"><span class="id" title="var">shN</span></span> allows write-permission, the share <span class="inlinecode"><span class="id" title="var">shxx</span></span> allows read-permission,
+    and the <span class="inlinecode"><span class="id" title="var">pN</span></span> value is be either a real pointer or a NULL, ditto the <span class="inlinecode"><span class="id" title="var">pdN</span></span>;
+
+</li>
+<li> PARAMS:  assume the values of the function parameters are pN, pdN, and pxx respectively,
+
+</li>
+<li> SEP: assume there are three memory resources; 
+<ul class="doclist">
+<li> the first is either a dense matrix 1 x nsh (if pN!=NULL), or empty (if pN=NULL)
+
+</li>
+<li> the second is either a dense matrix nsh x d (if pdN!=NULL), or empty (if pdN=NULL)
+
+</li>
+<li>  the third is a dense matrix d x 1, containing the floating-point value <span class="inlinecode"><span class="id" title="var">x</span></span> (which is a matrix value)
+
+</li>
+</ul>
+
+</li>
+</ul>
+  POSTCONDITION: if the function returns, then,
+<ul class="doclist">
+<li> PROP: No new mathematical facts hold that didn't before
+
+</li>
+<li> RETURN: The return value is the signed integer representation of <span class="inlinecode"><a class="idref" href="CFEM.shape.html#Shape.nsh"><span class="id" title="projection">nsh</span></a></span>
+
+</li>
+<li> SEP: 
+<ul class="doclist">
+<li> the contents of the <span class="inlinecode"><span class="id" title="var">pN</span></span> matrix (if <span class="inlinecode"><span class="id" title="var">pN</span>!=<span class="id" title="var">NULL</span></span>) is θ(x)
+
+</li>
+<li> the contents of the <span class="inlinecode"><span class="id" title="var">pdN</span></span> matrix (if <span class="inlinecode"><span class="id" title="var">pdN</span>!=<span class="id" title="var">NULL</span></span>) is dθ(x)
+
+</li>
+<li> the contents of the <span class="inlinecode"><span class="id" title="var">pxx</span></span> matrix is still <span class="inlinecode"><span class="id" title="var">x</span></span>
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ Now we instantiate these  for each of the shapes 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes1dP1_spec" class="idref" href="#shapes1dP1_spec"><span class="id" title="definition">shapes1dP1_spec</span></a> := <span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.shapes.html#_shapes1dP1"><span class="id" title="definition">_shapes1dP1</span></a> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP1F"><span class="id" title="definition">shapes1dP1F</span></a><span class="id" title="notation">)</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes1dP2_spec" class="idref" href="#shapes1dP2_spec"><span class="id" title="definition">shapes1dP2_spec</span></a> := <span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.shapes.html#_shapes1dP2"><span class="id" title="definition">_shapes1dP2</span></a> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP2F"><span class="id" title="definition">shapes1dP2F</span></a><span class="id" title="notation">)</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes1dP3_spec" class="idref" href="#shapes1dP3_spec"><span class="id" title="definition">shapes1dP3_spec</span></a> := <span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.shapes.html#_shapes1dP3"><span class="id" title="definition">_shapes1dP3</span></a> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP3F"><span class="id" title="definition">shapes1dP3F</span></a><span class="id" title="notation">)</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes2dP1_spec" class="idref" href="#shapes2dP1_spec"><span class="id" title="definition">shapes2dP1_spec</span></a> := <span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.shapes.html#_shapes2dP1"><span class="id" title="definition">_shapes2dP1</span></a> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.shapefloat.html#shapes2dP1F"><span class="id" title="definition">shapes2dP1F</span></a><span class="id" title="notation">)</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes2dP2_spec" class="idref" href="#shapes2dP2_spec"><span class="id" title="definition">shapes2dP2_spec</span></a> := <span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.shapes.html#_shapes2dP2"><span class="id" title="definition">_shapes2dP2</span></a> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.shapefloat.html#shapes2dP2F"><span class="id" title="definition">shapes2dP2F</span></a><span class="id" title="notation">)</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes2dS2_spec" class="idref" href="#shapes2dS2_spec"><span class="id" title="definition">shapes2dS2_spec</span></a> := <span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.shapes.html#_shapes2dS2"><span class="id" title="definition">_shapes2dS2</span></a> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.shapefloat.html#shapes2dS2F"><span class="id" title="definition">shapes2dS2F</span></a><span class="id" title="notation">)</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes2dT1_spec" class="idref" href="#shapes2dT1_spec"><span class="id" title="definition">shapes2dT1_spec</span></a> := <span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.shapes.html#_shapes2dT1"><span class="id" title="definition">_shapes2dT1</span></a> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.shapefloat.html#shapes2dT1F"><span class="id" title="definition">shapes2dT1F</span></a><span class="id" title="notation">)</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Finally we build an Abstract Specification Interface (ASI) containing all the instantiated specs 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="shapes_ASI" class="idref" href="#shapes_ASI"><span class="id" title="definition">shapes_ASI</span></a>: <span class="id" title="definition">funspecs</span> :=<br/>
+&nbsp;<span class="id" title="notation">[</span> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP1_spec"><span class="id" title="definition">shapes1dP1_spec</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP2_spec"><span class="id" title="definition">shapes1dP2_spec</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP3_spec"><span class="id" title="definition">shapes1dP3_spec</span></a><span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#shapes2dP1_spec"><span class="id" title="definition">shapes2dP1_spec</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_shapes.html#shapes2dP2_spec"><span class="id" title="definition">shapes2dP2_spec</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_shapes.html#shapes2dS2_spec"><span class="id" title="definition">shapes2dS2_spec</span></a><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#shapes2dT1_spec"><span class="id" title="definition">shapes2dT1_spec</span></a><span class="id" title="notation">]</span>.<br/>
+
+<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="genindex.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>CFEM: Simple C Finite Element Method, Verified</title>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var h1 = document.querySelector('h1');
+  if (h1) document.title = h1.textContent.trim();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+<h1 class="libtitle">CFEM.C.verif_shapes_base</h1>
+
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">VST.floyd.proofauto</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">vcfloat</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">FPStdCompCert</span> <span class="id" title="library">FPStdLib</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">VSTlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">spec_math</span> <span class="id" title="library">spec_malloc</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">LAProof.accuracy_proofs</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">solve_model</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">LAProof.C</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">VSU_densemat</span> <span class="id" title="library">spec_alloc</span> <span class="id" title="library">floatlib</span> <span class="id" title="library">matrix_model</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">Classes.RelationClasses</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">ssreflect</span> <span class="id" title="library">ssrbool</span> <span class="id" title="library">ssrfun</span> <span class="id" title="library">eqtype</span> <span class="id" title="library">ssrnat</span> <span class="id" title="library">seq</span> <span class="id" title="library">choice</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">fintype</span> <span class="id" title="library">finfun</span> <span class="id" title="library">bigop</span> <span class="id" title="library">finset</span> <span class="id" title="library">fingroup</span> <span class="id" title="library">perm</span> <span class="id" title="library">order</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">div</span> <span class="id" title="library">ssralg</span> <span class="id" title="library">countalg</span> <span class="id" title="library">finalg</span> <span class="id" title="library">zmodp</span> <span class="id" title="library">matrix</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp.zify</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">ssrZ</span> <span class="id" title="library">zify</span>.<br/>
+<span class="id" title="keyword">Export</span> <span class="id" title="module">fintype</span> <span class="id" title="module">matrix</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="library">LAProof.accuracy_proofs.export</span>.<br/>
+<span class="id" title="keyword">Module</span> <a id="F" class="idref" href="#F"><span class="id" title="module">F</span></a> := <span class="id" title="module">LAProof.accuracy_proofs.mv_mathcomp.F</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now we undo all the settings that mathcomp has modified 
+</div>
+<div class="code">
+<span class="id" title="keyword">Unset Implicit Arguments</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.nonexpansive.html#"><span class="id" title="library">CFEM.C.nonexpansive</span></a>.<br/>
+<span class="id" title="keyword">Export</span> <span class="id" title="module">spec_densemat</span> <span class="id" title="module">densemat_lemmas</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">logic</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <a class="idref" href="CFEM.shapefloat.html#"><span class="id" title="library">CFEM.shapefloat</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#"><span class="id" title="library">CFEM.C.spec_shapes</span></a>.<br/>
+<span class="id" title="keyword">Export</span> <a class="idref" href="CFEM.C.shapes.html#"><span class="id" title="module">shapes</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="import_densemat" class="idref" href="#import_densemat"><span class="id" title="section">import_densemat</span></a>.<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="module">spec_densemat</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes_imported_specs" class="idref" href="#shapes_imported_specs"><span class="id" title="definition">shapes_imported_specs</span></a> : <span class="id" title="definition">funspecs</span> := <br/>
+&nbsp;&nbsp;<span class="id" title="notation">[</span> <span class="id" title="definition">densematn_get_spec</span><span class="id" title="notation">;</span> <span class="id" title="definition">densematn_set_spec</span> <span class="id" title="notation">]</span>.<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#import_densemat"><span class="id" title="section">import_densemat</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes_E" class="idref" href="#shapes_E"><span class="id" title="definition">shapes_E</span></a> : <span class="id" title="definition">funspecs</span> := <span class="id" title="notation">[]</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="shapes_internal_specs" class="idref" href="#shapes_internal_specs"><span class="id" title="definition">shapes_internal_specs</span></a> : <span class="id" title="definition">funspecs</span> := <a class="idref" href="CFEM.C.spec_shapes.html#shapes_ASI"><span class="id" title="definition">shapes_ASI</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Gprog" class="idref" href="#Gprog"><span class="id" title="definition">Gprog</span></a> := <a class="idref" href="CFEM.C.verif_shapes_base.html#shapes_imported_specs"><span class="id" title="definition">shapes_imported_specs</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#shapes_internal_specs"><span class="id" title="definition">shapes_internal_specs</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="ifptr_true" class="idref" href="#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a>: <span class="id" title="keyword">∀</span> (<a id="p:1" class="idref" href="#p:1"><span class="id" title="binder">p</span></a>: <span class="id" title="inductive">val</span>) (<a id="A:2" class="idref" href="#A:2"><span class="id" title="binder">A</span></a>: <span class="id" title="definition">mpred</span>), <span class="id" title="definition">isptr</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#p:1"><span class="id" title="variable">p</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#p:1"><span class="id" title="variable">p</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#A:2"><span class="id" title="variable">A</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#A:2"><span class="id" title="variable">A</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="ifptr_false" class="idref" href="#ifptr_false"><span class="id" title="lemma">ifptr_false</span></a>: <span class="id" title="keyword">∀</span> <a id="A:3" class="idref" href="#A:3"><span class="id" title="binder">A</span></a>, <a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="definition">nullval</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#A:3"><span class="id" title="variable">A</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="method">emp</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="Float_mul_congr" class="idref" href="#Float_mul_congr"><span class="id" title="lemma">Float_mul_congr</span></a>: <span class="id" title="keyword">∀</span> <a id="x:4" class="idref" href="#x:4"><span class="id" title="binder">x</span></a> <a id="y:5" class="idref" href="#y:5"><span class="id" title="binder">y</span></a> <a id="x':6" class="idref" href="#x':6"><span class="id" title="binder">x'</span></a> <a id="y':7" class="idref" href="#y':7"><span class="id" title="binder">y'</span></a>, <a class="idref" href="CFEM.C.verif_shapes_base.html#x:4"><span class="id" title="variable">x</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#x':6"><span class="id" title="variable">x'</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y:5"><span class="id" title="variable">y</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y':7"><span class="id" title="variable">y'</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="definition">Float.mul</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#x:4"><span class="id" title="variable">x</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y:5"><span class="id" title="variable">y</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">Float.mul</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#x':6"><span class="id" title="variable">x'</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y':7"><span class="id" title="variable">y'</span></a>.<br/>
+ <span class="id" title="keyword">Lemma</span> <a id="Float_add_congr" class="idref" href="#Float_add_congr"><span class="id" title="lemma">Float_add_congr</span></a>: <span class="id" title="keyword">∀</span> <a id="x:8" class="idref" href="#x:8"><span class="id" title="binder">x</span></a> <a id="y:9" class="idref" href="#y:9"><span class="id" title="binder">y</span></a> <a id="x':10" class="idref" href="#x':10"><span class="id" title="binder">x'</span></a> <a id="y':11" class="idref" href="#y':11"><span class="id" title="binder">y'</span></a>, <a class="idref" href="CFEM.C.verif_shapes_base.html#x:8"><span class="id" title="variable">x</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#x':10"><span class="id" title="variable">x'</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y:9"><span class="id" title="variable">y</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y':11"><span class="id" title="variable">y'</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="definition">Float.add</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#x:8"><span class="id" title="variable">x</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y:9"><span class="id" title="variable">y</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">Float.add</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#x':10"><span class="id" title="variable">x'</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y':11"><span class="id" title="variable">y'</span></a>.<br/>
+ <span class="id" title="keyword">Lemma</span> <a id="Float_sub_congr" class="idref" href="#Float_sub_congr"><span class="id" title="lemma">Float_sub_congr</span></a>: <span class="id" title="keyword">∀</span> <a id="x:12" class="idref" href="#x:12"><span class="id" title="binder">x</span></a> <a id="y:13" class="idref" href="#y:13"><span class="id" title="binder">y</span></a> <a id="x':14" class="idref" href="#x':14"><span class="id" title="binder">x'</span></a> <a id="y':15" class="idref" href="#y':15"><span class="id" title="binder">y'</span></a>, <a class="idref" href="CFEM.C.verif_shapes_base.html#x:12"><span class="id" title="variable">x</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#x':14"><span class="id" title="variable">x'</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y:13"><span class="id" title="variable">y</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y':15"><span class="id" title="variable">y'</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="definition">Float.sub</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#x:12"><span class="id" title="variable">x</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y:13"><span class="id" title="variable">y</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">Float.sub</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#x':14"><span class="id" title="variable">x'</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#y':15"><span class="id" title="variable">y'</span></a>.<br/>
+ 
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="Float_of_int_repr" class="idref" href="#Float_of_int_repr"><span class="id" title="lemma">Float_of_int_repr</span></a>: <span class="id" title="keyword">∀</span> <a id="i:16" class="idref" href="#i:16"><span class="id" title="binder">i</span></a>, <br/>
+&nbsp;&nbsp;<span class="id" title="definition">Int.min_signed</span> <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#i:16"><span class="id" title="variable">i</span></a> <span class="id" title="notation">≤</span> <span class="id" title="definition">Int.max_signed</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="definition">Float.of_int</span> (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#i:16"><span class="id" title="variable">i</span></a>) <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">lib.IEEE754_extra.BofZ</span> 53 1024 <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#eq_refl"><span class="id" title="constructor">eq_refl</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#eq_refl"><span class="id" title="constructor">eq_refl</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#i:16"><span class="id" title="variable">i</span></a>.<br/>
+<span class="id" title="keyword">Transparent</span> <span class="id" title="definition">Float.of_int</span>.<br/>
+<span class="id" title="keyword">Opaque</span> <span class="id" title="definition">Float.of_int</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="Float_of_bits_repr" class="idref" href="#Float_of_bits_repr"><span class="id" title="lemma">Float_of_bits_repr</span></a>: <br/>
+&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <a id="i:17" class="idref" href="#i:17"><span class="id" title="binder">i</span></a>, 0 <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#i:17"><span class="id" title="variable">i</span></a> <span class="id" title="notation">≤</span> <span class="id" title="definition">Int64.max_unsigned</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="definition">Float.of_bits</span> (<span class="id" title="definition">Int64.repr</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#i:17"><span class="id" title="variable">i</span></a>) <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">Bits.b64_of_bits</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#i:17"><span class="id" title="variable">i</span></a>.<br/>
+<span class="id" title="keyword">Transparent</span> <span class="id" title="definition">Float.of_bits</span>.<br/>
+<span class="id" title="keyword">Opaque</span> <span class="id" title="definition">Float.of_bits</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">prove_float_exprs_same</span> :=<br/>
+&nbsp;<span class="id" title="tactic">change</span> <span class="id" title="definition">BMULT</span> <span class="id" title="keyword">with</span> <span class="id" title="definition">Float.mul</span>; <span class="id" title="tactic">change</span> <span class="id" title="definition">BPLUS</span> <span class="id" title="keyword">with</span> <span class="id" title="definition">Float.add</span>; <span class="id" title="tactic">change</span> <span class="id" title="definition">BMINUS</span> <span class="id" title="keyword">with</span> <span class="id" title="definition">Float.sub</span>;<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> ?<a class="idref" href="CFEM.C.verif_shapes_base.html#Float_of_int_repr"><span class="id" title="lemma">Float_of_int_repr</span></a>, ?<a class="idref" href="CFEM.C.verif_shapes_base.html#Float_of_bits_repr"><span class="id" title="lemma">Float_of_bits_repr</span></a> <span class="id" title="tactic">by</span> <span class="id" title="var">rep_lia</span>;<br/>
+&nbsp;<span class="id" title="tactic">repeat</span> <br/>
+&nbsp;<span class="id" title="tactic">first</span> [ <span class="id" title="tactic">apply</span> <span class="id" title="lemma">f_equal_Some</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="tactic">apply</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#Float_mul_congr"><span class="id" title="lemma">Float_mul_congr</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="tactic">apply</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#Float_add_congr"><span class="id" title="lemma">Float_add_congr</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="tactic">apply</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#Float_sub_congr"><span class="id" title="lemma">Float_sub_congr</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|  <span class="id" title="var">with_strategy</span> <span class="id" title="var">transparent</span> [<span class="id" title="var">Float.neg</span>] <span class="id" title="tactic">apply</span> <span class="id" title="lemma">B754_finite_ext</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">with_strategy</span> <span class="id" title="var">transparent</span> [<span class="id" title="var">Float.neg</span>] <span class="id" title="tactic">reflexivity</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;].<br/>
+
+<br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">prove_matrices_same</span> := <br/>
+&nbsp;<span class="id" title="tactic">unfold</span>  <span class="id" title="definition">update_mx</span>; <span class="id" title="tactic">simpl</span>; <span class="id" title="tactic">unfold</span> <span class="id" title="definition">map_mx</span>, <span class="id" title="definition">row_mx</span>, <span class="id" title="definition">col_mx</span>, <span class="id" title="definition">const_mx</span>; <span class="id" title="tactic">simpl</span>;<br/>
+&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="lemma">matrixP</span>; <span class="id" title="tactic">intros</span> [<span class="id" title="var">i</span> <span class="id" title="var">Hi</span>] [<span class="id" title="var">j</span> <span class="id" title="var">Hj</span>]; <span class="id" title="tactic">simpl</span>;<br/>
+&nbsp;<span class="id" title="tactic">rewrite</span> !<span class="id" title="lemma">mxE</span>;<br/>
+&nbsp;<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">destruct</span> (<span class="id" title="lemma">Nat.eq_dec</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>); <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> *; <span class="id" title="tactic">subst</span>; <span class="id" title="tactic">try</span> <span class="id" title="tactic">discriminate</span>; <span class="id" title="tactic">unfold</span> <span class="id" title="definition">split</span>;<br/>
+&nbsp;<span class="id" title="tactic">repeat</span> (<span class="id" title="tactic">destruct</span> (<span class="id" title="lemma">ssrnat.ltnP</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>); <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> *; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>; <span class="id" title="tactic">rewrite</span> !<span class="id" title="lemma">mxE</span>);<br/>
+&nbsp;<span class="id" title="var">prove_float_exprs_same</span>.<br/>
+
+<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="genindex.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

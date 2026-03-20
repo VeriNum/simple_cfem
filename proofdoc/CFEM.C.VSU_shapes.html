@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>CFEM: Simple C Finite Element Method, Verified</title>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var h1 = document.querySelector('h1');
+  if (h1) document.title = h1.textContent.trim();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+<h1 class="libtitle">CFEM.C.VSU_shapes</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab3"></a><h1 class="section">CFEM.VSU_shapes:  Verified Software Unit for all the C shape functions</h1>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">From</span> <span class="id" title="var">CFEM</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#"><span class="id" title="library">C.verif_shapes_base</span></a> <a class="idref" href="CFEM.C.verif_shapes1d.html#"><span class="id" title="library">C.verif_shapes1d</span></a> <a class="idref" href="CFEM.C.verif_shapes2d.html#"><span class="id" title="library">C.verif_shapes2d</span></a> <a class="idref" href="CFEM.C.verif_shapes2dP2.html#"><span class="id" title="library">verif_shapes2dP2</span></a>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">VST.floyd.VSU</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Proof that all 7 shape functions, collectively, satisfy the entire Shape API spec  <a id=VSU> 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="shapesVSU" class="idref" href="#shapesVSU"><span class="id" title="definition">shapesVSU</span></a>: @<span class="id" title="definition">VSU</span> <span class="id" title="definition">NullExtension.Espec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.verif_shapes_base.html#shapes_E"><span class="id" title="definition">shapes_E</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#shapes_imported_specs"><span class="id" title="definition">shapes_imported_specs</span></a> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">ltac</span>:(<span class="id" title="var">QPprog</span> <a class="idref" href="CFEM.C.shapes.html#prog"><span class="id" title="definition">prog</span></a>) <a class="idref" href="CFEM.C.spec_shapes.html#shapes_ASI"><span class="id" title="definition">shapes_ASI</span></a> (<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="method">TT</span>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkVSU</span> <a class="idref" href="CFEM.C.shapes.html#prog"><span class="id" title="definition">prog</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#shapes_internal_specs"><span class="id" title="definition">shapes_internal_specs</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="var">solve_SF_internal</span> <a class="idref" href="CFEM.C.verif_shapes1d.html#body_shapes1dP1"><span class="id" title="lemma">body_shapes1dP1</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="var">solve_SF_internal</span> <a class="idref" href="CFEM.C.verif_shapes1d.html#body_shapes1dP2"><span class="id" title="lemma">body_shapes1dP2</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="var">solve_SF_internal</span> <a class="idref" href="CFEM.C.verif_shapes1d.html#body_shapes1dP3"><span class="id" title="lemma">body_shapes1dP3</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="var">solve_SF_internal</span> <a class="idref" href="CFEM.C.verif_shapes2d.html#body_shapes2dP1"><span class="id" title="lemma">body_shapes2dP1</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="var">solve_SF_internal</span> <a class="idref" href="CFEM.C.verif_shapes2dP2.html#body_shapes2dP2"><span class="id" title="lemma">body_shapes2dP2</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="var">solve_SF_internal</span> <a class="idref" href="CFEM.C.verif_shapes2d.html#body_shapes2dS2"><span class="id" title="lemma">body_shapes2dS2</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id" title="var">solve_SF_internal</span> <a class="idref" href="CFEM.C.verif_shapes2d.html#body_shapes2dT1"><span class="id" title="lemma">body_shapes2dT1</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="genindex.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

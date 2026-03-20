@@ -4,9 +4,15 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link href="coqdoc.css" rel="stylesheet" type="text/css" />
-<title>Table of contents</title>
+<title>CFEM: Simple C Finite Element Method, Verified</title>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var h1 = document.querySelector('h1');
+  if (h1) document.title = h1.textContent.trim();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
-
 <body>
 
 <div id="page">
@@ -15,7 +21,6 @@
 </div>
 
 <div id="main">
-
 <div id="toc">
 <h2><a href="CFEM.C.matrix.html">CFEM.C.matrix</a></h2>
 <h2><a href="CFEM.C.element.html">CFEM.C.element</a></h2>
@@ -31,10 +36,237 @@
 
 </li>
 </ul>
+<h2><a href="CFEM.C.spec_shapes.html">CFEM.C.spec_shapes: VST function specification for shape</a></h2>
+<ul class="doclist">
+<li><ul class="doclist">
+<li><a href="CFEM.C.spec_shapes.html#lab2"><span class="inlinecode"><span class="id" title="var">shape_spec</span></span>:  VST funspec of C shape function    <a id=spec_shape></a>
+
+</li>
+</ul>
+
+</li>
+</ul>
+<h2><a href="CFEM.C.verif_shapes_base.html">CFEM.C.verif_shapes_base</a></h2>
+<h2><a href="CFEM.C.verif_shapes1d.html">CFEM.C.verif_shapes1d: VST correctness proofs for 1-dimensional shape functions</a></h2>
+<h2><a href="CFEM.C.verif_shapes2d.html">CFEM.C.verif_shapes2d: VST correctness proofs for 2-dimensional shape functions</a></h2>
+<h2><a href="CFEM.C.verif_shapes2dP2.html">CFEM.C.verif_shapes2dP2: VST correctness proofs for 2dP2 shape function</a></h2>
+<h2><a href="CFEM.C.VSU_shapes.html">CFEM.C.VSU_shapes</a></h2>
+<ul class="doclist">
+<li><a href="CFEM.C.VSU_shapes.html#lab3">CFEM.VSU_shapes:  Verified Software Unit for all the C shape functions</a>
+
+</li>
+</ul>
 <h2><a href="CFEM.model.html">CFEM.model</a></h2>
+<h2><a href="CFEM.matrix_util.html">CFEM.matrix_util</a></h2>
 <h2><a href="CFEM.shape.html">CFEM.shape: Lagrange shape functions, and some supporting theory</a></h2>
+<ul class="doclist">
+<li><ul class="doclist">
+<li><a href="CFEM.shape.html#lab4">Definition of a package of real-valued shape functions.</a>
+
+</li>
+<li><a href="CFEM.shape.html#lab5">We enclose the <span class="inlinecode"><span class="id" title="var">shape</span></span> record in a module <a id=shape></a>
+<ul class="doclist">
+<li><a href="CFEM.shape.html#lab6">Convex hull of a set of vertices</a>
+
+</li>
+<li><a href="CFEM.shape.html#lab7">Multivariate Polynomials are continuously differentiable</a>
+
+</li>
+<li><a href="CFEM.shape.html#lab8">Lemmas needed only until we switch to MathComp-Analysis 1.16</a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shape.html#lab9">A whole bunch of supporting lemmas and proof-automation tactics</a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shape.html#lab10">Instances: shape-function-sets of various dimensions and degrees</a>
+<ul class="doclist">
+<li><a href="CFEM.shape.html#lab11">1dP1:  1-dimension, degree 1</a>
+
+</li>
+<li><a href="CFEM.shape.html#lab12">1dP2:  1-dimension, degree 2</a>
+
+</li>
+<li><a href="CFEM.shape.html#lab13">1dP3:  1-dimension, degree 3</a>
+
+</li>
+<li><a href="CFEM.shape.html#lab14">2dP1:  2-dimensional cuboid, degree 1 <a id=2dP1></a>
+
+</li>
+<li><a href="CFEM.shape.html#lab15">2dT1:  2-dimensional simplex, degree 1</a>
+
+</li>
+<li><a href="CFEM.shape.html#lab16">2dP2:  2-dimensional cuboid, degree 2, with center vertix</a>
+
+</li>
+<li><a href="CFEM.shape.html#lab17">2dS2:  2-dimensional cuboid, degree 2, without center vertix (Serendipity element)</a>
+
+</li>
+</ul>
+
+</li>
+</ul>
+<h2><a href="CFEM.shapefloat.html">CFEM.shapefloat: floating-point shape functions</a></h2>
+<ul class="doclist">
+<li><ul class="doclist">
+<li><a href="CFEM.shapefloat.html#lab18">Bounds</a>
+
+</li>
+<li><a href="CFEM.shapefloat.html#lab19">FShape <a id=FShape></a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shapefloat.html#lab20">Instances</a>
+<ul class="doclist">
+<li><a href="CFEM.shapefloat.html#lab21">1dP1:  1-dimension, degree 1</a>
+
+</li>
+<li><a href="CFEM.shapefloat.html#lab22">1dP2:  1-dimension, degree 2</a>
+
+</li>
+<li><a href="CFEM.shapefloat.html#lab23">1dP3:  1-dimension, degree 3</a>
+
+</li>
+<li><a href="CFEM.shapefloat.html#lab24">2dP1:  2-dimension, degree 1  <a id=2dP1></a>
+
+</li>
+<li><a href="CFEM.shapefloat.html#lab25">2dP2:  2-dimension, degree 2, with center point</a>
+
+</li>
+<li><a href="CFEM.shapefloat.html#lab26">2dS2:  2-dimension, degree 2, without center point (Serendipity element)</a>
+
+</li>
+<li><a href="CFEM.shapefloat.html#lab27">2dT2:  2-dimension triangle, degree 1</a>
+
+</li>
+</ul>
+
+</li>
+</ul>
+<h2><a href="CFEM.shape_accuracy.html">CFEM.shape_accuracy: Roundoff-error bounds for shape functions</a></h2>
+<ul class="doclist">
+<li><a href="CFEM.shape_accuracy.html#lab28">The Shape Accuracy Property</a>
+<ul class="doclist">
+<li><ul class="doclist">
+<li><a href="CFEM.shape_accuracy.html#lab29">bounds_enclose:</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab30">roundoff_bound_lemma: The accuracy proof of a set of shape functions <a href=RBL></a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab31">Utility tactics and lemmas</a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab32">Instances: accuracy proofs for all the elements</a>
+<ul class="doclist">
+<li><a href="CFEM.shape_accuracy.html#lab33">1dP1: 1-dimensional, degree 1</a>
+<ul class="doclist">
+<li><a href="CFEM.shape_accuracy.html#lab34">Extracting the floating-point shape functions into "ordinary" floating-point operations</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab35">Calculating the error bound</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab36">first shape function</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab37">second shape function</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab38">derivative function accuracy bounds</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab39">1dP1 main result</a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab40">1dP2: 1-dimensional, degree 2</a>
+<ul class="doclist">
+<li><a href="CFEM.shape_accuracy.html#lab41">Extracting the floating-point shape functions into "ordinary" floating-point operations</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab42">first shape function</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab43">second shape function</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab44">third shape function</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab45">shape derivative functions</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab46">1dP2 main result</a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab47">2dP1: 2-dimensional, degree 1</a>
+<ul class="doclist">
+<li><a href="CFEM.shape_accuracy.html#lab48">Extracting the floating-point shape functions into "ordinary" floating-point operations</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab49">four shape functions</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab50">shape derivative functions</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab51">2dP1 main result <a id=2dP1></a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab52">2dT1 main result</a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab53">2dT1: 2-dimensional triangle, degree 1</a>
+<ul class="doclist">
+<li><a href="CFEM.shape_accuracy.html#lab54">Extracting the floating-point shape functions into "ordinary" floating-point operations</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab55">three shape functions</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab56">shape derivative functions</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab57">2dT1 main result</a>
+
+</li>
+</ul>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab58">2dP2: 2-dimensional, degree 2</a>
+
+</li>
+<li><a href="CFEM.shape_accuracy.html#lab59">2dS2: 2-dimensional, degree 2, Serendipity</a>
+
+</li>
+</ul>
+
+</li>
+</ul>
 </div>
-<hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
+<hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
 </div>
 
 </div>

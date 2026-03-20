@@ -1,0 +1,256 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>CFEM: Simple C Finite Element Method, Verified</title>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var h1 = document.querySelector('h1');
+  if (h1) document.title = h1.textContent.trim();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+<h1 class="libtitle">CFEM.C.verif_shapes1d: VST correctness proofs for 1-dimensional shape functions</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#"><span class="id" title="library">CFEM.C.verif_shapes_base</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_shapes1dP1" class="idref" href="#body_shapes1dP1"><span class="id" title="lemma">body_shapes1dP1</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_shapes.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.shapes.html#f_shapes1dP1"><span class="id" title="definition">f_shapes1dP1</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP1_spec"><span class="id" title="definition">shapes1dP1_spec</span></a>.<br/>
+</div>
+<details><div class="code">
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP1_spec"><span class="id" title="definition">shapes1dP1_spec</span></a>, <a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a>, <a class="idref" href="CFEM.shapefloat.html#shapes1dP1F"><span class="id" title="definition">shapes1dP1F</span></a>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="var">forward_densematn_get_special</span>.<br/>
+<span class="id" title="tactic">unfold</span> <span class="id" title="definition">map_mx</span> <span class="id" title="tactic">at</span> 1. <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">mxE</span>. <span class="id" title="tactic">simpl</span> <span class="id" title="definition">optfloat_to_float</span>.<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">x00</span> := <span class="id" title="var">x</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">freeze</span> <span class="id" title="var">PDN</span> := (<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pdN</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">forward_if</span> <br/>
+&nbsp;&nbsp;(<span class="id" title="notation">PROP</span> <span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">LOCAL</span> <span class="id" title="notation">(</span><span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_x"><span class="id" title="definition">_x</span></a> (<span class="id" title="definition">val_of_float</span> <span class="id" title="var">x00</span>)<span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_N"><span class="id" title="definition">_N</span></a> <span class="id" title="var">pN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_dN"><span class="id" title="definition">_dN</span></a> <span class="id" title="var">pdN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_xx"><span class="id" title="definition">_xx</span></a> <span class="id" title="var">pxx</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span> <span class="id" title="notation">(</span><span class="id" title="definition">densematn</span> <span class="id" title="var">shxx</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">x</span>) <span class="id" title="var">pxx</span><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pN</span> (<span class="id" title="definition">densematn</span> <span class="id" title="var">shN</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="CFEM.shapefloat.html#shapes1dP1_float"><span class="id" title="definition">shapes1dP1_float</span></a> <span class="id" title="var">x</span>)) <span class="id" title="var">pN</span>)<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="abbreviation">FRZL</span> <span class="id" title="var">PDN</span><span class="id" title="notation">)</span>).<br/>
+-<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="tactic">rewrite</span> (<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="var">pN</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">derives_refl'</span>.<br/>
+<span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP1_float"><span class="id" title="definition">shapes1dP1_float</span></a>.<br/>
+<span class="id" title="tactic">replace</span> (<span class="id" title="var">x</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> <span class="id" title="var">x00</span> <span class="id" title="tactic">by</span> (<span class="id" title="tactic">subst</span> <span class="id" title="var">x00</span>; <span class="id" title="tactic">f_equal</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">ord_inj</span>; <span class="id" title="tactic">reflexivity</span>).<br/>
+<span class="id" title="var">prove_matrices_same</span>.<br/>
+-<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">subst</span> <span class="id" title="var">pN</span>. <span class="id" title="tactic">rewrite</span> !<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_false"><span class="id" title="lemma">ifptr_false</span></a>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+-<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PDN</span>.<br/>
+<span class="id" title="var">freeze</span> <span class="id" title="var">PN</span> := (<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pN</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">forward_if</span><br/>
+&nbsp;&nbsp;(<span class="id" title="notation">PROP</span> <span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">LOCAL</span> <span class="id" title="notation">(</span><span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_x"><span class="id" title="definition">_x</span></a> (<span class="id" title="definition">val_of_float</span> <span class="id" title="var">x00</span>)<span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_N"><span class="id" title="definition">_N</span></a> <span class="id" title="var">pN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_dN"><span class="id" title="definition">_dN</span></a> <span class="id" title="var">pdN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_xx"><span class="id" title="definition">_xx</span></a> <span class="id" title="var">pxx</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span> <span class="id" title="notation">(</span><span class="id" title="definition">densematn</span> <span class="id" title="var">shxx</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">x</span>) <span class="id" title="var">pxx</span><span class="id" title="notation">;</span> <span class="id" title="abbreviation">FRZL</span> <span class="id" title="var">PN</span><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pdN</span> (<span class="id" title="definition">densematn</span> <span class="id" title="var">shN</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="CFEM.shapefloat.html#shapes1dP1_fderiv"><span class="id" title="definition">shapes1dP1_fderiv</span></a> <span class="id" title="var">x</span>)) <span class="id" title="var">pdN</span>)<span class="id" title="notation">)</span>).<br/>
++<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="tactic">rewrite</span> (<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="var">pdN</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">derives_refl'</span>.<br/>
+<span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">clear</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP1_fderiv"><span class="id" title="definition">shapes1dP1_fderiv</span></a>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.matrix_util.html#mx_of_list"><span class="id" title="definition">matrix_util.mx_of_list</span></a>. <span class="id" title="tactic">simpl</span>.<br/>
+<span class="id" title="var">prove_matrices_same</span>.<br/>
++<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">subst</span> <span class="id" title="var">pdN</span>.<br/>
+<span class="id" title="tactic">rewrite</span> !<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_false"><span class="id" title="lemma">ifptr_false</span></a>.<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PN</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
++<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PN</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">cancel</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</details><div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_shapes1dP2" class="idref" href="#body_shapes1dP2"><span class="id" title="lemma">body_shapes1dP2</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_shapes.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.shapes.html#f_shapes1dP2"><span class="id" title="definition">f_shapes1dP2</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP2_spec"><span class="id" title="definition">shapes1dP2_spec</span></a>.<br/>
+</div>
+<details><div class="code">
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP2_spec"><span class="id" title="definition">shapes1dP2_spec</span></a>, <a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a>, <a class="idref" href="CFEM.shapefloat.html#shapes1dP2F"><span class="id" title="definition">shapes1dP2F</span></a>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="var">forward_densematn_get_special</span>.<br/>
+<span class="id" title="tactic">unfold</span> <span class="id" title="definition">map_mx</span> <span class="id" title="tactic">at</span> 1. <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">mxE</span>. <span class="id" title="tactic">simpl</span> <span class="id" title="definition">optfloat_to_float</span>.<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">x00</span> := <span class="id" title="var">x</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">freeze</span> <span class="id" title="var">PDN</span> := (<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pdN</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">forward_if</span> <br/>
+&nbsp;&nbsp;(<span class="id" title="notation">PROP</span> <span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">LOCAL</span> <span class="id" title="notation">(</span><span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_x"><span class="id" title="definition">_x</span></a> (<span class="id" title="definition">val_of_float</span> <span class="id" title="var">x00</span>)<span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_N"><span class="id" title="definition">_N</span></a> <span class="id" title="var">pN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_dN"><span class="id" title="definition">_dN</span></a> <span class="id" title="var">pdN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_xx"><span class="id" title="definition">_xx</span></a> <span class="id" title="var">pxx</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span> <span class="id" title="notation">(</span><span class="id" title="definition">densematn</span> <span class="id" title="var">shxx</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">x</span>) <span class="id" title="var">pxx</span><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pN</span> (<span class="id" title="definition">densematn</span> <span class="id" title="var">shN</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="CFEM.shapefloat.html#shapes1dP2_float"><span class="id" title="definition">shapes1dP2_float</span></a> <span class="id" title="var">x</span>)) <span class="id" title="var">pN</span>)<span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="abbreviation">FRZL</span> <span class="id" title="var">PDN</span><span class="id" title="notation">)</span>).<br/>
+-<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="tactic">rewrite</span> (<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="var">pN</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">derives_refl'</span>.<br/>
+<span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP2_float"><span class="id" title="definition">shapes1dP2_float</span></a>.<br/>
+<span class="id" title="tactic">replace</span> (<span class="id" title="var">x</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> <span class="id" title="var">x00</span> <span class="id" title="tactic">by</span> (<span class="id" title="tactic">subst</span> <span class="id" title="var">x00</span>; <span class="id" title="tactic">f_equal</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">ord_inj</span>; <span class="id" title="tactic">reflexivity</span>).<br/>
+<span class="id" title="var">prove_matrices_same</span>.<br/>
+-<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">subst</span> <span class="id" title="var">pN</span>. <span class="id" title="tactic">rewrite</span> !<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_false"><span class="id" title="lemma">ifptr_false</span></a>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+-<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PDN</span>.<br/>
+<span class="id" title="var">freeze</span> <span class="id" title="var">PN</span> := (<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pN</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">forward_if</span><br/>
+&nbsp;&nbsp;(<span class="id" title="notation">PROP</span> <span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">LOCAL</span> <span class="id" title="notation">(</span><span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_x"><span class="id" title="definition">_x</span></a> (<span class="id" title="definition">val_of_float</span> <span class="id" title="var">x00</span>)<span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_N"><span class="id" title="definition">_N</span></a> <span class="id" title="var">pN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_dN"><span class="id" title="definition">_dN</span></a> <span class="id" title="var">pdN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_xx"><span class="id" title="definition">_xx</span></a> <span class="id" title="var">pxx</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span> <span class="id" title="notation">(</span><span class="id" title="definition">densematn</span> <span class="id" title="var">shxx</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">x</span>) <span class="id" title="var">pxx</span><span class="id" title="notation">;</span> <span class="id" title="abbreviation">FRZL</span> <span class="id" title="var">PN</span><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pdN</span> (<span class="id" title="definition">densematn</span> <span class="id" title="var">shN</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="CFEM.shapefloat.html#shapes1dP2_fderiv"><span class="id" title="definition">shapes1dP2_fderiv</span></a> <span class="id" title="var">x</span>)) <span class="id" title="var">pdN</span>)<span class="id" title="notation">)</span>).<br/>
++<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="tactic">rewrite</span> (<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="var">pdN</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">derives_refl'</span>.<br/>
+<span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">clear</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP2_fderiv"><span class="id" title="definition">shapes1dP2_fderiv</span></a>.<br/>
+<span class="id" title="tactic">replace</span> (<span class="id" title="var">x</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> <span class="id" title="var">x00</span> <span class="id" title="tactic">by</span> (<span class="id" title="tactic">subst</span> <span class="id" title="var">x00</span>; <span class="id" title="tactic">f_equal</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">ord_inj</span>; <span class="id" title="tactic">reflexivity</span>).<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.matrix_util.html#mx_of_list"><span class="id" title="definition">matrix_util.mx_of_list</span></a>. <span class="id" title="tactic">simpl</span>.<br/>
+<span class="id" title="var">prove_matrices_same</span>.<br/>
++<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">subst</span> <span class="id" title="var">pdN</span>.<br/>
+<span class="id" title="tactic">rewrite</span> !<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_false"><span class="id" title="lemma">ifptr_false</span></a>.<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PN</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
++<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PN</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">cancel</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</details><div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_shapes1dP3" class="idref" href="#body_shapes1dP3"><span class="id" title="lemma">body_shapes1dP3</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_shapes.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_shapes_base.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.shapes.html#f_shapes1dP3"><span class="id" title="definition">f_shapes1dP3</span></a> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP3_spec"><span class="id" title="definition">shapes1dP3_spec</span></a>.<br/>
+</div>
+<details><div class="code">
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.C.spec_shapes.html#shapes1dP3_spec"><span class="id" title="definition">shapes1dP3_spec</span></a>, <a class="idref" href="CFEM.C.spec_shapes.html#shape_spec"><span class="id" title="definition">shape_spec</span></a>, <a class="idref" href="CFEM.shapefloat.html#shapes1dP3F"><span class="id" title="definition">shapes1dP3F</span></a>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="var">forward_densematn_get_special</span>.<br/>
+<span class="id" title="tactic">unfold</span> <span class="id" title="definition">map_mx</span> <span class="id" title="tactic">at</span> 1. <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">mxE</span>. <span class="id" title="tactic">simpl</span> <span class="id" title="definition">optfloat_to_float</span>.<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">x00</span> := <span class="id" title="var">x</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">freeze</span> <span class="id" title="var">PDN</span> := (<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pdN</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">forward_if</span> <br/>
+&nbsp;&nbsp;(<span class="id" title="notation">PROP</span> <span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">LOCAL</span> <span class="id" title="notation">(</span><span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_x"><span class="id" title="definition">_x</span></a> (<span class="id" title="definition">val_of_float</span> <span class="id" title="var">x00</span>)<span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_N"><span class="id" title="definition">_N</span></a> <span class="id" title="var">pN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_dN"><span class="id" title="definition">_dN</span></a> <span class="id" title="var">pdN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_xx"><span class="id" title="definition">_xx</span></a> <span class="id" title="var">pxx</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span> <span class="id" title="notation">(</span><span class="id" title="definition">densematn</span> <span class="id" title="var">shxx</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">x</span>) <span class="id" title="var">pxx</span><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pN</span> (<span class="id" title="definition">densematn</span> <span class="id" title="var">shN</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="CFEM.shapefloat.html#shapes1dP3_float"><span class="id" title="definition">shapes1dP3_float</span></a> <span class="id" title="var">x</span>)) <span class="id" title="var">pN</span>)<span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="abbreviation">FRZL</span> <span class="id" title="var">PDN</span><span class="id" title="notation">)</span>).<br/>
+-<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="tactic">rewrite</span> (<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="var">pN</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">derives_refl'</span>.<br/>
+<span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP3_float"><span class="id" title="definition">shapes1dP3_float</span></a>.<br/>
+<span class="id" title="tactic">replace</span> (<span class="id" title="var">x</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> <span class="id" title="var">x00</span> <span class="id" title="tactic">by</span> (<span class="id" title="tactic">subst</span> <span class="id" title="var">x00</span>; <span class="id" title="tactic">f_equal</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">ord_inj</span>; <span class="id" title="tactic">reflexivity</span>).<br/>
+<span class="id" title="var">prove_matrices_same</span>.<br/>
+-<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">subst</span> <span class="id" title="var">pN</span>. <span class="id" title="tactic">rewrite</span> !<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_false"><span class="id" title="lemma">ifptr_false</span></a>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+-<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PDN</span>.<br/>
+<span class="id" title="var">freeze</span> <span class="id" title="var">PN</span> := (<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pN</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="var">forward_if</span><br/>
+&nbsp;&nbsp;(<span class="id" title="notation">PROP</span> <span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">LOCAL</span> <span class="id" title="notation">(</span><span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_x"><span class="id" title="definition">_x</span></a> (<span class="id" title="definition">val_of_float</span> <span class="id" title="var">x00</span>)<span class="id" title="notation">;</span> <br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_N"><span class="id" title="definition">_N</span></a> <span class="id" title="var">pN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_dN"><span class="id" title="definition">_dN</span></a> <span class="id" title="var">pdN</span><span class="id" title="notation">;</span> <span class="id" title="constructor">temp</span> <a class="idref" href="CFEM.C.shapes.html#_xx"><span class="id" title="definition">_xx</span></a> <span class="id" title="var">pxx</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span> <span class="id" title="notation">(</span><span class="id" title="definition">densematn</span> <span class="id" title="var">shxx</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">x</span>) <span class="id" title="var">pxx</span><span class="id" title="notation">;</span> <span class="id" title="abbreviation">FRZL</span> <span class="id" title="var">PN</span><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_shapes.html#ifptr"><span class="id" title="definition">ifptr</span></a> <span class="id" title="var">pdN</span> (<span class="id" title="definition">densematn</span> <span class="id" title="var">shN</span> (<span class="id" title="definition">map_mx</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="CFEM.shapefloat.html#shapes1dP3_fderiv"><span class="id" title="definition">shapes1dP3_fderiv</span></a> <span class="id" title="var">x</span>)) <span class="id" title="var">pdN</span>)<span class="id" title="notation">)</span>).<br/>
++<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="var">forward_densematn_set_special</span>.<br/>
+<span class="id" title="tactic">rewrite</span> (<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_true"><span class="id" title="lemma">ifptr_true</span></a> <span class="id" title="var">pdN</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">derives_refl'</span>.<br/>
+<span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">clear</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.shapefloat.html#shapes1dP3_fderiv"><span class="id" title="definition">shapes1dP3_fderiv</span></a>.<br/>
+<span class="id" title="tactic">replace</span> (<span class="id" title="var">x</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> <span class="id" title="var">x00</span> <span class="id" title="tactic">by</span> (<span class="id" title="tactic">subst</span> <span class="id" title="var">x00</span>; <span class="id" title="tactic">f_equal</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">ord_inj</span>; <span class="id" title="tactic">reflexivity</span>).<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.matrix_util.html#mx_of_list"><span class="id" title="definition">matrix_util.mx_of_list</span></a>. <span class="id" title="tactic">simpl</span>.<br/>
+<span class="id" title="var">prove_matrices_same</span>.<br/>
++<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">subst</span> <span class="id" title="var">pdN</span>.<br/>
+<span class="id" title="tactic">rewrite</span> !<a class="idref" href="CFEM.C.verif_shapes_base.html#ifptr_false"><span class="id" title="lemma">ifptr_false</span></a>.<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PN</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
++<br/>
+<span class="id" title="var">thaw</span> <span class="id" title="var">PN</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">cancel</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+<span class="comment">(*&nbsp;end&nbsp;details&nbsp;*)</span></div>
+</div>
+
+<div id="footer">
+<hr/><a href="genindex.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>
