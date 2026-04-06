@@ -187,7 +187,9 @@ Qed.
 Module Test1.
 
 Definition A := mx_of_list [:: [:: 1; 2; 3];  [:: 4; 5; 6]].
-Check A. (* 'M[nat]_(1+1,3) *)
+Goal Logic.False.
+match type of A with ?t => unify t 'M[nat]_(2,3) end.
+Abort.
 End Test1.
 
 
@@ -212,19 +214,18 @@ Section S.
 Context {R : realType}.
 Definition A := mx_of_list [:: [:: 1:R; 2; 3];
                                                [:: 4; 5; 6]].
-Check A.
-(* A : 'M[R]_(1+1, 3)   *)
-
 
 Definition U := mx_of_list [:: [:: 1:R ; 2; 3];
                                                [:: 4; 5]].
-Check U.
-(* U : 'M_(2, 3)   *)
 
 Definition V := mx_of_list [:: [:: 1:R ; 2];
                                                [:: 4; 5; 6]].
-Check V.
-(* V : 'M_2)   *)
+
+Goal Logic.False.
+match type of A with ?t => unify t 'M[R]_(2,3) end.
+match type of U with ?t => unify t 'M[R]_(2,3) end.
+match type of V with ?t => unify t 'M[R]_2 end.
+Abort.
 
 End S.
 End Test3.
@@ -242,8 +243,6 @@ HB.instance Definition _ := hasZero.Build _ (ofZ 0).
 
 Definition B := mx_of_list [:: [:: ofZ 1; ofZ 2; ofZ 3];
                                                [:: ofZ 4; ofZ 5; ofZ 6]].
-Check B.
-(* B : 'M_(2, 3)   *)
 
 End Test4.
 

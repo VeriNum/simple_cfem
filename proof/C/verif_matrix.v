@@ -137,12 +137,6 @@ pose (X := existT _ (m,n) A :  {mn: nat*nat & 'M[ftype the_type]_(fst mn, snd mn
 forward_call (obj, sho, sh, X, inst).
 forward_call.
 forward.
-entailer!!.
-change (val_of_float ?A) with (Vfloat A).
-f_equal.
-unfold BSQRT, UNOP. f_equal.
-replace (FPCore.fprec_gt_one FPCore.Tdouble) with (fprec_gt_one the_type) by (apply proof_irr).
-reflexivity.
 Qed.
 
 Lemma body_casted_densemat_norm2: semax_body Vprog Gprog f_casted_densemat_norm2 casted_densemat_norm2_spec.
