@@ -7,7 +7,7 @@ Lemma body_shapes1dP1: semax_body Vprog Gprog f_shapes1dP1 shapes1dP1_spec.
 Proof.
 unfold shapes1dP1_spec, shape_spec, shapes1dP1F.
 start_function.
-forward_densematn_get_special.
+forward_densematn_special.
 unfold map_mx at 1. rewrite mxE. simpl optfloat_to_float.
 set (x00 := x _ _).
 freeze PDN := (ifptr pdN _).
@@ -20,8 +20,7 @@ forward_if
    FRZL PDN)).
 -
 rewrite ifptr_true by auto.
-forward_densematn_set_special.
-forward_densematn_set_special.
+repeat forward_densematn_special.
 rewrite (ifptr_true pN) by auto.
 entailer!!.
 apply derives_refl'.
@@ -44,8 +43,7 @@ forward_if
    ifptr pdN (densematn shN (map_mx Some (shapes1dP1_fderiv x)) pdN))).
 +
 rewrite ifptr_true by auto.
-forward_densematn_set_special.
-forward_densematn_set_special.
+repeat forward_densematn_special.
 rewrite (ifptr_true pdN) by auto.
 entailer!!.
 apply derives_refl'.
@@ -72,7 +70,7 @@ Lemma body_shapes1dP2: semax_body Vprog Gprog f_shapes1dP2 shapes1dP2_spec.
 Proof.
 unfold shapes1dP2_spec, shape_spec, shapes1dP2F.
 start_function.
-forward_densematn_get_special.
+forward_densematn_special.
 unfold map_mx at 1. rewrite mxE. simpl optfloat_to_float.
 set (x00 := x _ _).
 freeze PDN := (ifptr pdN _).
@@ -85,9 +83,7 @@ forward_if
    FRZL PDN)).
 -
 rewrite ifptr_true by auto.
-forward_densematn_set_special.
-forward_densematn_set_special.
-forward_densematn_set_special.
+repeat forward_densematn_special.
 rewrite (ifptr_true pN) by auto.
 entailer!!.
 apply derives_refl'.
@@ -110,9 +106,7 @@ forward_if
    ifptr pdN (densematn shN (map_mx Some (shapes1dP2_fderiv x)) pdN))).
 +
 rewrite ifptr_true by auto.
-forward_densematn_set_special.
-forward_densematn_set_special.
-forward_densematn_set_special.
+repeat forward_densematn_special.
 rewrite (ifptr_true pdN) by auto.
 entailer!!.
 apply derives_refl'.
@@ -140,7 +134,7 @@ Lemma body_shapes1dP3: semax_body Vprog Gprog f_shapes1dP3 shapes1dP3_spec.
 Proof.
 unfold shapes1dP3_spec, shape_spec, shapes1dP3F.
 start_function.
-forward_densematn_get_special.
+forward_densematn_special.
 unfold map_mx at 1. rewrite mxE. simpl optfloat_to_float.
 set (x00 := x _ _).
 freeze PDN := (ifptr pdN _).
@@ -153,10 +147,7 @@ forward_if
    FRZL PDN)).
 -
 rewrite ifptr_true by auto.
-forward_densematn_set_special.
-forward_densematn_set_special.
-forward_densematn_set_special.
-forward_densematn_set_special.
+repeat forward_densematn_special.
 rewrite (ifptr_true pN) by auto.
 entailer!!.
 apply derives_refl'.
@@ -179,10 +170,7 @@ forward_if
    ifptr pdN (densematn shN (map_mx Some (shapes1dP3_fderiv x)) pdN))).
 +
 rewrite ifptr_true by auto.
-forward_densematn_set_special.
-forward_densematn_set_special.
-forward_densematn_set_special.
-forward_densematn_set_special.
+repeat forward_densematn_special.
 rewrite (ifptr_true pdN) by auto.
 entailer!!.
 apply derives_refl'.

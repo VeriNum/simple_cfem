@@ -46,7 +46,7 @@ Ltac destruct_it B ::= (* remove this if/when VST 2.17 incorporates it. *)
      end end
  end.
 
-Ltac densemat_lemmas.destruct_it B ::= (* remove this when LAProof is updated for VST 2.16 *)
+Ltac densemat_lemmas.destruct_it B ::= (* remove this when LAProof is updated for VST 2.17 *)
  match B with 
  | ?C _ => destruct_it C
  | let '(x,y) := ?A in _ => destruct A as [x y]
@@ -56,7 +56,6 @@ Ltac densemat_lemmas.destruct_it B ::= (* remove this when LAProof is updated fo
      | @sigT _ (fun x => _) => destruct A as [x A] 
      end end
  end.
-
 
 Lemma body_matrix_add: semax_body Vprog Gprog f_matrix_add matrix_add_spec.
 Proof.

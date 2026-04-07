@@ -70,34 +70,9 @@ match goal with |- semax _ ?Pre _ _ =>
  end end.
 +
 rewrite (ifptr_true pN) by auto.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
+do 8 forward_densematn_special.
 deadvars!.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
+repeat forward_densematn_special.
 rewrite (ifptr_true pN) by auto.
 entailer!!.
 apply derives_refl'.
@@ -121,61 +96,11 @@ match goal with |- semax _ ?Pre _ _ =>
  end end.
 *
 rewrite (ifptr_true pdN) by auto.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
+do 8 forward_densematn_special.
 deadvars!.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
-forward_densematn_get_special.
-forward_densematn_get_special.
-forward_densematn_set_special.
+do 8 forward_densematn_special.
+deadvars!.
+repeat forward_densematn_special.
 rewrite (ifptr_true pdN) by auto.
 entailer!!.
 apply derives_refl'.
