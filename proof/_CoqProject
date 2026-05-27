@@ -22,4 +22,5 @@ matrix_util.v
 shape.v
 shapefloat.v
 shape_accuracy.v
+quadrature.v
 
