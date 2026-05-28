@@ -385,7 +385,6 @@ Locate "^`".
 
 End Quadrature.
 End Integral.
-End S.
 
 (** ** Examples *)
 
@@ -397,6 +396,179 @@ End S.
 
     The corresponding orthogonal polynomials are called Legendre polynomials.
 *)
+
+Section Legendre.
+ Notation "∫" := (intgal (-1) 1 (fun=>1)).
+
+Lemma intgal_w1_x:  ∫ id = 0.
+Proof.
+Admitted.
+
+Lemma intgal_w1_1:  ∫ (fun=>1) = 2.
+Admitted.
+
+Lemma intgal_w1_C: forall c,  ∫ (fun=>c) = 2*c.
+Admitted.
+
+Lemma intgal_w1_x2:  ∫(id \* id) = 2/3.
+Admitted.
+
+Lemma intgal_w1_x3: ∫ (id \* (id \* id)) = 0.
+Admitted.
+
+Lemma intgal_w1_x4: ∫ (id \* (id \* (id \* id))) = 2/5.
+Admitted.
+
+Lemma intgal_w1_x5: ∫ (id \* (id \* (id \* (id \* id)))) = 0.
+Admitted.
+
+Require Import FunctionalExtensionality.
+
+Lemma Legendre_poly_1:
+   horner (ortho_p (-1) 1 (fun=>1) 1) = 
+  fun x => x.
+Proof.
+extensionality x.
+unfold ortho_p. simpl. rewrite intgal_w1_1 intgal_w1_x.
+rewrite ?scale_polyE ?hornerM ?hornerD ?hornerN ?hornerM ?hornerXsubC ?hornerX ?hornerD ?hornerC.
+lra.
+Qed.
+
+Lemma mul_fun1r: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun (fun=>1) f = f.
+Proof.
+intros. extensionality x. simpl. apply mul1r.
+Qed.
+
+Lemma mul_funr1: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun f (fun=>1) = f.
+Proof.
+intros. extensionality x. simpl. apply mulr1.
+Qed.
+
+Lemma mul_fun0r: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun (fun=>0) f = (fun=>0).
+Proof.
+intros. extensionality x. simpl. apply mul0r.
+Qed.
+
+Lemma mul_funr0: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun f (fun=>0) = (fun=>0).
+Proof.
+intros. extensionality x. simpl. apply mulr0.
+Qed.
+
+Lemma opp_funC: forall  {U : Type} {V : BaseZmodule.type} (c: V), 
+  @opp_fun U V (fun=>c) = (fun=> opp c).
+Proof.
+intros. extensionality x. reflexivity.
+Qed.
+
+Lemma hornerXsubC': forall [R : nzRingType] (a : NzRing.sort R), horner('X - a%:P) = (id \- fun=>a).
+Proof.
+intros. extensionality x. apply hornerXsubC.
+Qed.
+
+Lemma hornerX': forall {R : nzSemiRingType}, @horner R ('X) = id.
+Proof.
+intros. extensionality x. apply hornerX.
+Qed.
+
+Lemma hornerC': forall (c: R), horner (polyC c) = (fun=>c).
+Proof. intros. extensionality x. apply hornerC.
+Qed.
+
+Lemma hornerD': forall [R] (a b: {poly R}), horner (a+b) = horner a \+ horner b.
+Proof. intros. extensionality x. apply hornerD.
+Qed.
+
+Lemma hornerM': forall [R: comNzSemiRingType] (a b: {poly R}), horner (a*b) = horner a \* horner b.
+Proof. intros. extensionality x. apply hornerM.
+Qed.
+
+Lemma hornerN': forall [R: nzRingType] (a: {poly R}), horner (- a) = \- horner a.
+Proof. intros. extensionality x. apply hornerN.
+Qed.
+
+Lemma sub_funr0: forall {U: Type} {V: zmodType} (f: U -> V),
+  sub_fun f (fun=>0) = f.
+Proof. intros. extensionality x. simpl. apply subr0.
+Qed.
+
+Lemma add_funr0: forall {U: Type} {V: nmodType} (f: U -> V),
+  add_fun f (fun=>0) = f.
+Proof. intros. extensionality x. simpl. apply addr0.
+Qed.
+
+Lemma mul_funDr: forall  {s : pzSemiRingType} {T: Type},
+   @right_distributive (T -> PzSemiRing.sort s) _ mul_fun add_fun.
+Proof. intros. red. intros. extensionality i. simpl. apply mulrDr. Qed.
+
+Lemma mul_funDl: forall  {s : pzSemiRingType} {T: Type},
+   @left_distributive (T -> PzSemiRing.sort s) _ mul_fun add_fun.
+Proof. intros. red. intros. extensionality i. simpl. apply mulrDl. Qed.
+
+
+Lemma mul_funA: forall  {s : pzSemiRingType} {T: Type},
+   @associative (T -> PzSemiRing.sort s) mul_fun.
+Proof. intros. red. intros. extensionality i. simpl. apply mulrA. Qed.
+
+Lemma mul_funC: forall  {s : comPzSemiRingType} {T: Type},
+   @commutative (T -> s) _ mul_fun.
+Proof. intros. red. intros. extensionality i. simpl. apply mulrC. Qed.
+
+Lemma Legendre_poly_2:
+   horner (ortho_p (-1) 1 (fun=>1) 2) = 
+  fun x => x*x - 1/3.
+Proof.
+extensionality x.
+unfold ortho_p. simpl. rewrite intgal_w1_1 intgal_w1_x.
+rewrite ?scale_polyE ?hornerM ?hornerD ?hornerN ?hornerM ?hornerXsubC ?hornerX ?hornerD ?hornerC.
+rewrite hornerXsubC' mul0r sub_funr0 subr0 hornerC' ?mul_funr1.
+rewrite mulr1.
+rewrite intgal_w1_1 intgal_w1_x3 intgal_w1_x2.
+rewrite ?mul0r subr0.
+f_equal.
+lra.
+Qed. 
+
+Lemma Legendre_poly_3:
+   horner (ortho_p (-1) 1 (fun=>1) 3) = 
+  fun x => x*x*x - (3/5)*x.
+Proof.
+extensionality x.
+unfold ortho_p. simpl. rewrite intgal_w1_1 intgal_w1_x.
+rewrite ?scale_polyE ?hornerM ?hornerD ?hornerN ?hornerM ?hornerXsubC ?hornerX ?hornerD ?hornerC.
+rewrite hornerXsubC' ?hornerC'.
+rewrite mul0r subr0 sub_funr0 mul_funr1.
+rewrite  intgal_w1_x3 intgal_w1_x2 mul0r.
+rewrite ?hornerM' ?hornerD' ?hornerN' ?hornerM' hornerX' ?hornerC' /=.
+rewrite mul_fun0r mul_fun1r mul_funr1 intgal_w1_1.
+rewrite mulr1 mul0r subr0.
+repeat change (?A \+ \- ?B) with (A \- B).
+rewrite sub_funr0.
+set a := (2 / 3 / 2); replace a with ((1/3):R) by (subst a; lra); clear a.
+rewrite subr0.
+rewrite ?mul_funDr ?mul_funDl ?(intgal_linear2 ltac:(lra) ltac:(intros; lra)).
+rewrite ?mul_funDr ?mul_funDl ?(intgal_linear2 ltac:(lra) ltac:(intros; lra)).
+rewrite -?mul_funA.
+set a := (fun=> - _).
+rewrite (mul_funC id (a \* _)) -?mul_funA.
+rewrite (mul_funC _ a).
+rewrite (mul_funC id (a \* _)) -?mul_funA.
+rewrite (mul_funC id (a \* _)) -?mul_funA.
+repeat rewrite (intgal_linear2 ); [  | intros; lra..].
+rewrite (mul_funC id (a \* _)) -?mul_funA.
+rewrite (mul_funA a a).
+replace (mul_fun a a) with (fun _:R => (1/9:R)).
+2:  extensionality y; unfold a; simpl; lra.
+unfold a; rewrite ?intgal_linear1; try (intros; lra).
+rewrite intgal_w1_x5 intgal_w1_x3 intgal_w1_x4 intgal_w1_x intgal_w1_x2 intgal_w1_C.
+field; auto.
 
 (** 22.  If we take [[a,b]]=[[0,∞]] and w(x)=e^{-x}, we get a formula to approximate
 
@@ -414,6 +586,7 @@ End S.
      mathematical handbooks have tables of abscissas and coefficients.  The
      automatic generation of Gauss formulas is an interesting subject in its own right. *)
 
+End S.
 
 
 
