@@ -11,6 +11,7 @@ From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory GRing.
 From mathcomp.algebra_tactics Require Import ring lra.
 From CFEM Require Import matrix_util.
+From LAProof Require Import mv_mathcomp.
 From Stdlib Require Import Lia FunctionalExtensionality.
 
 Unset Implicit Arguments.
@@ -114,6 +115,14 @@ apply eq_bigr => i Hi.
 rewrite mxE mul1r //.
 Qed.
 (* end details *)
+
+(** *** Lagrange polynomials *)
+(** We will express Lagrange polynomials in d dimensions of degree k as explicit functions
+    from a column-vector of length d to a row-vector of length k+1.  The following definition
+    defines the 1-dimensional such functions via MathComp's notion of Lagrange polynomials. *)
+
+Definition d1_lagrange (k: nat): 'cV[R]_1 -> 'rV[R]_k.+1 :=
+  fun (x: 'cV_1) => \matrix_(i,j) horner (tnth (lagrange k.+1 (fun i => natmul (2/natmul 1 k) i - 1)) j) (x 0 0).
 
 (** *** Multivariate Polynomials are continuously differentiable *)
 
@@ -585,6 +594,23 @@ match type of i with
  | ?t =>  fail "Type of" i "is" t "but should be 'I_n where n is a constant"
 end.
 
+Ltac prove_d1_lagrange := 
+lazymatch goal with
+  |  |- ?A = d1_lagrange _ => rewrite /A /d1_lagrange
+  | |- _ => fail "tactic prove_d1_lagrange must be applied to a goal of the form '___ = d1_lagrange _'"
+end;
+let x := fresh "x" in let i := fresh "i" in let j := fresh "j" in let a := fresh "a" in let n := fresh "n" in 
+extensionality x;
+apply matrixP => i j;
+simpl in j;
+ord_enum_cases j;
+(rewrite_matrix;
+rewrite !mxE;
+rewrite lagrangeE; [ | lia | match goal with R: realType |- _ => intros ? ? ?; apply (@mulrIn R 1 ltac:(lra)); lra end];
+rewrite index_ord_enum;
+set a := ord_enum _; compute in a; destruct idP as [n|n] in a; [ | contradiction n; auto]; subst a;
+rewrite !bigop.unlock /= ?hornerM ?hornerD ?hornerN ?hornerC ?hornerX; field; auto).
+
 Ltac prove_lagrangian :=
 let i := fresh "i" in let j := fresh "j" in intros i j;
 test_I_n i; test_I_n j;
@@ -658,6 +684,27 @@ Definition shapes1dP1 : @Shape.shape R.
 - abstract prove_continuously_differentiable.   (* 0.022 seconds *)
 - abstract (unfold shapes1dP1_θ, shapes1dP1_dθ; prove_deriv).  (* 0.411 seconds*)
 Defined.
+
+(** Let's confirm that CFEM's notion of the canonical 1-d Lagrange polynomials agrees
+   with MathComp's [lagrange] definition. *)
+
+Lemma lagrange1dP1: shapes1dP1_θ = d1_lagrange 1.
+Proof. prove_d1_lagrange. Qed.
+
+Lemma lagrange1dP1: 
+  forall (x: R) (j: 'I_2),
+   shapes1dP1_θ (const_mx x) ord0 j =
+   horner (tnth (lagrange 2 (fun i => natmul 2 i - 1)) j) x.
+Proof.
+intros.
+ord_enum_cases j;
+(unfold shapes1dP1_θ;
+rewrite_matrix;
+rewrite lagrangeE; [ | lia | intros ? ? ?; apply (@mulrIn R 1 ltac:(lra)); lra];
+rewrite index_ord_enum;
+set a := ord_enum _; compute in a; destruct idP in a; [ | contradiction n; auto]; subst a;
+rewrite !bigop.unlock /= ?hornerM ?hornerD ?hornerN ?hornerC ?hornerX; field; auto).
+Qed.
  (* end show *)
 
 (** ** 1dP2:  1-dimension, degree 2 *)
@@ -891,7 +938,11 @@ Clearly this is quite useful in proving the goal:
 rewrite Hval trmxE col__0 //.
 (** And we're done proving all the properties of shapes1dP2 *)
 Defined.
- (* end show *)
+
+(** Check shapes1dP2_θ are the same as MathComp's lagrange polynomials *)
+
+Lemma lagrange1dP2: shapes1dP2_θ = d1_lagrange 2.
+Proof. prove_d1_lagrange. Qed.
 
 (** ** 1dP3:  1-dimension, degree 3 *)
 
@@ -923,7 +974,10 @@ apply (Shape.Build_shape 1 4 shapes1dP3_θ shapes1dP3_dθ shapes1dP3_vertices).
 - abstract prove_continuously_differentiable.  (* 0.081 seconds *)
 - abstract (unfold shapes1dP3_θ, shapes1dP3_dθ; prove_deriv).  (* 4.339 seconds *)
 Defined.
- (* end show *)
+
+(** Check shapes1dP3_θ are the same as MathComp's lagrange polynomials *)
+Lemma lagrange1dP3: shapes1dP3_θ = d1_lagrange 3.
+Proof. prove_d1_lagrange. Qed.
 
 (** ** 2dP1:  2-dimensional cuboid, degree 1 #<a id=2dP1># *)
 (** A two-dimensional equilateral cuboid is also known as a "square".
@@ -966,7 +1020,7 @@ apply (Shape.Build_shape 2 4 shapes2dP1_θ shapes2dP1_dθ shapes2dP1_vertices).
 - abstract prove_continuously_differentiable. (* 0.249 seconds *)
 - time "prove_deriv 2dP1" abstract (unfold shapes2dP1_θ, shapes2dP1_dθ, shapes1dP1_θ, shapes1dP1_dθ;
                      prove_deriv).  (* 7.07 seconds *)
-Defined. 
+Defined.
  (* end show *)
 
 (** ** 2dT1:  2-dimensional simplex, degree 1 *)
