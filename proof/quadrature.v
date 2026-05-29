@@ -114,19 +114,19 @@ Section P.
             size q = (n+2)%nat ->
          { b: 'I_n.+1 -> R | horner q = \big[add_fun/fun=>0]_(i<n.+1) (b i  \*: horner (p i))}.
 
-(** 7.  In establishing this result, we may assume that the polynomials p_i are monic.
+(** 7.  In establishing this result, we may assume that the polynomials [ p_i ] are monic.
   The proof is by induction.  For n=0 we have,
 
-      q(x) = a_0 = a_0 ⋅ 1 = a_0 p_0(x).
+      [ q(x) = a_0 = a_0 ⋅ 1 = a_0 p_0(x) ].
 
-   Hence we must have b_0 = a_0.
+   Hence we must have [ b_0 = a_0 ].
 
-     Now assume that q has the form (23.2).  Since p_n is the only polynomial in
-    the sequence p_n, p_{n-1}, ⋯, p_0 that contains x^n and since p_n is monic, it follows
-    that we must have b_n = a_n.  Then the polynomial q-a_n p_n is of degree n-1.
+     Now assume that q has the form (23.2).  Since [ p_n ] is the only polynomial in
+    the sequence [ p_n, p_{n-1}, ⋯, p_0 ] that contains x^n and since [ p_n ] is monic, it follows
+    that we must have [ b_n = a_n ].  Then the polynomial [ q-a_n p_n ] is of degree n-1.
     Hence by the induction hypothesis, it can be expressed uniquely in the form
 
-             q - a_n p_n = b_{n-1} p_{n-1} + ⋯ + b_0 p_0,
+           [  q - a_n p_n = b_{n-1} p_{n-1} + ⋯ + b_0 p_0 ],
 
     which establishes the result.
 *)
@@ -136,14 +136,14 @@ induction n.
 Admitted.
 
 (** 8.  A consequence of this result is the following.
-            The polynomial p_{n+1} is orthogonal to any polynomial q of degree n or less.
+            The polynomial [ p_{n+1} ] is orthogonal to any polynomial q of degree n or less.
 
-      For from (23.3) is follows that
+      For from (23.3) it follows that
 
-             ∫  p_{n+1} q = b_n ∫  p_{n+1} p_n + ⋯ + b_0 ∫  p_{n+2}p_0 = 0,
+            [ ∫  p_{n+1} q = b_n ∫  p_{n+1} p_n + ⋯ + b_0 ∫  p_{n+2}p_0 = 0 ],
 
-       [note: p_{n+2}p_0 sic in original, but surely p_{n+1}p_0 is meant.  ]
-      the last equality following from the orthogonality of the polynomials p_i.
+       _(Note: [p_{n+2}p_0] sic in original, but surely p_{n+1}p_0 is meant.)_
+      the last equality following from the orthogonality of the polynomials [p_i].
 *)
 
 Lemma polySn_orthogonal_n: forall (n:nat) (q: {poly R}), 
@@ -154,70 +154,70 @@ Admitted.
 End P.
 
 (** 9. To establish the existence of orthogonal polynomials, we begin by computing
-    the first two.  Since p_0 is monic and of degree zero,
+    the first two.  Since [p_0] is monic and of degree zero,
 
-                  p_0(x) \equiv 1.
+                [  p_0(x) ≡ 1.   ]
 
-      Since p_1 is monic and of degree one, it must have the form
+      Since [p_1] is monic and of degree one, it must have the form
 
-                   p_1(x) = x - α_1.
+                [   p_1(x) = x - α_1.    ]
 
-    To determine α_1, we use orthogonality:
+    To determine [α_1], we use orthogonality:
 
-               0 = ∫  p_1 p_0 = ∫  (x-α_1)⋅1  = ∫  x - α_1 ∫ 1.
+           [    0 = ∫  p_1 p_0 = ∫  (x-α_1)⋅1  = ∫  x - α_1 ∫ 1.    ]
 
     Since the function 1 is positive in the interval of integration,  ∫ 1 > 0, and it 
     follows that
 
-                         α_1 = (∫ x) / (∫ 1).
+           [              α_1 = (∫ x) / (∫ 1).   ]
 
-     10.  In general we will seek p_{n+1} in the form
+     10.  In general we will seek [ p_{n+1} ]  in the form
 
-        p_{n+1} = x p_n - α_{n+1} p_n - β_{n+1} p_{n-1} - γ_{n+1} p_{n-2} - ⋯ .
+        [  p_{n+1} = x p_n - α_{n+1} p_n - β_{n+1} p_{n-1} - γ_{n+1} p_{n-2} - ⋯ . ]
 
-      As in the construction of p_1, we use orthogonality to determine the coefficients
+      As in the construction of [p_1], we use orthogonality to determine the coefficients
 
-      α_{n+1}, β_{n+1}, γ_{n+1}, ⋯ 
+      [ α_{n+1}, β_{n+1}, γ_{n+1}, ⋯ ]
 
-          To determine α_{n+1}, write
+          To determine [ α_{n+1} ], write
 
-      0 = ∫  p_{n+1} p_n = ∫  x p_n p_n - α_{n+1} ∫ p_n p_n - β_{n+1} ∫  p_{n-1} p_n - γ_{n+1} ∫ p_{n-2} p_n - ⋯ .
+      [ 0 = ∫  p_{n+1} p_n = ∫  x p_n p_n - α_{n+1} ∫ p_n p_n - β_{n+1} ∫  p_{n-1} p_n - γ_{n+1} ∫ p_{n-2} p_n - ⋯ . ]
 
-      By orthogonality, 0 = ∫ p_{n-1} p_n = ∫  p_{n-2} p_n = ⋯ .   Hence
+      By orthogonality, [ 0 = ∫ p_{n-1} p_n = ∫  p_{n-2} p_n = ⋯ ] .   Hence
 
-              ∫  x p_n^2 - α_{n+1} ∫ p_n^2 = 0.
+            [  ∫  x p_n^2 - α_{n+1} ∫ p_n^2 = 0. ]
 
-      Since ∫  p_n^2 > 0, we may solve this equation to get
+      Since [ ∫  p_n^2 > 0 ] , we may solve this equation to get
 
-               α_{n+1} = ∫ x p_n^2  /  ∫  p_n^2.
+            [   α_{n+1} = ∫ x p_n^2  /  ∫  p_n^2. ]
 
-      For β_{n+1}, write
+      For [ β_{n+1} ], write
 
-             0 = ∫ p_{n+1} p_{n-1} = ∫ x p_n p_{n-1} - α_{n+1} ∫ p_n p_{n-1} - β_{n+1} ∫ p_{n-1} p_{n-1} - γ_{n+1} ∫ p_{n-2} p_{n-1} - ⋯ .
+           [ 0 = ∫ p_{n+1} p_{n-1} = ∫ x p_n p_{n-1} - α_{n+1} ∫ p_n p_{n-1} - β_{n+1} ∫ p_{n-1} p_{n-1} - γ_{n+1} ∫ p_{n-2} p_{n-1} - ⋯ ] .
 
      Dropping terms that are zero because of orthogonality, we get
 
-                      ∫ x p_n p_{n-1} - β_{n+1} ∫ p_{n-1}^2 = 0
-      or β_{n+1} = (∫ x p_n p_{n-1} ) / (∫ p_{n-1}^2).
+                   [   ∫ x p_n p_{n-1} - β_{n+1} ∫ p_{n-1}^2 = 0  ]
+      or [ β_{n+1} = (∫ x p_n p_{n-1} ) / (∫ p_{n-1}^2).  ]
 
-     11. The formulas for the remaining coefficients are similar to the formula for β_{k+1}; e.g.,
+     11. The formulas for the remaining coefficients are similar to the formula for [ β_{k+1} ]; e.g.,
 
-                  γ_{n+1} = (∫  x p_n p_{n-2}) / (∫  p_{n-2}^2).
+                [  γ_{n+1} = (∫  x p_n p_{n-2}) / (∫  p_{n-2}^2)  ].
 
-        However, there is a surprise here.  The denominator [sic]   x p_n p_{n-2}  can be written
-        in the form ∫  x p_{n-2} p_n.  Since x p_{n-2} is of degree n-1 it is orthogonal to p_n;
-        i.e.,  ∫ x p_{n-2} p_{n-1 [sic]}   = 0.  Hence γ_{k+1} = 0, and likewise the coefficients of p_{n-3},
-         p_{n-4}, ⋯ are zero.
+        However, there is a surprise here.  The denominator [[sic]]   [ x p_n p_{n-2} ] can be written
+        in the form [∫  x p_{n-2} p_n].  Since [x p_{n-2}] is of degree n-1 it is orthogonal to [p_n];
+        i.e.,  [∫ x p_{n-2} p_{n-1 [sic]}   = 0].  Hence [γ_{k+1} = 0], and likewise the coefficients of
+         [p_{n-3}, p_{n-4}, ⋯] are zero.
 
      12.  To summarize:
           The orthogonal polynomials can be generated by the following recurrence:
 
-          -      p_0 = 1,
-          -      p_1 = x - α_1,
-          -      p_{n+1} = x p_n - α_{n+1} p_n - β_{n+1} p_{n-1},               n=1,2,⋯,
+          -      [p_0 = 1,]
+          -      [p_1 = x - α_1,]
+          -      [p_{n+1} = x p_n - α_{n+1} p_n - β_{n+1} p_{n-1},               n=1,2,⋯,]
          where 
 
-                  α_{n+1} = (∫  x p_n^2) / (∫ p_n^2)   and β_{n+1} =  (∫  x p_n p_{n-1}) / (∫  p_{n-1}^2).
+                 [ α_{n+1} = (∫  x p_n^2) / (∫ p_n^2)]   and [β_{n+1} =  (∫  x p_n p_{n-1}) / (∫  p_{n-1}^2)]. 
 
           The first two equations in the recurrence merely start things off.  The right-hand side
           of the third equation  contains three terms and for that reason is called the
@@ -246,63 +246,66 @@ Admitted.
 (** ** Zeros of orthogonal polynomials *)
 
 (** 13.  It will turn out that the abscissas of our Gaussian quadrature formula will
-        be the zeros of p_{n+1}.  We will now show that 
+        be the zeros of [p_{n+1}].  We will now show that 
         
-         The zeros of p_{n+1} are real, simple, and lie in the interval [[a,b]].
+         The zeros of [p_{n+1}] are real, simple, and lie in the interval [[a,b]].
 
-     14.  Let x_0, x_1, ⋯, x_k  be the zeros of odd multiplicity of p_{n+1} in [a,b]; i.e., x_0,
-          x_1, ⋯, x_k are the points at which p_{n+1} changes sign in [a,b].  If k=n, we are 
-         through, since the x_i are the n+1 zeros of p_{n+1}.
+     14.  Let [x_0, x_1, ⋯, x_k]  be the zeros of odd multiplicity of [p_{n+1}] in [[a,b];] i.e.,
+         [x_0, x_1, ⋯, x_k] are the points at which [p_{n+1}] changes sign in [[a,b]].  If k=n, we are 
+         through, since the [x_i] are the n+1 zeros of [p_{n+1}].
 
                Suppose then that k<n and consider the polynomial
 
-                       q(x) = (x-x_0)(x-x_1)⋯(x-x_k).
+                    [   q(x) = (x-x_0)(x-x_1)⋯(x-x_k)  ].
 
         Since deg(q) = k+1 < n+1, by orthogonality
 
-                      ∫ p_{n+1} q = 0.
+                    [  ∫ p_{n+1} q = 0  ].
 
-        On the other hand, p_{n+1}(x) q(x) cannot change sign on [[a,b]] -- each sign change
-        in p_{n+1}(x) is cancelled by a corresponding sign change in q(x).  It follows that
+        On the other hand, [p_{n+1}(x) q(x)] cannot change sign on [[a,b]] -- each sign change
+        in [p_{n+1}(x)] is cancelled by a corresponding sign change in q(x).  It follows that
 
-                     ∫ p_{n+1} q <> 0,
+                    [ ∫ p_{n+1} q <> 0 ],
 
          which is a contradiction.
 *)
 
-Lemma roots_of_ortho_p_weak: forall (n: nat) (x: R), 
-       root (ortho_p n) x -> 
-       proj1_sig (multiplicity_XsubC (ortho_p n) x) = 1%nat /\
-       a <= x <= b.
-Admitted.
 
-(** It appears that MathComp Analysis does not yet have a full theory of 
-    the roots of real polynomials, so in this first attempt we just say that the real 
-    roots of p_n are simple and in the interval, but this omits that all the roots are real. *)
+(** _Editor's note: This predicate says that [roots] is a list of n distinct values, all of which evaluate
+     (under the polynomial) to zero, which implies that they are simple roots_. *)
+Definition true_roots_of_ortho_p (n: nat) (roots: n.-tuple R) :=
+     all (root (ortho_p n)) (tval roots) /\ uniq_roots (tval roots).
 
+(** _Editor's note:  The following is what we want; it is a constructive existence, so that we 
+   can calculate with these roots.  But Stewart's proof is nonconstructive.
+  The roots of a rational-valued polynomial do exist constructively, see for example
+   the Jenkins-Traub algorithm(s).  There are simpler algorithms than Jenkins-Traub,
+   which don't converge as fast but would suffice for a constructive existence proof,
+   but we want more than constructive existence, eventually we want to check how close
+   certain floating-point numbers are to the true roots.  That is, we want constructive accuracy,
+   i.e., fast convergence.  Either way, since the roots are found by iteration, then the construction
+   is effectively a Cauchy sequence_.
+
+   _And furthermore, at present MathComp Analysis doesn't yet have a full theory of the roots of 
+   real polynomials, nor any formalization of Jenkins-Traub, so any such proof will not be trivial_. *)
 Definition roots_of_ortho_p: forall (n: nat),
-    { roots: n.-tuple R | all (root (ortho_p n)) (tval roots) /\ uniq_roots (tval roots)}.
-(** That is, p_n has n distinct roots.  From that, one could prove that they're all simple,
-   and that there are no nonreal roots. 
-   However, since MathComp Analysis doesn't yet have a full theory of the roots of 
-   real polynomials, this might not be so easy.
- *)
+    { roots: n.-tuple R | true_roots_of_ortho_p n roots }.
 Admitted.
 
 (** ** Gaussian quadrature *)
 
 (** 15.  The Gaussian quadrature formula is obtained by constructing a Newton-Cotes
-     formula on the zeros of the orthogonal polynomial p_{n+1}.
+     formula on the zeros of the orthogonal polynomial [p_{n+1}].
 
-     Let x0, x_1, ⋯, x_n be the zeros of the orthogonal polynomial p_{n+1} and set
+     Let [x0, x_1, ⋯, x_n] be the zeros of the orthogonal polynomial [p_{n+1}] and set
 
-               A_i = ∫  L_i,   i = 0, 1, ⋯, n,
+              [ A_i = ∫  L_i,   i = 0, 1, ⋯, n, ]
 
-     where L_i is the ith Lagrange polynomial over x_0, x_1, ⋯, x_n.  For any function f let
+     where [L_i ] is the ith Lagrange polynomial over [x_0, x_1, ⋯, x_n].  For any function f let
 
-               G_n f = A_0 f(x_0) + A_1 f(x_1) + ⋯ + A_n f(x_n).
+              [ G_n f = A_0 f(x_0) + A_1 f(x_1) + ⋯ + A_n f(x_n) ].
 
-    Then   deg(f) ≤ 2n+1  ⇒  ∫  f = G_n f.
+    Then  [ deg(f) ≤ 2n+1  ⇒  ∫  f = G_n f ].
 *)
 
  Section Quadrature.
@@ -314,20 +317,20 @@ Admitted.
   Definition G (f: R->R) := \sum_i (gauss_weight i * (f (tnth zeros_of_ortho_p i))).
 
   (** 16.  To establish this result, first note that by construction the integration formula
-    G_n f is exact for polynomials of degree less than or equal to n (see section 21.17).
+    [G_n f] is exact for polynomials of degree less than or equal to n (see section 21.17).
 
-         Now let deg(f) ≤ 2n+1.  Divide f by p_{n+1} to get
+         Now let deg(f) ≤ 2n+1.  Divide f by [p_{n+1}] to get
 
-                  f = p_{n+1}q + r,      deg(q), deg(r) ≤ n.                             (23.4)
+                 [ f = p_{n+1}q + r],      deg(q), deg(r) ≤ n.                             (23.4)
 
       Then
 
-       - G_n f = Σ_i A_i f(x_i)
-       -          = Σ_i A_i(p_{n+1}(x_i)q(x_i) + r(x_i))                       (by 23.4)
-       -          = Σ_i A_i r(x_i)                                                 because p_{n+1}(x_i)=0
-       -          = G_n r
-       -          = ∫ r                                                because G_n is exact for deg(r) ≤ n
-       -          = ∫ (p_{n+1}q+r)                            because ∫ p_{n+1}q = 0 for deg(q) ≤ n
+       - [G_n f = Σ_i A_i f(x_i)]
+       -          = [Σ_i A_i(p_{n+1}(x_i)q(x_i) + r(x_i))]                       (by 23.4)
+       -          = [Σ_i A_i r(x_i)]                                                 because p_{n+1}(x_i)=0
+       -          = [G_n r]
+       -          = [∫ r]                                                because [G_n] is exact for deg(r) ≤ n
+       -          = [∫ (p_{n+1}q+r)]                            because [∫ p_{n+1}q = 0] for deg(q) ≤ n
        -          = ∫ f                                                (by 23.4).
       Quot erat demonstrandum.
   *)
@@ -335,19 +338,19 @@ Admitted.
   Lemma quadrature_exact_for: forall f: {poly R}, (size f <= 2*n+2)%N -> ∫ (horner f) = G (horner f).
   Admitted.
 
-(** 17. An important corollary of these results is that the coefficients A_i are positive.
+(** 17. An important corollary of these results is that the coefficients [A_i] are positive.
        To see this note that
 
-                L_i(x_j) = L_i^2(x_j) = if i=j then 1 else 0.
+               [ L_i(x_j) = L_i^2(x_j) = if i=j then 1 else 0 ]. 
 
-      Since L_i^2(x) ≥ 0 and deg(L_i^2) = 2n,
+      Since [ L_i^2(x) ≥ 0] and [deg(L_i^2) = 2n],
 
-              0 < ∫ L_i^2 = Σ_j A_i L_i^2(x_j) = A_i.
+             [  0 < ∫ L_i^2 = Σ_j A_i L_i^2(x_j) = A_i ].
 *)
    Lemma gauss_weight_positive: forall i, gauss_weight i > 0.
    Admitted.
 
-(** 18.  Since A_0 + A_1 + ⋯ + A_n = ∫ 1, no coefficient can be larger than 1.  Consequently,
+(** 18.  Since [ A_0 + A_1 + ⋯ + A_n = ∫ 1 ], no coefficient can be larger than 1.  Consequently,
      we cannot have a situation in which large coefficients create large intermediate results
       that suffer cancellation when they are added. *)
 
@@ -359,7 +362,7 @@ Admitted.
 (** 19.  Gaussian quadrature has error formulas similar to the ones for Newton-Cotes
     formulas.  Specifically
 
-          ∫  f - G_n f =  ( f^(2n+2)(ξ) / (2n+2)!) ∫ p_{n+1}^2,
+        [  ∫  f - G_n f =  ( f^(2n+2)(ξ) / (2n+2)!) ∫ p_{n+1}^2 ],
 
      where ξ ∈ [[a,b]]. *)
   Lemma quadrature_error: forall (f: R->R),
@@ -370,7 +373,7 @@ Admitted.
 (** 20. A consequence of the positivity of the coefficients A_i is that Gaussian
     quadrature converges for any continuous function; that is,
 
-        f continuous ⇒ lim_{n→∞} G_n f = ∫ f.
+       [ f continuous ⇒ \lim_{n→∞} G_n f = ∫ f ].
 
     The proof -- it is a good exercise in elementary analysis -- is based on the Weierstrass
     approximation theorem, which says that for any continuous function f
@@ -391,7 +394,7 @@ End R.
       and the weight function w(x).  The workhorse is Gauss-Legendre quadrature,
      in which [[a,b]] = [[-1,1]] and w(x)=1, so that the formula approximates the integral,
 
-      ∫_{-1}^1 f(x) dx.
+      [ ∫_{-1}^1 f(x) dx ].
 
     The corresponding orthogonal polynomials are called Legendre polynomials.
 *)
@@ -554,7 +557,8 @@ Qed.
 Lemma Legendre_poly_3:
    horner (ortho_p (-1) 1 (fun=>1) 3) =  fun x :R => x*x*x - (3/5)*x.
 Proof.
-rewrite /ortho_p /= ?r_horner ?r_lift  ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift //
+rewrite /ortho_p /=.
+rewrite ?r_horner ?r_lift  ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift //
     ?r_intgal ?r_ring ?r_lift.
 set a := (fun=> - _).
 rewrite ?mul_funDr ?mul_funDl ?intgal_linear2.
@@ -572,13 +576,13 @@ End Legendre.
 
 (** 22.  If we take [[a,b]]=[[0,∞]] and w(x)=e^{-x}, we get a formula to approximate
 
-       ∫_0^∞ f(x) e^{-x} dx.
+      [ ∫_0^∞ f(x) e^{-x} dx ].
 
    This is Gauss-Laguerre quadrature. *)
 
 (** 23. If we take [[a,b]]=[[-∞,∞]] and w(x)=e^{-x^2}, we get a formula to approximate,
 
-       ∫_{-∞}^∞ f(x) e^{-x^2} dx.
+       [ ∫_{-∞}^∞ f(x) e^{-x^2} dx ].
 
    This is Gauss-Hermite quadrature. *)
 
