@@ -5,6 +5,7 @@ Import Order.TTheory GRing.Theory Num.Theory GRing.
 From mathcomp.algebra_tactics Require Import ring lra.
 Import classical_sets.
 Import numFieldNormedType.Exports.
+From Stdlib Require Import FunctionalExtensionality.
 
 Unset Implicit Arguments.
 Unset Strict Implicit.
@@ -16,7 +17,7 @@ Local Open Scope order_scope.
 Local Open Scope ring_scope.
 
 
-Section S.
+Section R.
 Context {R : realType}.
 
 (** This derivation follows Lecture 23 of _Afternotes on Numerical Analysis_ 
@@ -226,7 +227,7 @@ End P.
 Fixpoint three_term_recurrence (n: nat) : {poly R} * {poly R} :=
    match n with
    | 0 => (1%:P, 0%:P)
-   | 1 => let α1 :=  ∫ id /  ∫ (fun=>1) in ('X - α1%:P, 1%:P)
+(*   | 1 => let α1 :=  ∫ id /  ∫ (fun=>1) in ('X - α1%:P, 1%:P) *)
             (* the 1 case seems unnecessary, as it seems a special case of the S n' case. *)
    | S n' => let (pn', pn'') := three_term_recurrence n'
                    in let αn :=  ∫ (id \* (horner pn' \* horner pn')) / ∫(horner pn' \* horner pn')
@@ -308,9 +309,9 @@ Admitted.
   Variable n : nat.
   Definition zeros_of_ortho_p := proj1_sig (roots_of_ortho_p n).
   Definition L : n.-tuple {poly_n R} := lagrange n (nth 0 zeros_of_ortho_p).
-  Definition A (i: 'I_n) := ∫ (horner (tnth L i)).
+  Definition gauss_weight (i: 'I_n) := ∫ (horner (tnth L i)).
 
-  Definition G (f: R->R) := \sum_i (A i * (f (tnth zeros_of_ortho_p i))).
+  Definition G (f: R->R) := \sum_i (gauss_weight i * (f (tnth zeros_of_ortho_p i))).
 
   (** 16.  To establish this result, first note that by construction the integration formula
     G_n f is exact for polynomials of degree less than or equal to n (see section 21.17).
@@ -343,19 +344,17 @@ Admitted.
 
               0 < ∫ L_i^2 = Σ_j A_i L_i^2(x_j) = A_i.
 *)
-   Lemma A_positive: forall i, A i > 0.
+   Lemma gauss_weight_positive: forall i, gauss_weight i > 0.
    Admitted.
 
 (** 18.  Since A_0 + A_1 + ⋯ + A_n = ∫ 1, no coefficient can be larger than 1.  Consequently,
      we cannot have a situation in which large coefficients create large intermediate results
       that suffer cancellation when they are added. *)
 
-   Lemma A_leq_1:  forall i, A i <= 1.
+   Lemma gauss_weight_leq_1:  forall i, gauss_weight i <= 1.
    Admitted.
 
 (** ** Error and convergence *)
-
-Locate "^`".
 
 (** 19.  Gaussian quadrature has error formulas similar to the ones for Newton-Cotes
     formulas.  Specifically
@@ -385,7 +384,7 @@ Locate "^`".
 
 End Quadrature.
 End Integral.
-
+End R.
 (** ** Examples *)
 
 (** 21. Particular Gauss formulas arise from particular choices of the interval [[a,b]]
@@ -397,8 +396,13 @@ End Integral.
     The corresponding orthogonal polynomials are called Legendre polynomials.
 *)
 
-Section Legendre.
- Notation "∫" := (intgal (-1) 1 (fun=>1)).
+Module Legendre.
+ Section R.
+ Context {R : realType}.
+ Notation "∫" := (@intgal R (-1) 1 (fun=>1)).
+
+Definition intgal_linear1 := @intgal_linear1 R (-1) 1 ltac:(lra) (fun=>1) ltac:(intros; simpl; lra).
+Definition intgal_linear2 := @intgal_linear2 R (-1) 1 ltac:(lra) (fun=>1) ltac:(intros; simpl; lra).
 
 Lemma intgal_w1_x:  ∫ id = 0.
 Proof.
@@ -422,51 +426,8 @@ Admitted.
 Lemma intgal_w1_x5: ∫ (id \* (id \* (id \* (id \* id)))) = 0.
 Admitted.
 
-Require Import FunctionalExtensionality.
+Definition r_intgal := (intgal_w1_1,intgal_w1_C, intgal_w1_x, intgal_w1_x2, intgal_w1_x3, intgal_w1_x4, intgal_w1_x5).
 
-Lemma Legendre_poly_1:
-   horner (ortho_p (-1) 1 (fun=>1) 1) = 
-  fun x => x.
-Proof.
-extensionality x.
-unfold ortho_p. simpl. rewrite intgal_w1_1 intgal_w1_x.
-rewrite ?scale_polyE ?hornerM ?hornerD ?hornerN ?hornerM ?hornerXsubC ?hornerX ?hornerD ?hornerC.
-lra.
-Qed.
-
-Lemma mul_fun1r: forall
-   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
-    mul_fun (fun=>1) f = f.
-Proof.
-intros. extensionality x. simpl. apply mul1r.
-Qed.
-
-Lemma mul_funr1: forall
-   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
-    mul_fun f (fun=>1) = f.
-Proof.
-intros. extensionality x. simpl. apply mulr1.
-Qed.
-
-Lemma mul_fun0r: forall
-   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
-    mul_fun (fun=>0) f = (fun=>0).
-Proof.
-intros. extensionality x. simpl. apply mul0r.
-Qed.
-
-Lemma mul_funr0: forall
-   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
-    mul_fun f (fun=>0) = (fun=>0).
-Proof.
-intros. extensionality x. simpl. apply mulr0.
-Qed.
-
-Lemma opp_funC: forall  {U : Type} {V : BaseZmodule.type} (c: V), 
-  @opp_fun U V (fun=>c) = (fun=> opp c).
-Proof.
-intros. extensionality x. reflexivity.
-Qed.
 
 Lemma hornerXsubC': forall [R : nzRingType] (a : NzRing.sort R), horner('X - a%:P) = (id \- fun=>a).
 Proof.
@@ -494,9 +455,58 @@ Lemma hornerN': forall [R: nzRingType] (a: {poly R}), horner (- a) = \- horner a
 Proof. intros. extensionality x. apply hornerN.
 Qed.
 
+Definition r_horner := (@hornerXsubC, @hornerXsubC', @hornerX, @hornerX', @hornerC, @hornerC',
+                                      @hornerD, @hornerD', @hornerM, @hornerM', @hornerN, @hornerN').
+
+Lemma mul_fun1r: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun (fun=>1) f = f.
+Proof.
+intros. extensionality x. simpl. apply mul1r.
+Qed.
+
+Lemma mul_funr1: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun f (fun=>1) = f.
+Proof.
+intros. extensionality x. simpl. apply mulr1.
+Qed.
+Hint Rewrite @mul1r @mul_fun1r @mulr1 @mul_funr1 : horner.
+
+Lemma mul_fun0r: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun (fun=>0) f = (fun=>0).
+Proof.
+intros. extensionality x. simpl. apply mul0r.
+Qed.
+
+Lemma mul_funr0: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun f (fun=>0) = (fun=>0).
+Proof.
+intros. extensionality x. simpl. apply mulr0.
+Qed.
+Hint Rewrite @mul0r @mul_fun0r @mulr0 @mul_funr0 : horner.
+
+Lemma opp_funC: forall  {U : Type} {V : BaseZmodule.type} (c: V), 
+  @opp_fun U V (fun=>c) = (fun=> opp c).
+Proof.
+intros. extensionality x. reflexivity.
+Qed.
+
+Lemma opp_funr0:  forall {U: Type}, (fun _:U=> (-0):R) = (fun _:U => 0:R).
+Proof.
+intros. extensionality x. apply oppr0.
+Qed.
+
 Lemma sub_funr0: forall {U: Type} {V: zmodType} (f: U -> V),
   sub_fun f (fun=>0) = f.
 Proof. intros. extensionality x. simpl. apply subr0.
+Qed.
+
+Lemma add_fun0r: forall {U: Type} {V: nmodType} (f: U -> V),
+  add_fun (fun=>0) f = f.
+Proof. intros. extensionality x. simpl. apply add0r.
 Qed.
 
 Lemma add_funr0: forall {U: Type} {V: nmodType} (f: U -> V),
@@ -512,7 +522,6 @@ Lemma mul_funDl: forall  {s : pzSemiRingType} {T: Type},
    @left_distributive (T -> PzSemiRing.sort s) _ mul_fun add_fun.
 Proof. intros. red. intros. extensionality i. simpl. apply mulrDl. Qed.
 
-
 Lemma mul_funA: forall  {s : pzSemiRingType} {T: Type},
    @associative (T -> PzSemiRing.sort s) mul_fun.
 Proof. intros. red. intros. extensionality i. simpl. apply mulrA. Qed.
@@ -521,54 +530,45 @@ Lemma mul_funC: forall  {s : comPzSemiRingType} {T: Type},
    @commutative (T -> s) _ mul_fun.
 Proof. intros. red. intros. extensionality i. simpl. apply mulrC. Qed.
 
-Lemma Legendre_poly_2:
-   horner (ortho_p (-1) 1 (fun=>1) 2) = 
-  fun x => x*x - 1/3.
+Lemma mul_fun_consts: forall {s : comPzSemiRingType} {T: Type} (a b: s),
+    @mul_fun s T (fun=>a) (fun=>b) = fun=> a*b.
+Proof. intros; extensionality i; auto. Qed.
+
+Definition r_ring := (@mulr1, @mul1r, @mulr0, @mul0r, @addr0, @add0r, @oppr0, @subr0).
+Definition r_lift := (@mul_funr1, @mul_fun1r, @mul_funr0, @mul_fun0r, @mul_fun_consts,
+                               @add_funr0, @add_fun0r, @opp_funr0, @sub_funr0, @opp_funC).
+
+Lemma Legendre_poly_1:
+   horner (ortho_p (-1) 1 (fun=>1) 1)  =  fun x:R => x.
 Proof.
-extensionality x.
-unfold ortho_p. simpl. rewrite intgal_w1_1 intgal_w1_x.
-rewrite ?scale_polyE ?hornerM ?hornerD ?hornerN ?hornerM ?hornerXsubC ?hornerX ?hornerD ?hornerC.
-rewrite hornerXsubC' mul0r sub_funr0 subr0 hornerC' ?mul_funr1.
-rewrite mulr1.
-rewrite intgal_w1_1 intgal_w1_x3 intgal_w1_x2.
-rewrite ?mul0r subr0.
-f_equal.
-lra.
+rewrite /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
+Qed.
+
+Lemma Legendre_poly_2:
+   horner (ortho_p (-1) 1 (fun=>1) 2) =   fun x :R => x*x - 1/3.
+Proof.
+rewrite /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift ?r_intgal //.
+extensionality x; simpl; lra.
 Qed. 
 
 Lemma Legendre_poly_3:
-   horner (ortho_p (-1) 1 (fun=>1) 3) = 
-  fun x => x*x*x - (3/5)*x.
+   horner (ortho_p (-1) 1 (fun=>1) 3) =  fun x :R => x*x*x - (3/5)*x.
 Proof.
-extensionality x.
-unfold ortho_p. simpl. rewrite intgal_w1_1 intgal_w1_x.
-rewrite ?scale_polyE ?hornerM ?hornerD ?hornerN ?hornerM ?hornerXsubC ?hornerX ?hornerD ?hornerC.
-rewrite hornerXsubC' ?hornerC'.
-rewrite mul0r subr0 sub_funr0 mul_funr1.
-rewrite  intgal_w1_x3 intgal_w1_x2 mul0r.
-rewrite ?hornerM' ?hornerD' ?hornerN' ?hornerM' hornerX' ?hornerC' /=.
-rewrite mul_fun0r mul_fun1r mul_funr1 intgal_w1_1.
-rewrite mulr1 mul0r subr0.
-repeat change (?A \+ \- ?B) with (A \- B).
-rewrite sub_funr0.
-set a := (2 / 3 / 2); replace a with ((1/3):R) by (subst a; lra); clear a.
-rewrite subr0.
-rewrite ?mul_funDr ?mul_funDl ?(intgal_linear2 ltac:(lra) ltac:(intros; lra)).
-rewrite ?mul_funDr ?mul_funDl ?(intgal_linear2 ltac:(lra) ltac:(intros; lra)).
-rewrite -?mul_funA.
+rewrite /ortho_p /= ?r_horner ?r_lift  ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift //
+    ?r_intgal ?r_ring ?r_lift.
 set a := (fun=> - _).
-rewrite (mul_funC id (a \* _)) -?mul_funA.
-rewrite (mul_funC _ a).
-rewrite (mul_funC id (a \* _)) -?mul_funA.
-rewrite (mul_funC id (a \* _)) -?mul_funA.
-repeat rewrite (intgal_linear2 ); [  | intros; lra..].
-rewrite (mul_funC id (a \* _)) -?mul_funA.
-rewrite (mul_funA a a).
-replace (mul_fun a a) with (fun _:R => (1/9:R)).
-2:  extensionality y; unfold a; simpl; lra.
-unfold a; rewrite ?intgal_linear1; try (intros; lra).
-rewrite intgal_w1_x5 intgal_w1_x3 intgal_w1_x4 intgal_w1_x intgal_w1_x2 intgal_w1_C.
-field; auto.
+rewrite ?mul_funDr ?mul_funDl ?intgal_linear2.
+rewrite ?mul_funDr ?mul_funDl ?intgal_linear2.
+rewrite -?mul_funA.
+repeat rewrite (mul_funC id (a \* _)) -?mul_funA ?(mul_funC _ a).
+rewrite (mul_funA a a) r_lift.
+rewrite ?intgal_linear1 ?r_intgal.
+subst a.
+extensionality x; simpl; field; auto.
+Qed.
+
+End R.
+End Legendre.
 
 (** 22.  If we take [[a,b]]=[[0,∞]] and w(x)=e^{-x}, we get a formula to approximate
 
@@ -585,8 +585,6 @@ field; auto.
 (** 24.  There are many other Gauss formulas suitable for special purposes.  Most
      mathematical handbooks have tables of abscissas and coefficients.  The
      automatic generation of Gauss formulas is an interesting subject in its own right. *)
-
-End S.
 
 
 

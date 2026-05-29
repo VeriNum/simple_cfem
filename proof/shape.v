@@ -691,20 +691,6 @@ Defined.
 Lemma lagrange1dP1: shapes1dP1_θ = d1_lagrange 1.
 Proof. prove_d1_lagrange. Qed.
 
-Lemma lagrange1dP1: 
-  forall (x: R) (j: 'I_2),
-   shapes1dP1_θ (const_mx x) ord0 j =
-   horner (tnth (lagrange 2 (fun i => natmul 2 i - 1)) j) x.
-Proof.
-intros.
-ord_enum_cases j;
-(unfold shapes1dP1_θ;
-rewrite_matrix;
-rewrite lagrangeE; [ | lia | intros ? ? ?; apply (@mulrIn R 1 ltac:(lra)); lra];
-rewrite index_ord_enum;
-set a := ord_enum _; compute in a; destruct idP in a; [ | contradiction n; auto]; subst a;
-rewrite !bigop.unlock /= ?hornerM ?hornerD ?hornerN ?hornerC ?hornerX; field; auto).
-Qed.
  (* end show *)
 
 (** ** 1dP2:  1-dimension, degree 2 *)
