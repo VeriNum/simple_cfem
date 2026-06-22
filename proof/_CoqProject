@@ -17,10 +17,13 @@ C/verif_shapes1d.v
 C/verif_shapes2d.v
 C/verif_shapes2dP2.v
 C/VSU_shapes.v
+C/spec_quadrules.v
+C/verif_quadrules.v
 model.v
 matrix_util.v
 shape.v
 shapefloat.v
 shape_accuracy.v
 quadrature.v
+polyroots.v
 

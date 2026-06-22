@@ -429,7 +429,15 @@ Admitted.
 Lemma intgal_w1_x5: ∫ (id \* (id \* (id \* (id \* id)))) = 0.
 Admitted.
 
-Definition r_intgal := (intgal_w1_1,intgal_w1_C, intgal_w1_x, intgal_w1_x2, intgal_w1_x3, intgal_w1_x4, intgal_w1_x5).
+Lemma intgal_w1_x6: ∫ (id \* (id \* (id \* (id \* (id \* id))))) = 2/7.
+Admitted.
+
+Lemma intgal_w1_x7: ∫ (id \* (id \* (id \* (id \* (id \* (id \* id)))))) = 0.
+Admitted.
+
+Definition r_intgal := (intgal_w1_1,intgal_w1_C, intgal_w1_x, intgal_w1_x2, 
+        intgal_w1_x3, intgal_w1_x4, intgal_w1_x5,
+        intgal_w1_x6, intgal_w1_x7 ).
 
 
 Lemma hornerXsubC': forall [R : nzRingType] (a : NzRing.sort R), horner('X - a%:P) = (id \- fun=>a).
@@ -541,23 +549,28 @@ Definition r_ring := (@mulr1, @mul1r, @mulr0, @mul0r, @addr0, @add0r, @oppr0, @s
 Definition r_lift := (@mul_funr1, @mul_fun1r, @mul_funr0, @mul_fun0r, @mul_fun_consts,
                                @add_funr0, @add_fun0r, @opp_funr0, @sub_funr0, @opp_funC).
 
-Lemma Legendre_poly_1:
-   horner (ortho_p (-1) 1 (fun=>1) 1)  =  fun x:R => x.
+Definition legendre (n: nat) : R -> R := 
+   horner (ortho_p (-1) 1 (fun=> 1) n) .
+
+Lemma Legendre_poly_0: legendre 0 = fun x: R => 1%R.
 Proof.
-rewrite /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
+rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
 Qed.
 
-Lemma Legendre_poly_2:
-   horner (ortho_p (-1) 1 (fun=>1) 2) =   fun x :R => x*x - 1/3.
+Lemma Legendre_poly_1: legendre 1 =  fun x:R => x.
 Proof.
-rewrite /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift ?r_intgal //.
+rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
+Qed.
+
+Lemma Legendre_poly_2: legendre 2 =   fun x :R => x*x - 1/3.
+Proof.
+rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift ?r_intgal //.
 extensionality x; simpl; lra.
 Qed. 
 
-Lemma Legendre_poly_3:
-   horner (ortho_p (-1) 1 (fun=>1) 3) =  fun x :R => x*x*x - (3/5)*x.
+Lemma Legendre_poly_3: legendre 3 =  fun x :R => x*x*x - (3/5)*x.
 Proof.
-rewrite /ortho_p /=.
+rewrite /legendre /ortho_p /=.
 rewrite ?r_horner ?r_lift  ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift //
     ?r_intgal ?r_ring ?r_lift.
 set a := (fun=> - _).
@@ -570,6 +583,71 @@ rewrite ?intgal_linear1 ?r_intgal.
 subst a.
 extensionality x; simpl; field; auto.
 Qed.
+
+Lemma pull_left_const1: forall  {s : comPzSemiRingType} (c: s) (B: s->s),
+  mul_fun (fun x: ComPzSemiRing.sort s => x)
+     (mul_fun (fun=>c)  B)
+= mul_fun (fun=>c) (mul_fun (fun x: ComPzSemiRing.sort s => x) B).
+Proof.
+intros. rewrite mul_funC. rewrite -mul_funA. f_equal. apply mul_funC.
+Qed. 
+
+Lemma pull_left_const2: forall  {s : comPzSemiRingType} (c: s),
+  mul_fun (fun x: ComPzSemiRing.sort s => x) (fun=>c)  
+= mul_fun (fun=>c) (fun x: ComPzSemiRing.sort s => x).
+Proof. intros; apply  mul_funC.
+Qed.
+
+Lemma pull_left_const3: forall  {s : comPzSemiRingType} (c d: s) (B: s->s),
+  mul_fun (fun=> c) (mul_fun (fun=>d) B) 
+= mul_fun (fun=> c*d) B.
+Proof. intros. rewrite mul_funA. f_equal.
+Qed.
+
+Lemma pull_left_const4: forall (c: R) (B: R -> R),
+  opp_fun (mul_fun (fun=>c) B) = mul_fun (fun=> - c) B.
+Proof.
+intros.
+extensionality x. simpl. lra.
+Qed.
+
+Lemma pull_left_const5 : forall (c: R),
+  opp_fun (fun x : R =>c) = (fun x : R => - c).
+Proof.
+intros.
+extensionality x. simpl. lra.
+Qed.
+
+Definition pull_left_const := (@pull_left_const1, @pull_left_const2, @pull_left_const3, @pull_left_const4, @pull_left_const5).
+
+
+Lemma Legendre_poly_4: legendre 4 =  fun x :R => x*x*x*x - (30/35)*(x*x) + (3/35).
+Proof.
+rewrite /legendre /ortho_p /=.
+match goal with |- _ = ?B => set RHS := B end.
+rewrite !hornerC' ?r_lift.
+rewrite ?r_intgal ?r_ring ?scale_0poly ?r_ring.
+rewrite hornerX' ?r_intgal ?r_ring ?scale_0poly ?r_ring.
+match goal with |- context [scale_poly ?x] => replace x with (@inv R 3) by nra end.
+rewrite ?scale_polyE.
+rewrite !r_horner ?r_lift ?r_intgal ?r_ring ?r_lift.
+match goal with |- context [fun=> opp ?A] => set a := opp A; simpl in a end.
+repeat rewrite ?mul_funDr ?mul_funDl ?intgal_linear2.
+rewrite -?mul_funA.
+rewrite ?mul_fun_consts ?pull_left_const.
+rewrite ?intgal_linear1 ?r_intgal ?r_lift ?r_ring ?r_lift.
+rewrite -?mul_funA.
+rewrite !pull_left_const.
+rewrite !intgal_linear1 !r_intgal ?r_ring.
+rewrite !r_lift ?r_ring ?r_lift.
+subst RHS a.
+extensionality x.
+simpl.
+field.
+auto.
+Qed.
+
+
 
 End R.
 End Legendre.

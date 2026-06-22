@@ -5,7 +5,7 @@
 
 double gauss_point(int i, int npts)
 {
-    const double gauss_pts[] = {
+   static const double gauss_pts[] = {
         /* One point */
         0.0,
 
@@ -87,7 +87,7 @@ double gauss_point(int i, int npts)
 
 double gauss_weight(int i, int npts)
 {
-    const double gauss_wts[] = {
+   static const double gauss_wts[] = {
         /* One point */
         2.0,
 

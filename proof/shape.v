@@ -121,8 +121,9 @@ Qed.
     from a column-vector of length d to a row-vector of length k+1.  The following definition
     defines the 1-dimensional such functions via MathComp's notion of Lagrange polynomials. *)
 
+Definition d1_lagrange_nodes (k: nat) (i: nat) := @natmul R (2/natmul 1 k) i - 1.
 Definition d1_lagrange (k: nat): 'cV[R]_1 -> 'rV[R]_k.+1 :=
-  fun (x: 'cV_1) => \matrix_(i,j) horner (tnth (lagrange k.+1 (fun i => natmul (2/natmul 1 k) i - 1)) j) (x 0 0).
+  fun (x: 'cV_1) => \matrix_(i,j) horner (tnth (lagrange k.+1 (d1_lagrange_nodes k)) j) (x 0 0).
 
 (** *** Multivariate Polynomials are continuously differentiable *)
 
@@ -596,7 +597,7 @@ end.
 
 Ltac prove_d1_lagrange := 
 lazymatch goal with
-  |  |- ?A = d1_lagrange _ => rewrite /A /d1_lagrange
+  |  |- ?A = d1_lagrange _ => rewrite /A /d1_lagrange /d1_lagrange_nodes
   | |- _ => fail "tactic prove_d1_lagrange must be applied to a goal of the form '___ = d1_lagrange _'"
 end;
 let x := fresh "x" in let i := fresh "i" in let j := fresh "j" in let a := fresh "a" in let n := fresh "n" in 
@@ -664,12 +665,39 @@ Context {R : realType}.
 
 (** To make a shape-function-package, we first define the θ and dθ functions
      and the list of vertices.*)
-Definition shapes1dP1_θ (xm: 'cV_1) : 'rV_(1 + 1) :=
+Definition shapes1dP1_θ (xm: 'cV_1) : 'rV_2 :=
     let x : R := xm 0 0 in rowmx_of_list [::   (1/2)*(1-x) ;   (1/2)*(1+x)].
 Definition shapes1dP1_vertices : 'M[R]_(1,2) := mx_of_list [:: [:: -1; 1]].
 Definition shapes1dP1_dθ (xm: 'cV[R]_1) : 'M[R]_(2,1) :=
    let x := xm 0 0 in
    mx_of_list ([:: [:: -1/2];  [:: 1/2]] : list (list (R))).
+
+
+Lemma prove_lagrangian_1d: 
+  forall n (f: 'cV_1 -> 'rV_n.+1) (g: 'M[R]_(1,n.+1)),
+    (f = d1_lagrange n) ->
+    (forall i: 'I_n.+1, col i g 0 0 = d1_lagrange_nodes n i) ->
+    n != O ->
+    forall (i j: 'I_n.+1),  f (col i g) 0 j = (if i==j then 1 else 0).
+Proof.
+intros.
+rewrite {}H /d1_lagrange mxE {}H0 lagrange_sample.
+- rewrite eq_sym. destruct (i == j); auto.
+- lia.
+- rewrite /d1_lagrange_nodes. intros ? ? ?.
+apply (@mulrIn R (2/n%:R)); [ | lra].
+assert (@inv R n%:R != 0); try lra.
+apply invr_neq0.
+rewrite pnatr_eq0 //.
+Qed.
+
+Ltac prove_lagrangian_1d :=
+let i := fresh "i" in 
+apply prove_lagrangian_1d; [ prove_d1_lagrange | | lia];
+move => i;
+match goal with |- fun_of_matrix (col _ ?F) _ _ = ?G _ _ => rewrite /F /G end;
+replace (@zero _) with (Ordn 1 0) by (apply ord_inj; auto);
+ord_enum_cases i; rewrite_matrix; rewrite mxE; rewrite_matrix; simpl; lra.
 
 (**  Recall that a Shape.shape (defined above) starts with its dimension d, number of vertices nsh,
     then θ, dθ, and vtx; after that there are the proofs of its properties.  The [apply] here installs
@@ -680,7 +708,7 @@ Definition shapes1dP1 : @Shape.shape R.
 (**  The individual proofs (lagrangian, cont. differentiable, and that dθ is actually the derivative of θ, are 
    all proved by Ltac scripts.  The scripts tend to do case analysis over 0..d and 0..nsh, sometimes
    nested 2 or 3 deep; so the proofs go very fast for 1dP1 but take much longer for 2dP2. *)
-- abstract prove_lagrangian.   (* 0.064 seconds on Mac M2 *)
+- abstract prove_lagrangian_1d. (* 0.035 seconds *)
 - abstract prove_continuously_differentiable.   (* 0.022 seconds *)
 - abstract (unfold shapes1dP1_θ, shapes1dP1_dθ; prove_deriv).  (* 0.411 seconds*)
 Defined.
@@ -710,67 +738,7 @@ Definition shapes1dP2_dθ (xm: 'rV[R]_1) : 'M[R]_(3,1) :=
 Definition shapes1dP2 : @Shape.shape R.
  (* begin show *)
 apply (Shape.Build_shape 1 3 shapes1dP2_θ shapes1dP2_dθ shapes1dP2_vertices).
-- 
-(**   There are three subgoals, the first of which is,
-  [ forall i j : 'I_3, shapes1dP2_θ (col i shapes1dP2_vertices) 0 j = (if i == j then 1 else 0) ]
- which is the "Lagrangian" property.
- 
- To demonstrate how these proofs go, this time we'll skip using the fully automated tactics,
-  so instead of, [abstract prove_lagrangian]  we will do, *)
-intros i j.
-unfold shapes1dP2_θ, shapes1dP2_vertices.
-simplify_ordinals.
-(** Current proof goal, in which (Ordn 1 0) means, value 0 in the ordinal type ['I_1]:
-<<
- i, j : 'I_3 
- ______________________________________(1/1)
- rowmx_of_list
-   [:: - (1 / 2) * (1 - col i (mx_of_list [:: [:: -1; 0; 1]]) (Ordn 1 0) (Ordn 1 0)) *
-      col i (mx_of_list [:: [:: -1; 0; 1]]) (Ordn 1 0) (Ordn 1 0);
-      (1 - col i (mx_of_list [:: [:: -1; 0; 1]]) (Ordn 1 0) (Ordn 1 0)) *
-      (1 + col i (mx_of_list [:: [:: -1; 0; 1]]) (Ordn 1 0) (Ordn 1 0))%E;
-      1 / 2 * col i (mx_of_list [:: [:: -1; 0; 1]]) (Ordn 1 0) (Ordn 1 0) *
-      (1 + col i (mx_of_list [:: [:: -1; 0; 1]]) (Ordn 1 0) (Ordn 1 0))%E]
-  (Ordn 1 0) j =
-( if i == j then 1 else 0)
->>
-*)
-rewrite_matrix.
-(** Current proof goal: 
-<<
-i, j : 'I_3
-______________________________________(1/1)
-rowmx_of_list
-  [:: - (1 / 2) * (1 - mx_of_list [:: [:: -1; 0; 1]] (Ordn 1 0) i) *
-      mx_of_list [:: [:: -1; 0; 1]] (Ordn 1 0) i;
-      (1 - mx_of_list [:: [:: -1; 0; 1]] (Ordn 1 0) i) *
-      (1 + mx_of_list [:: [:: -1; 0; 1]] (Ordn 1 0) i)%E;
-      1 / 2 * mx_of_list [:: [:: -1; 0; 1]] (Ordn 1 0) i *
-      (1 + mx_of_list [:: [:: -1; 0; 1]] (Ordn 1 0) i)%E]
-  (Ordn 1 0) j =
-(if i == j then 1 else 0)
->>
-*)
-ord_enum_cases i; rewrite_matrix.
-(** Now three subgoals, of which the first is,
-<<
-j : 'I_3
-______________________________________(1/3)
-rowmx_of_list [:: - (1 / 2) * (1 - -1) * -1; (1 - -1) * (1 - 1); 1 / 2 * -1 * (1 - 1)] (Ordn 1 0) j =
-   (if Ordn 3 0 == j then 1 else 0)
->>
-*)
-all: ord_enum_cases j; rewrite_matrix.
-(** Now nine subgoals, of which number 6 is,
-<<
-______________________________________(6/9)
-1 / 2 * 0 * (1 + 0)%E = (if Ordn 3 1 == Ordn 3 2 then 1 else 0)
->>  
-*)
-all: simpl.
-(** Now that subgoal is, [1 / 2 * 0 * (1 + 0) = 0]  *)
-all: lra.  (* Solve these with the Linear Real Arithmetic decision procedure *)
-
+- abstract prove_lagrangian_1d.
 -
 (** The second goal is,
    [forall j : 'I_3, continuously_differentiable (fun i : 'cV_1 => shapes1dP2_θ i 0 j)]
@@ -956,7 +924,7 @@ Definition shapes1dP3_dθ (xm: 'rV[R]_1) : 'M[R]_(4,1) :=
 Definition shapes1dP3 : @Shape.shape R.
  (* begin show *)
 apply (Shape.Build_shape 1 4 shapes1dP3_θ shapes1dP3_dθ shapes1dP3_vertices).
-- abstract prove_lagrangian.  (* 0.407 seconds *)
+- abstract prove_lagrangian_1d.  (* 4.165 seconds, most of which is horner rewriting *)
 - abstract prove_continuously_differentiable.  (* 0.081 seconds *)
 - abstract (unfold shapes1dP3_θ, shapes1dP3_dθ; prove_deriv).  (* 4.339 seconds *)
 Defined.
@@ -997,12 +965,169 @@ Definition shapes2dP1_dθ (xm: 'cV[R]_2) : 'M[R]_(4,2) :=
                          [:: dNx 1 0 * Ny 0 1 ; Nx 0 1 * dNy 1 0 ];
                          [:: dNx 0 0 * Ny 0 1 ; Nx 0 0 * dNy 1 0 ]]: list (list R)).
 
+
+Ltac ord_enum_cases' j :=
+ lazymatch type of j with ordinal ?n => 
+  pattern j; 
+  apply ord_enum_cases;
+  compute_ord_enum n
+ end;
+ clear j;
+ cbv beta;
+ rewrite ?List.Forall_cons_iff ?List.Forall_nil_iff.
+
+Ltac prove_lagrangian_2d := 
+let i := fresh "i" in let j := fresh "j" in 
+intros i j;
+repeat match goal with |- fun_of_matrix (?F (col _ ?V)) _ _ = _ => try unfold F; try unfold V end;
+match goal with |- context [@fun_of_matrix _ _ (S ?n) (?F (row _ (col _ _)))] =>
+    replace F with (@d1_lagrange R n) by (symmetry; prove_d1_lagrange)
+end;
+rewrite -?col_row /d1_lagrange /d1_lagrange_nodes;
+rewrite_matrix;
+rewrite ?(mxE _ (fun _ _ => horner _ _));
+let F := fresh "F" in
+set F := fun _ => _;
+let HF := fresh "HF" in 
+assert (HF: injective F)
+ by (let H := fresh in 
+    rewrite /F; intros ? ? H;
+    match type of H with ?A *+ _ + _  = _ => 
+      apply (@addIr R) in H;
+      apply (@mulrIn _ A ltac:(lra) _ _ H)
+    end);
+let RF := fresh "RF" in 
+(assert (RF := @lagrange_sample _ 2 F ltac:(lia) HF));
+ord_enum_cases' j; rewrite_matrix;
+ord_enum_cases' i; rewrite_matrix;
+let z := fresh "z" in 
+repeat (set z := _ == _; compute in z; subst z);  cbv match;
+repeat
+  match goal with |- context [horner ?D ?G] =>
+  match type of RF with forall _ : 'I_?n, _ => 
+ first [ replace (horner D _) with (horner D (F (Ordn n 0)))  by (f_equal; rewrite /F /=; lra)
+        |replace (horner D _) with (horner D (F (Ordn n 1))) by (f_equal; rewrite /F /=; lra)
+        |replace (horner D _) with (horner D (F (Ordn n 2))) by (f_equal; rewrite /F /=; lra)
+        |replace (horner D _) with (horner D (F (Ordn n 3))) by (f_equal; rewrite /F /=; lra)
+       ] ; rewrite RF
+end end;
+simpl; rewrite ?mulr0  ?mul0r ?mul1r ?mulr1; repeat simple apply conj; auto.
+
+
+Import JMeq.
+
+Lemma rowmx_of_list_congr: forall [T] (al bl: seq T),
+   al =  bl ->
+  JMeq (@rowmx_of_list T al) (@rowmx_of_list T bl).
+Proof.
+intros. subst. apply JMeq_refl.
+Qed.
+
+Ltac evar_seq T n bl :=
+ let n := eval compute in n in 
+ match n with 
+ | O => pose (bl := @nil T)
+ | S ?n' => evar_seq T n' bl; match goal with bl := ?a |- _ =>
+                  subst bl; let e := fresh "e" in evar (e: T); pose (bl := cons e a); subst e
+ end end.
+    
+Lemma col_rowmx_of_listn: forall  (T : BaseAddUMagma.type) n (k: nat) (H: is_true (k < n)%N) al (i j: 'I_1),
+   @eq (BaseAddUMagma.sort T) (fun_of_matrix (@col (BaseAddUMagma.sort T) 1 n (@Ordinal n k H) (@rowmx_of_listn T n al)) i j)
+   (nth (@zero T) al k).
+Proof.
+intros.
+rewrite mxE.
+apply rowmx_of_listn_E.
+Qed.
+
+Ltac prove_lagrangian_2d ::=
+  (* MUCH FASTER version *)
+let i := fresh "i" in let j := fresh "j" in 
+intros i j;
+repeat match goal with |- fun_of_matrix (?F (col _ ?V)) _ _ = _ => try unfold F; try unfold V end;
+match goal with |- context [@fun_of_matrix _ _ (S ?n) (?F (row _ (col _ _)))] =>
+    replace F with (@d1_lagrange R n) by (symmetry; prove_d1_lagrange)
+end;
+rewrite -?col_row; rewrite_matrix;
+rewrite /d1_lagrange /d1_lagrange_nodes;
+with_strategy opaque [rowmx_of_list rowmx_of_listn] simpl;
+ let al := fresh "al" in let bl := fresh "bl" in 
+set (al := cons _ _);
+evar_seq (Real.sort R) (size al) bl;
+etransitivity;
+ [ apply f_equal3; [ | reflexivity | reflexivity];
+  apply JMeq_eq;
+  apply (@JMeq_trans _ _ _ _ (rowmx_of_list bl)); [ | apply JMeq_refl];
+  apply (rowmx_of_list_congr al bl);
+  subst al bl;
+  repeat apply (f_equal2 cons); try apply (f_equal2 mul); try apply mxE; [reflexivity] 
+  | subst al bl];
+let F := fresh "F" in
+set F := fun _ => _;
+let HF := fresh "HF" in 
+assert (HF: injective F)
+ by (let H := fresh in 
+    rewrite /F; intros ? ? H;
+    match type of H with ?A *+ _ + _  = _ => 
+      apply (@addIr R) in H;
+      apply (@mulrIn _ A ltac:(lra) _ _ H)
+    end);
+let RF := fresh "RF" in 
+match goal with |- context [lagrange ?n] => 
+(assert (RF := @lagrange_sample _ n F ltac:(lia) HF))
+end;
+time "a" ord_enum_cases' i;
+time "b" repeat match goal with |- context [@fun_of_matrix (Real.sort R) 1 1 
+       (@col (Real.sort R) (S O) ?n0 (@Ordinal ?n1 ?k isT)
+          (@rowmx_of_listn 
+          (Algebra_BaseZmodule__to__Algebra_BaseAddUMagma
+             (GRing_PzRing__to__Algebra_BaseZmodule (reals_Real__to__GRing_PzRing R)))
+            ?n2 ?ρ))
+    (@zero (fintype_ordinal__canonical__Algebra_BaseAddUMagma O))
+    (@zero (fintype_ordinal__canonical__Algebra_BaseAddUMagma O))]
+ => constr_eq n0 n1; constr_eq n0 n2;
+     let H := fresh in 
+     let D := fresh "D" in pose D := @fun_of_matrix (Real.sort R) 1 1 
+       (@col (Real.sort R) (S O) n0 (@Ordinal n1 k isT)
+          (@rowmx_of_listn 
+          (Algebra_BaseZmodule__to__Algebra_BaseAddUMagma
+             (GRing_PzRing__to__Algebra_BaseZmodule (reals_Real__to__GRing_PzRing R)))
+            n2 ρ))
+    (@zero (fintype_ordinal__canonical__Algebra_BaseAddUMagma O))
+    (@zero (fintype_ordinal__canonical__Algebra_BaseAddUMagma O));
+   assert (H := col_rowmx_of_listn (Real.sort R) n0 k isT ρ 0 0);
+  change (@fun_of_matrix _ 1 1 
+       (@col (Real.sort R) (S O) n0 (@Ordinal n1 k isT)
+          (@rowmx_of_listn 
+          (Algebra_BaseZmodule__to__Algebra_BaseAddUMagma
+             (GRing_PzRing__to__Algebra_BaseZmodule (reals_Real__to__GRing_PzRing R)))
+            n2 ρ))
+    (@zero (fintype_ordinal__canonical__Algebra_BaseAddUMagma O))
+    (@zero (fintype_ordinal__canonical__Algebra_BaseAddUMagma O)))
+  with D;
+ change (fun_of_matrix _ _ _) with D in H;
+ simpl in H; rewrite {}H; clear D
+end;
+time "c" (repeat
+  match goal with |- context [horner ?D ?G] =>
+  match type of RF with forall _ : 'I_?n, _ => 
+ first [ replace (horner D _) with (horner D (F (Ordn n 0)))  by (f_equal; rewrite /F /=; lra)
+        |replace (horner D _) with (horner D (F (Ordn n 1))) by (f_equal; rewrite /F /=; lra)
+        |replace (horner D _) with (horner D (F (Ordn n 2))) by (f_equal; rewrite /F /=; lra)
+        |replace (horner D _) with (horner D (F (Ordn n 3))) by (f_equal; rewrite /F /=; lra)
+       ] ; rewrite RF
+end end;
+simpl nat_of_bool);
+time "d" ord_enum_cases' j;
+time "e" rewrite_matrix;
+time "f" (simpl; rewrite ?mulr0  ?mul0r ?mul1r ?mulr1; repeat simple apply conj; auto).
+
+
 (** Real-valued functional model of 2dP1 element *)
 Definition shapes2dP1 : @Shape.shape R.
  (* begin show *)
 apply (Shape.Build_shape 2 4 shapes2dP1_θ shapes2dP1_dθ shapes2dP1_vertices).
-- abstract (unfold shapes2dP1_θ, shapes1dP1_θ, shapes2dP1_vertices; 
-                  prove_lagrangian).  (* 0.4 seconds *)
+- time "prove lagrangian 2dP1" abstract prove_lagrangian_2d.
 - abstract prove_continuously_differentiable. (* 0.249 seconds *)
 - time "prove_deriv 2dP1" abstract (unfold shapes2dP1_θ, shapes2dP1_dθ, shapes1dP1_θ, shapes1dP1_dθ;
                      prove_deriv).  (* 7.07 seconds *)
@@ -1083,9 +1208,11 @@ Definition shapes2dP2_dθ (xy: 'cV[R]_2) : 'M[R]_(9,2) :=
                         [:: dNx 0 0 * Ny 0 1; Nx 0 0 * dNy 1 0];
                         [:: dNx 1 0 * Ny 0 1; Nx 0 1 * dNy 1 0]].
 
+
 Definition shapes2dP2 : @Shape.shape R.
  (* begin show *)
 apply (Shape.Build_shape 2 9 shapes2dP2_θ shapes2dP2_dθ shapes2dP2_vertices).
+ (* - time "lagrangian_2d" abstract (prove_lagrangian_2d). *)
 - time "lagrangian" abstract (unfold shapes2dP2_θ,  shapes1dP2_θ, shapes2dP2_vertices;
                                            prove_lagrangian).   (* 6.756 seconds *)
 - time "cont_diff" abstract prove_continuously_differentiable.  (* 2.197 seconds *)

@@ -6,7 +6,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.16".
+  Definition version := "3.17".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
@@ -182,1020 +182,170 @@ Definition v___stderrp := {|
   gvar_volatile := false
 |}.
 
+Definition v_gauss_pts := {|
+  gvar_info := (tarray tdouble 55);
+  gvar_init := (Init_float64 (Float.of_bits (Int64.repr 0)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4619996508395130082))) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603375528459645726)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4618219870767582652))) ::
+                Init_float64 (Float.of_bits (Int64.repr 0)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4605152166087193156)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4617440390965479031))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4623575862932062729))) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599796173922713079)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4605931645889296777)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4617034674876499351))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4620346716940814588))) ::
+                Init_float64 (Float.of_bits (Int64.repr 0)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603025319913961220)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4606337361978276457)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4616797878596100066))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4619241172616492701))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4625606854344018488))) ::
+                Init_float64 (Float.of_bits (Int64.repr 4597765182510757320)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4604130864238283107)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4606574158258675742)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4616648013228776914))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4618517698167201326))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4622389360646816417))) ::
+                Init_float64 (Float.of_bits (Int64.repr 0)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4600982676207959391)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4604854338687574482)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4606724023625998894)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4616547295229719452))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4618021083607862240))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4620463242178558796))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4627595087063518388))) ::
+                Init_float64 (Float.of_bits (Int64.repr 4595776949791257420)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4602908794676217012)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4605350953246913568)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4606824741625056356)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4616476405121736443))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4617666518542646630))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4619672058597999223))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4623859186549609880))) ::
+                Init_float64 (Float.of_bits (Int64.repr 0)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599512850305165928)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603699978256776585)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4605705518312129178)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4606895631733039365)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4616424647151652134))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4617405019197754633))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4619077239952252524))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4621893059594851624))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4628840253223738766))) ::
+                Init_float64 (Float.of_bits (Int64.repr 4594531783631037042)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4601478977259924184)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4604294796902523284)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4605967017657021175)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4606947389703123674)) ::
+                nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
 Definition f_gauss_point := {|
   fn_return := tdouble;
   fn_callconv := cc_default;
   fn_params := ((_i, tint) :: (_npts, tint) :: nil);
-  fn_vars := ((_gauss_pts, (tarray tdouble 55)) :: nil);
+  fn_vars := nil;
   fn_temps := ((_t'1, tdouble) :: nil);
   fn_body :=
 (Ssequence
-  (Sassign
+  (Sset _t'1
     (Ederef
       (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-        (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-    (Econst_float (Float.of_bits (Int64.repr 0)) tdouble))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-          (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-      (Eunop Oneg
-        (Econst_float (Float.of_bits (Int64.repr 4603375528459645726)) tdouble)
-        tdouble))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-            (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble)
-        (Econst_float (Float.of_bits (Int64.repr 4603375528459645726)) tdouble))
-      (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-              (Econst_int (Int.repr 3) tint) (tptr tdouble)) tdouble)
-          (Eunop Oneg
-            (Econst_float (Float.of_bits (Int64.repr 4605152166087193156)) tdouble)
-            tdouble))
-        (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-                (Econst_int (Int.repr 4) tint) (tptr tdouble)) tdouble)
-            (Econst_float (Float.of_bits (Int64.repr 0)) tdouble))
-          (Ssequence
-            (Sassign
-              (Ederef
-                (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-                  (Econst_int (Int.repr 5) tint) (tptr tdouble)) tdouble)
-              (Econst_float (Float.of_bits (Int64.repr 4605152166087193156)) tdouble))
-            (Ssequence
-              (Sassign
-                (Ederef
-                  (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-                    (Econst_int (Int.repr 6) tint) (tptr tdouble)) tdouble)
-                (Eunop Oneg
-                  (Econst_float (Float.of_bits (Int64.repr 4605931645889296777)) tdouble)
-                  tdouble))
-              (Ssequence
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-                      (Econst_int (Int.repr 7) tint) (tptr tdouble)) tdouble)
-                  (Eunop Oneg
-                    (Econst_float (Float.of_bits (Int64.repr 4599796173922713079)) tdouble)
-                    tdouble))
-                (Ssequence
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-                        (Econst_int (Int.repr 8) tint) (tptr tdouble))
-                      tdouble)
-                    (Econst_float (Float.of_bits (Int64.repr 4599796173922713079)) tdouble))
-                  (Ssequence
-                    (Sassign
-                      (Ederef
-                        (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-                          (Econst_int (Int.repr 9) tint) (tptr tdouble))
-                        tdouble)
-                      (Econst_float (Float.of_bits (Int64.repr 4605931645889296777)) tdouble))
-                    (Ssequence
-                      (Sassign
-                        (Ederef
-                          (Ebinop Oadd (Evar _gauss_pts (tarray tdouble 55))
-                            (Econst_int (Int.repr 10) tint) (tptr tdouble))
-                          tdouble)
-                        (Eunop Oneg
-                          (Econst_float (Float.of_bits (Int64.repr 4606337361978276457)) tdouble)
-                          tdouble))
-                      (Ssequence
-                        (Sassign
-                          (Ederef
-                            (Ebinop Oadd
-                              (Evar _gauss_pts (tarray tdouble 55))
-                              (Econst_int (Int.repr 11) tint) (tptr tdouble))
-                            tdouble)
-                          (Eunop Oneg
-                            (Econst_float (Float.of_bits (Int64.repr 4603025319913961220)) tdouble)
-                            tdouble))
-                        (Ssequence
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd
-                                (Evar _gauss_pts (tarray tdouble 55))
-                                (Econst_int (Int.repr 12) tint)
-                                (tptr tdouble)) tdouble)
-                            (Econst_float (Float.of_bits (Int64.repr 0)) tdouble))
-                          (Ssequence
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd
-                                  (Evar _gauss_pts (tarray tdouble 55))
-                                  (Econst_int (Int.repr 13) tint)
-                                  (tptr tdouble)) tdouble)
-                              (Econst_float (Float.of_bits (Int64.repr 4603025319913961220)) tdouble))
-                            (Ssequence
-                              (Sassign
-                                (Ederef
-                                  (Ebinop Oadd
-                                    (Evar _gauss_pts (tarray tdouble 55))
-                                    (Econst_int (Int.repr 14) tint)
-                                    (tptr tdouble)) tdouble)
-                                (Econst_float (Float.of_bits (Int64.repr 4606337361978276457)) tdouble))
-                              (Ssequence
-                                (Sassign
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Evar _gauss_pts (tarray tdouble 55))
-                                      (Econst_int (Int.repr 15) tint)
-                                      (tptr tdouble)) tdouble)
-                                  (Eunop Oneg
-                                    (Econst_float (Float.of_bits (Int64.repr 4606574158258675742)) tdouble)
-                                    tdouble))
-                                (Ssequence
-                                  (Sassign
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Evar _gauss_pts (tarray tdouble 55))
-                                        (Econst_int (Int.repr 16) tint)
-                                        (tptr tdouble)) tdouble)
-                                    (Eunop Oneg
-                                      (Econst_float (Float.of_bits (Int64.repr 4604130864238283107)) tdouble)
-                                      tdouble))
-                                  (Ssequence
-                                    (Sassign
-                                      (Ederef
-                                        (Ebinop Oadd
-                                          (Evar _gauss_pts (tarray tdouble 55))
-                                          (Econst_int (Int.repr 17) tint)
-                                          (tptr tdouble)) tdouble)
-                                      (Eunop Oneg
-                                        (Econst_float (Float.of_bits (Int64.repr 4597765182510757320)) tdouble)
-                                        tdouble))
-                                    (Ssequence
-                                      (Sassign
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Evar _gauss_pts (tarray tdouble 55))
-                                            (Econst_int (Int.repr 18) tint)
-                                            (tptr tdouble)) tdouble)
-                                        (Econst_float (Float.of_bits (Int64.repr 4597765182510757320)) tdouble))
-                                      (Ssequence
-                                        (Sassign
-                                          (Ederef
-                                            (Ebinop Oadd
-                                              (Evar _gauss_pts (tarray tdouble 55))
-                                              (Econst_int (Int.repr 19) tint)
-                                              (tptr tdouble)) tdouble)
-                                          (Econst_float (Float.of_bits (Int64.repr 4604130864238283107)) tdouble))
-                                        (Ssequence
-                                          (Sassign
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Evar _gauss_pts (tarray tdouble 55))
-                                                (Econst_int (Int.repr 20) tint)
-                                                (tptr tdouble)) tdouble)
-                                            (Econst_float (Float.of_bits (Int64.repr 4606574158258675742)) tdouble))
-                                          (Ssequence
-                                            (Sassign
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Evar _gauss_pts (tarray tdouble 55))
-                                                  (Econst_int (Int.repr 21) tint)
-                                                  (tptr tdouble)) tdouble)
-                                              (Eunop Oneg
-                                                (Econst_float (Float.of_bits (Int64.repr 4606724023625998894)) tdouble)
-                                                tdouble))
-                                            (Ssequence
-                                              (Sassign
-                                                (Ederef
-                                                  (Ebinop Oadd
-                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                    (Econst_int (Int.repr 22) tint)
-                                                    (tptr tdouble)) tdouble)
-                                                (Eunop Oneg
-                                                  (Econst_float (Float.of_bits (Int64.repr 4604854338687574482)) tdouble)
-                                                  tdouble))
-                                              (Ssequence
-                                                (Sassign
-                                                  (Ederef
-                                                    (Ebinop Oadd
-                                                      (Evar _gauss_pts (tarray tdouble 55))
-                                                      (Econst_int (Int.repr 23) tint)
-                                                      (tptr tdouble))
-                                                    tdouble)
-                                                  (Eunop Oneg
-                                                    (Econst_float (Float.of_bits (Int64.repr 4600982676207959391)) tdouble)
-                                                    tdouble))
-                                                (Ssequence
-                                                  (Sassign
-                                                    (Ederef
-                                                      (Ebinop Oadd
-                                                        (Evar _gauss_pts (tarray tdouble 55))
-                                                        (Econst_int (Int.repr 24) tint)
-                                                        (tptr tdouble))
-                                                      tdouble)
-                                                    (Econst_float (Float.of_bits (Int64.repr 0)) tdouble))
-                                                  (Ssequence
-                                                    (Sassign
-                                                      (Ederef
-                                                        (Ebinop Oadd
-                                                          (Evar _gauss_pts (tarray tdouble 55))
-                                                          (Econst_int (Int.repr 25) tint)
-                                                          (tptr tdouble))
-                                                        tdouble)
-                                                      (Econst_float (Float.of_bits (Int64.repr 4600982676207959391)) tdouble))
-                                                    (Ssequence
-                                                      (Sassign
-                                                        (Ederef
-                                                          (Ebinop Oadd
-                                                            (Evar _gauss_pts (tarray tdouble 55))
-                                                            (Econst_int (Int.repr 26) tint)
-                                                            (tptr tdouble))
-                                                          tdouble)
-                                                        (Econst_float (Float.of_bits (Int64.repr 4604854338687574482)) tdouble))
-                                                      (Ssequence
-                                                        (Sassign
-                                                          (Ederef
-                                                            (Ebinop Oadd
-                                                              (Evar _gauss_pts (tarray tdouble 55))
-                                                              (Econst_int (Int.repr 27) tint)
-                                                              (tptr tdouble))
-                                                            tdouble)
-                                                          (Econst_float (Float.of_bits (Int64.repr 4606724023625998894)) tdouble))
-                                                        (Ssequence
-                                                          (Sassign
-                                                            (Ederef
-                                                              (Ebinop Oadd
-                                                                (Evar _gauss_pts (tarray tdouble 55))
-                                                                (Econst_int (Int.repr 28) tint)
-                                                                (tptr tdouble))
-                                                              tdouble)
-                                                            (Eunop Oneg
-                                                              (Econst_float (Float.of_bits (Int64.repr 4606824741625056356)) tdouble)
-                                                              tdouble))
-                                                          (Ssequence
-                                                            (Sassign
-                                                              (Ederef
-                                                                (Ebinop Oadd
-                                                                  (Evar _gauss_pts (tarray tdouble 55))
-                                                                  (Econst_int (Int.repr 29) tint)
-                                                                  (tptr tdouble))
-                                                                tdouble)
-                                                              (Eunop Oneg
-                                                                (Econst_float (Float.of_bits (Int64.repr 4605350953246913568)) tdouble)
-                                                                tdouble))
-                                                            (Ssequence
-                                                              (Sassign
-                                                                (Ederef
-                                                                  (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 30) tint)
-                                                                    (tptr tdouble))
-                                                                  tdouble)
-                                                                (Eunop Oneg
-                                                                  (Econst_float (Float.of_bits (Int64.repr 4602908794676217012)) tdouble)
-                                                                  tdouble))
-                                                              (Ssequence
-                                                                (Sassign
-                                                                  (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 31) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                  (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4595776949791257420)) tdouble)
-                                                                    tdouble))
-                                                                (Ssequence
-                                                                  (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 32) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4595776949791257420)) tdouble))
-                                                                  (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 33) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4602908794676217012)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 34) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4605350953246913568)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 35) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4606824741625056356)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 36) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4606895631733039365)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 37) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4605705518312129178)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 38) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4603699978256776585)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 39) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4599512850305165928)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 40) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 0)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 41) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4599512850305165928)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 42) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4603699978256776585)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 43) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4605705518312129178)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 44) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4606895631733039365)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 45) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4606947389703123674)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 46) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4605967017657021175)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 47) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4604294796902523284)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 48) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4601478977259924184)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 49) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Eunop Oneg
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4594531783631037042)) tdouble)
-                                                                    tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 50) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4594531783631037042)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 51) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4601478977259924184)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 52) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4604294796902523284)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 53) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4605967017657021175)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 54) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4606947389703123674)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sset _t'1
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_pts (tarray tdouble 55))
-                                                                    (Ebinop Oadd
-                                                                    (Ebinop Odiv
-                                                                    (Ebinop Omul
-                                                                    (Etempvar _npts tint)
-                                                                    (Ebinop Osub
-                                                                    (Etempvar _npts tint)
-                                                                    (Econst_int (Int.repr 1) tint)
-                                                                    tint)
-                                                                    tint)
-                                                                    (Econst_int (Int.repr 2) tint)
-                                                                    tint)
-                                                                    (Etempvar _i tint)
-                                                                    tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble))
-                                                                    (Sreturn (Some (Etempvar _t'1 tdouble)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+        (Ebinop Oadd
+          (Ebinop Odiv
+            (Ebinop Omul (Etempvar _npts tint)
+              (Ebinop Osub (Etempvar _npts tint)
+                (Econst_int (Int.repr 1) tint) tint) tint)
+            (Econst_int (Int.repr 2) tint) tint) (Etempvar _i tint) tint)
+        (tptr tdouble)) tdouble))
+  (Sreturn (Some (Etempvar _t'1 tdouble))))
+|}.
+
+Definition v_gauss_wts := {|
+  gvar_info := (tarray tdouble 55);
+  gvar_init := (Init_float64 (Float.of_bits (Int64.repr 4611686018427387904)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4607182418800017408)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4607182418800017408)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603179219131243638)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4606181618882823965)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603179219131243638)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599938015721666158)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4604049220898137289)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4604049220898137289)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599938015721666158)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4597704210940560265)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4602293827526345043)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603299315121306848)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4602293827526345043)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4597704210940560265)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4595340635650841579)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4600170522661702691)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4602100808003438055)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4602100808003438055)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4600170522661702691)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4595340635650841579)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4593833207853641058)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4598710344305444426)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4600550058610600766)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4601200903213297567)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4600550058610600766)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4598710344305444426)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4593833207853641058)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4591958705436230497)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4597180141441723269)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599322856451823120)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4600205150124610371)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4600205150124610371)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599322856451823120)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4597180141441723269)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4591958705436230497)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4590520857545404122)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4595676556204059612)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4598366364858742014)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599298364636976404)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599620683262412910)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599298364636976404)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4598366364858742014)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4595676556204059612)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4590520857545404122)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4589468597325323285)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4594552572613292020)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4597061438375246896)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4598522297904897016)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4598995311071123185)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4598995311071123185)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4598522297904897016)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4597061438375246896)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4594552572613292020)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4589468597325323285)) ::
+                nil);
+  gvar_readonly := true;
+  gvar_volatile := false
 |}.
 
 Definition f_gauss_weight := {|
   fn_return := tdouble;
   fn_callconv := cc_default;
   fn_params := ((_i, tint) :: (_npts, tint) :: nil);
-  fn_vars := ((_gauss_wts, (tarray tdouble 55)) :: nil);
+  fn_vars := nil;
   fn_temps := ((_t'1, tdouble) :: nil);
   fn_body :=
 (Ssequence
-  (Sassign
+  (Sset _t'1
     (Ederef
       (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-        (Econst_int (Int.repr 0) tint) (tptr tdouble)) tdouble)
-    (Econst_float (Float.of_bits (Int64.repr 4611686018427387904)) tdouble))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-          (Econst_int (Int.repr 1) tint) (tptr tdouble)) tdouble)
-      (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-            (Econst_int (Int.repr 2) tint) (tptr tdouble)) tdouble)
-        (Econst_float (Float.of_bits (Int64.repr 4607182418800017408)) tdouble))
-      (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-              (Econst_int (Int.repr 3) tint) (tptr tdouble)) tdouble)
-          (Econst_float (Float.of_bits (Int64.repr 4603179219131243638)) tdouble))
-        (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-                (Econst_int (Int.repr 4) tint) (tptr tdouble)) tdouble)
-            (Econst_float (Float.of_bits (Int64.repr 4606181618882823965)) tdouble))
-          (Ssequence
-            (Sassign
-              (Ederef
-                (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-                  (Econst_int (Int.repr 5) tint) (tptr tdouble)) tdouble)
-              (Econst_float (Float.of_bits (Int64.repr 4603179219131243638)) tdouble))
-            (Ssequence
-              (Sassign
-                (Ederef
-                  (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-                    (Econst_int (Int.repr 6) tint) (tptr tdouble)) tdouble)
-                (Econst_float (Float.of_bits (Int64.repr 4599938015721666158)) tdouble))
-              (Ssequence
-                (Sassign
-                  (Ederef
-                    (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-                      (Econst_int (Int.repr 7) tint) (tptr tdouble)) tdouble)
-                  (Econst_float (Float.of_bits (Int64.repr 4604049220898137289)) tdouble))
-                (Ssequence
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-                        (Econst_int (Int.repr 8) tint) (tptr tdouble))
-                      tdouble)
-                    (Econst_float (Float.of_bits (Int64.repr 4604049220898137289)) tdouble))
-                  (Ssequence
-                    (Sassign
-                      (Ederef
-                        (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-                          (Econst_int (Int.repr 9) tint) (tptr tdouble))
-                        tdouble)
-                      (Econst_float (Float.of_bits (Int64.repr 4599938015721666158)) tdouble))
-                    (Ssequence
-                      (Sassign
-                        (Ederef
-                          (Ebinop Oadd (Evar _gauss_wts (tarray tdouble 55))
-                            (Econst_int (Int.repr 10) tint) (tptr tdouble))
-                          tdouble)
-                        (Econst_float (Float.of_bits (Int64.repr 4597704210940560265)) tdouble))
-                      (Ssequence
-                        (Sassign
-                          (Ederef
-                            (Ebinop Oadd
-                              (Evar _gauss_wts (tarray tdouble 55))
-                              (Econst_int (Int.repr 11) tint) (tptr tdouble))
-                            tdouble)
-                          (Econst_float (Float.of_bits (Int64.repr 4602293827526345043)) tdouble))
-                        (Ssequence
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd
-                                (Evar _gauss_wts (tarray tdouble 55))
-                                (Econst_int (Int.repr 12) tint)
-                                (tptr tdouble)) tdouble)
-                            (Econst_float (Float.of_bits (Int64.repr 4603299315121306848)) tdouble))
-                          (Ssequence
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd
-                                  (Evar _gauss_wts (tarray tdouble 55))
-                                  (Econst_int (Int.repr 13) tint)
-                                  (tptr tdouble)) tdouble)
-                              (Econst_float (Float.of_bits (Int64.repr 4602293827526345043)) tdouble))
-                            (Ssequence
-                              (Sassign
-                                (Ederef
-                                  (Ebinop Oadd
-                                    (Evar _gauss_wts (tarray tdouble 55))
-                                    (Econst_int (Int.repr 14) tint)
-                                    (tptr tdouble)) tdouble)
-                                (Econst_float (Float.of_bits (Int64.repr 4597704210940560265)) tdouble))
-                              (Ssequence
-                                (Sassign
-                                  (Ederef
-                                    (Ebinop Oadd
-                                      (Evar _gauss_wts (tarray tdouble 55))
-                                      (Econst_int (Int.repr 15) tint)
-                                      (tptr tdouble)) tdouble)
-                                  (Econst_float (Float.of_bits (Int64.repr 4595340635650841579)) tdouble))
-                                (Ssequence
-                                  (Sassign
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Evar _gauss_wts (tarray tdouble 55))
-                                        (Econst_int (Int.repr 16) tint)
-                                        (tptr tdouble)) tdouble)
-                                    (Econst_float (Float.of_bits (Int64.repr 4600170522661702691)) tdouble))
-                                  (Ssequence
-                                    (Sassign
-                                      (Ederef
-                                        (Ebinop Oadd
-                                          (Evar _gauss_wts (tarray tdouble 55))
-                                          (Econst_int (Int.repr 17) tint)
-                                          (tptr tdouble)) tdouble)
-                                      (Econst_float (Float.of_bits (Int64.repr 4602100808003438055)) tdouble))
-                                    (Ssequence
-                                      (Sassign
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Evar _gauss_wts (tarray tdouble 55))
-                                            (Econst_int (Int.repr 18) tint)
-                                            (tptr tdouble)) tdouble)
-                                        (Econst_float (Float.of_bits (Int64.repr 4602100808003438055)) tdouble))
-                                      (Ssequence
-                                        (Sassign
-                                          (Ederef
-                                            (Ebinop Oadd
-                                              (Evar _gauss_wts (tarray tdouble 55))
-                                              (Econst_int (Int.repr 19) tint)
-                                              (tptr tdouble)) tdouble)
-                                          (Econst_float (Float.of_bits (Int64.repr 4600170522661702691)) tdouble))
-                                        (Ssequence
-                                          (Sassign
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Evar _gauss_wts (tarray tdouble 55))
-                                                (Econst_int (Int.repr 20) tint)
-                                                (tptr tdouble)) tdouble)
-                                            (Econst_float (Float.of_bits (Int64.repr 4595340635650841579)) tdouble))
-                                          (Ssequence
-                                            (Sassign
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Evar _gauss_wts (tarray tdouble 55))
-                                                  (Econst_int (Int.repr 21) tint)
-                                                  (tptr tdouble)) tdouble)
-                                              (Econst_float (Float.of_bits (Int64.repr 4593833207853641058)) tdouble))
-                                            (Ssequence
-                                              (Sassign
-                                                (Ederef
-                                                  (Ebinop Oadd
-                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                    (Econst_int (Int.repr 22) tint)
-                                                    (tptr tdouble)) tdouble)
-                                                (Econst_float (Float.of_bits (Int64.repr 4598710344305444426)) tdouble))
-                                              (Ssequence
-                                                (Sassign
-                                                  (Ederef
-                                                    (Ebinop Oadd
-                                                      (Evar _gauss_wts (tarray tdouble 55))
-                                                      (Econst_int (Int.repr 23) tint)
-                                                      (tptr tdouble))
-                                                    tdouble)
-                                                  (Econst_float (Float.of_bits (Int64.repr 4600550058610600766)) tdouble))
-                                                (Ssequence
-                                                  (Sassign
-                                                    (Ederef
-                                                      (Ebinop Oadd
-                                                        (Evar _gauss_wts (tarray tdouble 55))
-                                                        (Econst_int (Int.repr 24) tint)
-                                                        (tptr tdouble))
-                                                      tdouble)
-                                                    (Econst_float (Float.of_bits (Int64.repr 4601200903213297567)) tdouble))
-                                                  (Ssequence
-                                                    (Sassign
-                                                      (Ederef
-                                                        (Ebinop Oadd
-                                                          (Evar _gauss_wts (tarray tdouble 55))
-                                                          (Econst_int (Int.repr 25) tint)
-                                                          (tptr tdouble))
-                                                        tdouble)
-                                                      (Econst_float (Float.of_bits (Int64.repr 4600550058610600766)) tdouble))
-                                                    (Ssequence
-                                                      (Sassign
-                                                        (Ederef
-                                                          (Ebinop Oadd
-                                                            (Evar _gauss_wts (tarray tdouble 55))
-                                                            (Econst_int (Int.repr 26) tint)
-                                                            (tptr tdouble))
-                                                          tdouble)
-                                                        (Econst_float (Float.of_bits (Int64.repr 4598710344305444426)) tdouble))
-                                                      (Ssequence
-                                                        (Sassign
-                                                          (Ederef
-                                                            (Ebinop Oadd
-                                                              (Evar _gauss_wts (tarray tdouble 55))
-                                                              (Econst_int (Int.repr 27) tint)
-                                                              (tptr tdouble))
-                                                            tdouble)
-                                                          (Econst_float (Float.of_bits (Int64.repr 4593833207853641058)) tdouble))
-                                                        (Ssequence
-                                                          (Sassign
-                                                            (Ederef
-                                                              (Ebinop Oadd
-                                                                (Evar _gauss_wts (tarray tdouble 55))
-                                                                (Econst_int (Int.repr 28) tint)
-                                                                (tptr tdouble))
-                                                              tdouble)
-                                                            (Econst_float (Float.of_bits (Int64.repr 4591958705436230497)) tdouble))
-                                                          (Ssequence
-                                                            (Sassign
-                                                              (Ederef
-                                                                (Ebinop Oadd
-                                                                  (Evar _gauss_wts (tarray tdouble 55))
-                                                                  (Econst_int (Int.repr 29) tint)
-                                                                  (tptr tdouble))
-                                                                tdouble)
-                                                              (Econst_float (Float.of_bits (Int64.repr 4597180141441723269)) tdouble))
-                                                            (Ssequence
-                                                              (Sassign
-                                                                (Ederef
-                                                                  (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 30) tint)
-                                                                    (tptr tdouble))
-                                                                  tdouble)
-                                                                (Econst_float (Float.of_bits (Int64.repr 4599322856451823120)) tdouble))
-                                                              (Ssequence
-                                                                (Sassign
-                                                                  (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 31) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                  (Econst_float (Float.of_bits (Int64.repr 4600205150124610371)) tdouble))
-                                                                (Ssequence
-                                                                  (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 32) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4600205150124610371)) tdouble))
-                                                                  (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 33) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4599322856451823120)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 34) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4597180141441723269)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 35) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4591958705436230497)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 36) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4590520857545404122)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 37) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4595676556204059612)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 38) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4598366364858742014)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 39) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4599298364636976404)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 40) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4599620683262412910)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 41) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4599298364636976404)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 42) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4598366364858742014)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 43) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4595676556204059612)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 44) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4590520857545404122)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 45) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4589468597325323285)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 46) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4594552572613292020)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 47) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4597061438375246896)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 48) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4598522297904897016)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 49) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4598995311071123185)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 50) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4598995311071123185)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 51) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4598522297904897016)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 52) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4597061438375246896)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 53) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4594552572613292020)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sassign
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Econst_int (Int.repr 54) tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble)
-                                                                    (Econst_float (Float.of_bits (Int64.repr 4589468597325323285)) tdouble))
-                                                                    (Ssequence
-                                                                    (Sset _t'1
-                                                                    (Ederef
-                                                                    (Ebinop Oadd
-                                                                    (Evar _gauss_wts (tarray tdouble 55))
-                                                                    (Ebinop Oadd
-                                                                    (Ebinop Odiv
-                                                                    (Ebinop Omul
-                                                                    (Etempvar _npts tint)
-                                                                    (Ebinop Osub
-                                                                    (Etempvar _npts tint)
-                                                                    (Econst_int (Int.repr 1) tint)
-                                                                    tint)
-                                                                    tint)
-                                                                    (Econst_int (Int.repr 2) tint)
-                                                                    tint)
-                                                                    (Etempvar _i tint)
-                                                                    tint)
-                                                                    (tptr tdouble))
-                                                                    tdouble))
-                                                                    (Sreturn (Some (Etempvar _t'1 tdouble)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+        (Ebinop Oadd
+          (Ebinop Odiv
+            (Ebinop Omul (Etempvar _npts tint)
+              (Ebinop Osub (Etempvar _npts tint)
+                (Econst_int (Int.repr 1) tint) tint) tint)
+            (Econst_int (Int.repr 2) tint) tint) (Etempvar _i tint) tint)
+        (tptr tdouble)) tdouble))
+  (Sreturn (Some (Etempvar _t'1 tdouble))))
 |}.
 
 Definition f_gauss2d_npoint1d := {|
@@ -1671,8 +821,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_exit,
    Gfun(External (EF_external "exit"
                    (mksignature (AST.Xint :: nil) AST.Xvoid cc_default))
-     (tint :: nil) tvoid cc_default)) ::
+     (tint :: nil) tvoid cc_default)) :: (_gauss_pts, Gvar v_gauss_pts) ::
  (_gauss_point, Gfun(Internal f_gauss_point)) ::
+ (_gauss_wts, Gvar v_gauss_wts) ::
  (_gauss_weight, Gfun(Internal f_gauss_weight)) ::
  (_gauss2d_npoint1d, Gfun(Internal f_gauss2d_npoint1d)) ::
  (_gauss2d_point, Gfun(Internal f_gauss2d_point)) ::
