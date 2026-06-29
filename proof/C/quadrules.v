@@ -187,13 +187,13 @@ Definition v_gauss_pts := {|
   gvar_init := (Init_float64 (Float.of_bits (Int64.repr 0)) ::
                 Init_float64 (Float.of_bits (Int64.repr (-4619996508395130082))) ::
                 Init_float64 (Float.of_bits (Int64.repr 4603375528459645726)) ::
-                Init_float64 (Float.of_bits (Int64.repr (-4618219870767582652))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4618219870767582648))) ::
                 Init_float64 (Float.of_bits (Int64.repr 0)) ::
-                Init_float64 (Float.of_bits (Int64.repr 4605152166087193156)) ::
-                Init_float64 (Float.of_bits (Int64.repr (-4617440390965479031))) ::
-                Init_float64 (Float.of_bits (Int64.repr (-4623575862932062729))) ::
-                Init_float64 (Float.of_bits (Int64.repr 4599796173922713079)) ::
-                Init_float64 (Float.of_bits (Int64.repr 4605931645889296777)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4605152166087193160)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4617440390965479035))) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4623575862932062723))) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599796173922713085)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4605931645889296773)) ::
                 Init_float64 (Float.of_bits (Int64.repr (-4617034674876499351))) ::
                 Init_float64 (Float.of_bits (Int64.repr (-4620346716940814588))) ::
                 Init_float64 (Float.of_bits (Int64.repr 0)) ::

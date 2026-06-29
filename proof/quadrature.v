@@ -270,11 +270,19 @@ Admitted.
          which is a contradiction.
 *)
 
-
 (** _Editor's note: This predicate says that [roots] is a list of n distinct values, all of which evaluate
-     (under the polynomial) to zero, which implies that they are simple roots_. *)
-Definition true_roots_of_ortho_p (n: nat) (roots: n.-tuple R) :=
-     all (root (ortho_p n)) (tval roots) /\ uniq_roots (tval roots).
+     (under the polynomial) to zero, which implies that they are simple roots._*)
+
+Record roots_of_ortho_p (n: nat) := {
+  ROOTS_vals: n.-tuple R;
+  ROOTS_zero: all (root (ortho_p n)) (tval ROOTS_vals);
+  ROOTS_sorted: sorted Order.lt (tval ROOTS_vals);
+  ROOTS_inrange: all (fun x => a <= x <= b) (tval ROOTS_vals)
+}.
+Arguments ROOTS_vals [n].
+Arguments ROOTS_zero [n].
+Arguments ROOTS_sorted [n].
+Arguments ROOTS_inrange [n].
 
 (** _Editor's note:  The following is what we want; it is a constructive existence, so that we 
    can calculate with these roots.  But Stewart's proof is nonconstructive.
@@ -288,9 +296,12 @@ Definition true_roots_of_ortho_p (n: nat) (roots: n.-tuple R) :=
 
    _And furthermore, at present MathComp Analysis doesn't yet have a full theory of the roots of 
    real polynomials, nor any formalization of Jenkins-Traub, so any such proof will not be trivial_. *)
-Definition roots_of_ortho_p: forall (n: nat),
-    { roots: n.-tuple R | true_roots_of_ortho_p n roots }.
-Admitted.
+Definition roots_of_ortho_p_exist (n: nat) : roots_of_ortho_p n.
+Abort.
+
+(** _Therefore, we will proceed assuming that, for any given ortho_p (such as Gauss-Legendre,
+  Gauss-Hermite, etc.) someone will present an constructive instance of roots_of_ortho_p. *)
+
 
 (** ** Gaussian quadrature *)
 
@@ -310,8 +321,18 @@ Admitted.
 
  Section Quadrature.
   Variable n : nat.
-  Definition zeros_of_ortho_p := proj1_sig (roots_of_ortho_p n).
-  Definition L : n.-tuple {poly_n R} := lagrange n (nth 0 zeros_of_ortho_p).
+  Variable roots: roots_of_ortho_p n.
+  Definition zeros_of_ortho_p := tval (ROOTS_vals roots).
+
+
+  (** Editor's note: we need this [extend_roots] to prove injectivity when using [lagrangeE] *)
+  Definition extend_roots  (i: nat) : R :=
+     nth ((i+1-n)%:R) zeros_of_ortho_p i.
+
+  Lemma extend_roots_injective: injective extend_roots.
+  Admitted.
+
+  Definition L : n.-tuple {poly_n R} := lagrange n extend_roots.
   Definition gauss_weight (i: 'I_n) := ∫ (horner (tnth L i)).
 
   Definition G (f: R->R) := \sum_i (gauss_weight i * (f (tnth zeros_of_ortho_p i))).
@@ -334,6 +355,8 @@ Admitted.
        -          = ∫ f                                                (by 23.4).
       Quot erat demonstrandum.
   *)
+
+
 
   Lemma quadrature_exact_for: forall f: {poly R}, (size f <= 2*n+2)%N -> ∫ (horner f) = G (horner f).
   Admitted.
@@ -399,13 +422,22 @@ End R.
     The corresponding orthogonal polynomials are called Legendre polynomials.
 *)
 
+(* From mathcomp Require Import Rstruct.
+Import Rdefinitions. *)
+
 Module Legendre.
  Section R.
  Context {R : realType}.
- Notation "∫" := (@intgal R (-1) 1 (fun=>1)).
+ Definition lo : R := (-1)%R.
+ Definition hi : R := 1%R.
+ Lemma lo_lt_hi: (lo < hi)%R.
+ Proof. unfold lo,hi. lra. Qed.
 
-Definition intgal_linear1 := @intgal_linear1 R (-1) 1 ltac:(lra) (fun=>1) ltac:(intros; simpl; lra).
-Definition intgal_linear2 := @intgal_linear2 R (-1) 1 ltac:(lra) (fun=>1) ltac:(intros; simpl; lra).
+ Definition w (x: R) : R := 1%R.
+ Notation "∫" := (@intgal R lo hi w).
+
+Definition intgal_linear1 := @intgal_linear1 R (-1) 1 lo_lt_hi w ltac:(intros; rewrite /lo /hi /w /=; lra).
+Definition intgal_linear2 := @intgal_linear2 R lo hi lo_lt_hi w ltac:(intros; rewrite /lo /hi /w /=; lra).
 
 Lemma intgal_w1_x:  ∫ id = 0.
 Proof.
@@ -549,8 +581,7 @@ Definition r_ring := (@mulr1, @mul1r, @mulr0, @mul0r, @addr0, @add0r, @oppr0, @s
 Definition r_lift := (@mul_funr1, @mul_fun1r, @mul_funr0, @mul_fun0r, @mul_fun_consts,
                                @add_funr0, @add_fun0r, @opp_funr0, @sub_funr0, @opp_funC).
 
-Definition legendre (n: nat) : R -> R := 
-   horner (ortho_p (-1) 1 (fun=> 1) n) .
+Definition legendre (n: nat) : R -> R :=  horner (ortho_p lo hi w n) .
 
 Lemma Legendre_poly_0: legendre 0 = fun x: R => 1%R.
 Proof.
@@ -567,22 +598,6 @@ Proof.
 rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift ?r_intgal //.
 extensionality x; simpl; lra.
 Qed. 
-
-Lemma Legendre_poly_3: legendre 3 =  fun x :R => x*x*x - (3/5)*x.
-Proof.
-rewrite /legendre /ortho_p /=.
-rewrite ?r_horner ?r_lift  ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift //
-    ?r_intgal ?r_ring ?r_lift.
-set a := (fun=> - _).
-rewrite ?mul_funDr ?mul_funDl ?intgal_linear2.
-rewrite ?mul_funDr ?mul_funDl ?intgal_linear2.
-rewrite -?mul_funA.
-repeat rewrite (mul_funC id (a \* _)) -?mul_funA ?(mul_funC _ a).
-rewrite (mul_funA a a) r_lift.
-rewrite ?intgal_linear1 ?r_intgal.
-subst a.
-extensionality x; simpl; field; auto.
-Qed.
 
 Lemma pull_left_const1: forall  {s : comPzSemiRingType} (c: s) (B: s->s),
   mul_fun (fun x: ComPzSemiRing.sort s => x)
@@ -620,8 +635,7 @@ Qed.
 
 Definition pull_left_const := (@pull_left_const1, @pull_left_const2, @pull_left_const3, @pull_left_const4, @pull_left_const5).
 
-
-Lemma Legendre_poly_4: legendre 4 =  fun x :R => x*x*x*x - (30/35)*(x*x) + (3/35).
+Lemma Legendre_poly_3: legendre 3 =  fun x :R => x*x*x - (3/5)*x.
 Proof.
 rewrite /legendre /ortho_p /=.
 match goal with |- _ = ?B => set RHS := B end.
@@ -638,6 +652,33 @@ rewrite ?mul_fun_consts ?pull_left_const.
 rewrite ?intgal_linear1 ?r_intgal ?r_lift ?r_ring ?r_lift.
 rewrite -?mul_funA.
 rewrite !pull_left_const.
+subst RHS a.
+extensionality x; simpl; field; auto.
+Qed.
+
+Lemma Legendre_poly_4: legendre 4 =  fun x :R => x*x*x*x - (30/35)*(x*x) + (3/35).
+Proof.
+rewrite /legendre /ortho_p /=.
+match goal with |- _ = ?B => set RHS := B end.
+rewrite !hornerC' ?r_lift.
+rewrite ?r_intgal ?r_ring ?scale_0poly ?r_ring.
+rewrite hornerX' ?r_intgal ?r_ring ?scale_0poly ?r_ring.
+match goal with |- context [scale_poly ?x] => replace x with (@inv R 3) by nra end.
+rewrite ?scale_polyE.
+rewrite !r_horner ?r_lift ?r_intgal ?r_ring ?r_lift.
+match goal with |- context [fun=> opp ?A] => set a := opp A; simpl in a end.
+simpl.
+time 
+(* with_strategy opaque [intgal add_fun opp_fun mul_fun inv ] *)
+repeat rewrite ?(@mul_funDr R R) ?(@mul_funDl R R) ?intgal_linear2.
+rewrite -?mul_funA.
+rewrite ?mul_fun_consts.
+simpl.
+time  with_strategy opaque [intgal add_fun opp_fun mul_fun inv ]
+rewrite ?pull_left_const. (* 18 seconds *)
+rewrite ?intgal_linear1 ?r_intgal ?r_lift ?r_ring ?r_lift.
+rewrite -?mul_funA.
+rewrite !pull_left_const.
 rewrite !intgal_linear1 !r_intgal ?r_ring.
 rewrite !r_lift ?r_ring ?r_lift.
 subst RHS a.
@@ -647,9 +688,822 @@ field.
 auto.
 Qed.
 
+Record legendre_roots (n: nat) := {
+   LR_poly: R -> R;
+   LR_poly_eq: legendre n = LR_poly;
+   LR_roots: roots_of_ortho_p lo hi w n
+}.
+Arguments LR_poly [n].
+Arguments LR_poly_eq [n].
+Arguments LR_roots [n].
+Arguments Build_legendre_roots [n].
 
+Definition legendre_roots_0 : legendre_roots 0.
+  apply (Build_legendre_roots _ Legendre_poly_0).
+  apply (Build_roots_of_ortho_p lo hi _ 0 (@Tuple 0 _ nil isT)).
+- constructor.
+- reflexivity.
+- reflexivity.
+Defined.
+
+Require CFEM.matrix_util.
+
+Notation sqrt := (@Num.sqrt R).
+
+Definition legendre_roots_1: legendre_roots 1.
+  apply (Build_legendre_roots _ Legendre_poly_1).
+ apply (Build_roots_of_ortho_p lo hi _ _ (@Tuple 1 _ [:: 0] isT)).
+-
+simpl; red; rewrite ?Bool.andb_true_iff; repeat split;
+rewrite /root -/(legendre _).
+rewrite Legendre_poly_1.
+apply eq_refl.
+-
+reflexivity.
+-
+simpl; red; rewrite /lo /hi ?Bool.andb_true_iff; repeat split;  lra.
+Defined.
+
+Lemma sqrt_exists: forall (x: R), 0 < x -> 
+ in_mem (sqrt x) (mem unit).
+Proof.
+intros.
+rewrite -sqrtr_gt0 in H.
+apply unitf_gt0; auto.
+Qed.
+
+Lemma sqr_sqrt: forall x:R, 0 <= x -> (sqrt x * sqrt x) = x.
+Proof.
+intros.
+apply sqr_sqrtr; auto.
+Qed.
+
+Lemma eq_opI: forall {s} (A B: Equality.sort s), A=B -> is_true (eq_op A B).
+Proof.
+intros.
+subst.
+apply eq_refl.
+Qed.
+
+Definition legendre_roots_2: legendre_roots 2.
+  apply (Build_legendre_roots _ Legendre_poly_2).
+ apply (Build_roots_of_ortho_p lo hi _ _ (@Tuple 2 _ [:: -1/(sqrt 3); 1/(sqrt 3)]  isT)).
+-
+simpl; red;
+rewrite /root -/(legendre _);
+ rewrite Legendre_poly_2.
+ rewrite ?Bool.andb_true_iff; repeat split; apply eq_opI.
+ + rewrite ?mulN1r ?mulrNN -?invrM; [ | apply sqrt_exists; lra .. ].
+    rewrite sqr_sqrt; lra.
+ + rewrite mulf_div mulr1 sqr_sqrt; lra.
+-
+  simpl; red; rewrite ?Bool.andb_true_iff; repeat split.
+  assert (0 <  1 / sqrt 3)
+  by (apply divr_gt0; rewrite ?sqrtr_gt0; lra).
+  lra.
+-  
+  assert (0 <  1 / sqrt 3) by (apply divr_gt0; rewrite ?sqrtr_gt0; lra).
+  assert (sqrt 3 > 1) by (rewrite -{1}sqrtr1; rewrite ltr_sqrt; lra).
+  assert (1 / sqrt 3 < 1) by (rewrite mul1r invf_lt1; lra).
+  simpl; red; rewrite ?Bool.andb_true_iff; repeat split; rewrite /lo /hi; lra.
+Defined.
+
+Definition legendre_roots_3: legendre_roots 3.
+  apply (Build_legendre_roots _ Legendre_poly_3).
+ apply (Build_roots_of_ortho_p lo hi _ _ (@Tuple 3 _ [:: -(sqrt (3/5)); 0; (sqrt (3/5))]  isT)).
+-
+simpl; red;
+rewrite /root -/(legendre _);
+ rewrite Legendre_poly_3.
+ rewrite ?Bool.andb_true_iff; repeat split; apply eq_opI;
+  rewrite /tnth /= ?mulrNN ?sqr_sqrt; lra.
+-
+  assert (0 <  sqrt (3/5)) by (rewrite sqrtr_gt0; lra).
+  simpl; red; rewrite ?Bool.andb_true_iff; repeat split; lra.
+-
+  assert (0 < sqrt (3/5)) by  (rewrite ?sqrtr_gt0; lra).
+  assert (sqrt(3/5) < 1) by (rewrite -{3}sqrtr1 ltr_sqrt; lra).
+  simpl; red; rewrite ?Bool.andb_true_iff; repeat split; rewrite /lo /hi; lra.
+Defined.
+
+Definition legendre_roots_val := 
+  @Tuple 4 _ 
+    [:: -(sqrt ((3 + 2 * sqrt(6/5))/7)); -(sqrt ((3 - 2 * sqrt(6/5))/7)); 
+         (sqrt ((3 - 2 * sqrt(6/5))/7)); (sqrt ((3 + 2 * sqrt(6/5))/7)) ] isT.
+
+Lemma legendre_roots_4a: 
+   is_true (all (root (ortho_p lo hi w 4)) (tval legendre_roots_val)).
+Proof.
+simpl.
+assert (H3: is_true (0 <= (3 - 2 * sqrt (6 / 5)) / 7)). {
+  assert (3/(2) >= sqrt (6/5))%R; [ | nra].
+  assert (sqrt (9/4) = 3/2).
+  transitivity (sqrt ((3/2) * (3/2))). f_equal; lra.
+  rewrite sqrtrM ?sqr_sqrt; lra.
+  rewrite -H ler_sqrt; lra.
+}
+assert (H4: 0 < sqrt (6/5)) by (rewrite sqrtr_gt0; lra).
+simpl; red;
+rewrite /root -/(legendre _);
+ rewrite Legendre_poly_4.
+ rewrite ?Bool.andb_true_iff; repeat split; apply eq_opI.
++
+rewrite ?mulrNN.
+rewrite -mulrA ?mulrNN sqr_sqrt; try lra.
+pose proof (sqr_sqrt (6/5) ltac:(lra)).
+set a := sqrt (_/_) in H,H3,H4|-*. simpl in a.
+set b := 2*a.
+assert (b*b = 24/5) 
+  by (rewrite /b {1}(mulrC 2) mulrA (mulrC (_ * _ * _)); lra).
+lra.
++
+rewrite ?mulrNN.
+rewrite -mulrA ?mulrNN.
+rewrite sqr_sqrt; try lra.
+pose proof (sqr_sqrt (6/5) ltac:(lra)).
+set a := sqrt (_/_) in H4,H3,H|-*. simpl in a.
+set b := 2*a.
+assert (b*b = 24/5) 
+  by (rewrite /b {1}(mulrC 2) mulrA (mulrC (_ * _ * _)); lra).
+lra.
++
+rewrite ?mulrNN.
+rewrite -mulrA ?mulrNN.
+rewrite sqr_sqrt; try lra.
+pose proof (sqr_sqrt (6/5) ltac:(lra)).
+set a := sqrt (_/_) in H,H3,H4|-*. simpl in a.
+set b := 2*a.
+assert (b*b = 24/5) 
+  by (rewrite /b {1}(mulrC 2) mulrA (mulrC (_ * _ * _)); lra).
+lra.
++
+rewrite ?mulrNN.
+rewrite -mulrA ?mulrNN.
+rewrite sqr_sqrt; try lra.
+pose proof (sqr_sqrt (6/5) ltac:(lra)).
+set a := sqrt (_/_) in H3,H4,H|-*. simpl in a.
+set b := 2*a.
+assert (b*b = 24/5) 
+  by (rewrite /b {1}(mulrC 2) mulrA (mulrC (_ * _ * _)); lra).
+lra.
+Qed.
+
+Lemma legendre_roots_4b:
+  is_true (sorted <%R (tval legendre_roots_val)).
+Proof.
+assert (H4: 0 < sqrt (6/5)) by (rewrite sqrtr_gt0; lra).
+  simpl; red; rewrite ?Bool.andb_true_iff; repeat split.
++ rewrite lterNl opprK ltr_sqrt; lra.
++
+match goal with |-  (- ?A < _) = true => assert (0 < A); [ | lra] end.
+rewrite sqrtr_gt0.
+assert (sqrt (6/5) <= 6/5); [ | lra].
+assert (6/5 = sqrt ((6/5)*(6/5))). 
+rewrite sqrtrM ?sqr_sqrt ; lra.
+rewrite H.
+rewrite ler_sqrt.
+rewrite -H. lra. lra.
++
+rewrite ltr_sqrt; lra.
+Qed.
+
+Lemma legendre_roots_4c:
+ is_true   (all (fun x : Order.Preorder.sort (reals_Real__to__Order_Preorder R) => lo <= x <= hi)
+     (tval legendre_roots_val)).
+Proof.
+assert (1 < sqrt (6/5)) by (rewrite -{1}sqrtr1 ltr_sqrt;  lra).
+assert (sqrt(6/5)<6/5) by (rewrite -{2}(sqr_sqrt (6/5)); nra).
+assert (0 < sqrt((3%R + (2 * Num.ExtraDef.sqrtr (6 / 5))%R)%E / 7))
+   by (rewrite sqrtr_gt0; lra).
+assert (sqrt((3%R + (2 * Num.ExtraDef.sqrtr (6 / 5))%R)%E / 7) < 1) 
+  by ( rewrite -{6}sqrtr1 ltr_sqrt; lra).
+assert (0 < sqrt((3 - (2 * Num.ExtraDef.sqrtr (6 / 5))) / 7))
+   by (rewrite sqrtr_gt0; lra).
+assert (sqrt((3 - (2 * Num.ExtraDef.sqrtr (6 / 5))) / 7) < 1) 
+  by ( rewrite -{6}sqrtr1 ltr_sqrt; lra).
+  simpl; red; rewrite ?Bool.andb_true_iff; repeat split; rewrite /lo /hi; lra.
+Qed.
+
+
+Definition legendre_roots_4: legendre_roots 4.
+  apply (Build_legendre_roots _ Legendre_poly_4).
+ apply (Build_roots_of_ortho_p lo hi _ _  legendre_roots_val
+   legendre_roots_4a legendre_roots_4b legendre_roots_4c).
+Defined.
+
+Lemma index_enum_ord_enum: forall n: nat, 
+   index_enum (fintype_ordinal__canonical__fintype_Finite n) = ord_enum n.
+Proof.
+intros.
+unfold index_enum.
+rewrite locked_withE.
+rewrite Finite.enum.unlock.
+simpl.
+auto.
+Qed.
+
+(* Move this up! *)
+Lemma w_positive: forall x, is_true (lo <= x <= hi) -> is_true (0 < w x).
+Proof.
+intros. rewrite /w. lra.
+Qed.
+
+Record gauss_weights (n: nat) := {
+   GW_legendre: legendre_roots n;
+   GW_vals: n.-tuple R;
+   GW_good: forall i, gauss_weight _ _ _ _ (LR_roots GW_legendre) i = tnth GW_vals i
+}.
+Arguments GW_legendre [n].
+Arguments GW_vals [n].
+Arguments GW_good [n].
+Arguments Build_gauss_weights [n].
+
+
+Definition gauss_weights_0 : gauss_weights 0.
+ apply (Build_gauss_weights legendre_roots_0 [::]).
+intros.
+matrix_util.ord_enum_cases i.
+Defined.
+
+Lemma gauss_weight_1_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_1) (@Ordinal 1 0 isT) = 2.
+Proof.
+rewrite /gauss_weight /legendre_roots_1 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift;
+  rewrite  invr1; 
+  apply intgal_w1_1.
+Qed.
+
+Definition gauss_weights_1 : gauss_weights 1.
+ apply (Build_gauss_weights legendre_roots_1 [:: 2 ]).
+intros.
+matrix_util.ord_enum_cases i.
+apply gauss_weight_1_0.
+Defined.
+
+Lemma gauss_weight_2_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_2) (@Ordinal 2 0 isT) = 1.
+Proof.
+rewrite /gauss_weight /legendre_roots_2 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+ set s3 := Num.sqrt 3. simpl in s3.
+rewrite -(div1r s3) mulN1r.
+transitivity ( ∫ (((fun=> -(s3/2)) \* id) \+ (fun=>1/2))).
+-
+f_equal.
+extensionality x.
+simpl.
+assert (0 < s3). rewrite sqrtr_gt0; lra.
+set u := _ / _.
+set v := _ - u.
+replace v with (-(2*u)) by (subst v; lra). clear v.
+rewrite invrN.
+subst u.
+rewrite mul1r.
+rewrite invf_div.
+rewrite mulrDr.
+rewrite mulrNN.
+rewrite  (mulrC (s3 / 2)) mulrA (mulrC _ s3).
+rewrite mulfV; try lra.
+-
+rewrite ?intgal_linear2 ?intgal_linear1 ?intgal_w1_C ?intgal_w1_x.
+lra.
+Qed.
+
+
+Lemma gauss_weight_2_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_2) (@Ordinal 2 1 isT) = 1.
+Proof.
+rewrite /gauss_weight /legendre_roots_2 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+ set s3 := Num.sqrt 3. simpl in s3.
+rewrite -(div1r s3) mulN1r.
+rewrite opprK.
+transitivity ( ∫ (((fun=> (s3/2)) \* id) \+ (fun=>1/2))).
+-
+f_equal.
+extensionality x.
+simpl.
+assert (0 < s3). rewrite sqrtr_gt0; lra.
+set u := _ / _.
+set v := _ + u.
+replace v with ((2*u)) by (subst v; lra). clear v.
+subst u.
+rewrite mul1r.
+rewrite invf_div.
+rewrite mulrDr.
+rewrite opprK.
+rewrite  (mulrC (s3 / 2) (inv s3)) mulrA (mulrC _ s3).
+rewrite mulfV; try lra.
+-
+rewrite ?intgal_linear2 ?intgal_linear1 ?intgal_w1_C ?intgal_w1_x.
+lra.
+Qed.
+
+Definition gauss_weights_2 : gauss_weights 2.
+ apply (Build_gauss_weights legendre_roots_2 [:: 1; 1]).
+Proof.
+intros.
+matrix_util.ord_enum_cases i.
+apply gauss_weight_2_0.
+apply gauss_weight_2_1.
+Defined.
+
+Lemma gauss_weight_3_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 0 isT) = 5/9.
+Proof.
+rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+ set s3 := Num.sqrt (3/5). simpl in s3.
+set u := _ - _. simpl in u.
+replace u with (- (s3 * 2))%R by (subst u; lra). clear u.
+rewrite mulrNN.
+rewrite mulrA. rewrite {1 2}/s3.
+rewrite sqr_sqrt ; [ | lra].
+rewrite (mulrC _ 2) mulrA.
+rewrite invf_div.
+rewrite intgal_linear1.
+rewrite mul_funDr.
+rewrite intgal_linear2.
+rewrite (mul_funC _ (fun=> - s3)).
+rewrite intgal_linear1 intgal_w1_x intgal_w1_x2. lra.
+Qed.
+
+
+Lemma gauss_weight_3_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 1 isT) = 8/9.
+Proof.
+rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+ set s3 := Num.sqrt (3/5). simpl in s3.
+rewrite opprK. rewrite mulrN invrN. 
+rewrite sqr_sqrt ; [ | lra].
+rewrite invf_div.
+rewrite intgal_linear1.
+rewrite mul_funDr ?mul_funDl ?intgal_linear2 ? intgal_linear1.
+rewrite (mul_funC _ (fun _ => -s3)) ?intgal_linear1.
+rewrite ?intgal_w1_C.
+rewrite intgal_w1_x intgal_w1_x2.
+rewrite r_ring. rewrite mulr0 add0r addr0 opprK.
+rewrite (mulrC s3) -mulrA.
+rewrite ?mulNr.
+rewrite sqr_sqrt; lra.
+Qed.
+
+Lemma gauss_weight_3_2: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 2 isT) = 5/9.
+Proof.
+rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+ set s3 := Num.sqrt (3/5). simpl in s3.
+set u := _ - _. simpl in u.
+replace u with ((s3 * 2))%R by (subst u; lra). clear u.
+rewrite (mulrC s3) -mulrA.
+rewrite sqr_sqrt ; [ | lra].
+rewrite intgal_linear1.
+rewrite mul_funDl.
+rewrite intgal_linear2.
+rewrite intgal_linear1 intgal_w1_x intgal_w1_x2. lra.
+Qed.
+
+
+Definition gauss_weights_3 : gauss_weights 3.
+ apply (Build_gauss_weights legendre_roots_3 [:: 5/9; 8/9; 5/9]).
+Proof.
+intros.
+matrix_util.ord_enum_cases i.
+apply gauss_weight_3_0.
+apply gauss_weight_3_1.
+apply gauss_weight_3_2.
+Defined.
+
+Lemma add_mul2: forall (x :R), x+x = 2*x.
+Proof. intros. lra. Qed.
+
+Lemma add_mul3: forall (x :R), x+(x+x) = 3*x.
+Proof. intros. lra. Qed.
+
+Lemma mul_sqrt_sqrt: forall x y: R, Num.sqrt x * Num.sqrt y = Num.sqrt (x * y).
+Admitted.
+
+Lemma gauss_weight_4_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 0 isT) = 
+       1/2 - Num.sqrt(5/6)/6.
+Proof.
+set RHS := _ - _. simpl in RHS.
+rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+set s3 := Num.sqrt (6/5). simpl in s3.
+rewrite opprK.
+rewrite intgal_linear1.
+match goal with |- ?A * _ = _ => set a := A end.
+rewrite -opp_funC.
+set (b := Num.sqrt _).
+set (c := Num.sqrt _). simpl in a,b,c.
+rewrite ?mul_funDl ?mul_funDr.
+simpl.
+rewrite ?intgal_linear2 ?intgal_linear1.
+rewrite  -?mul_funA.
+rewrite ?pull_left_const ?intgal_linear1.
+rewrite ?r_intgal.
+rewrite ?r_ring.
+rewrite ?opprK.
+assert (is_true (1 < s3)) by (rewrite -{1}sqrtr1 ltr_sqrt;  lra).
+assert (s3<6/5). rewrite -(sqr_sqrt (6/5)) -/s3; try lra. nra.
+assert (is_true (0 <= (3 - 2 * s3) / 7)) by nra.
+rewrite mulrA mulrN sqr_sqrt; try lra.
+rewrite addrA.
+rewrite (mulNr b).
+rewrite ?mulrDr ?mulrDl.
+rewrite ?mulNr ?mulrN.
+set u := a * (b * _).
+rewrite add_mul2.
+rewrite ?mul1r.
+rewrite add_mul3.
+clearbody u. simpl in u.
+rewrite add_mul2.
+rewrite add_mul2 ?mulrN opprK.
+set d := - (_ * _).
+simpl  in d.
+rewrite -(addrA d).
+rewrite (addrC (opp u)).
+replace (d + _) with d by lra.
+clear u.
+subst d.
+rewrite !mulrA.
+rewrite (mulrC (_ * _) c).
+rewrite !mulrA.
+rewrite (mulrC c a).
+rewrite -(mulrA _ 2 (inv 3)).
+rewrite -(mulrN (a*c)).
+rewrite -(mulrA (a*c)).
+rewrite -mulrDr.
+set (d := _ * 2).
+subst a c.
+set a := Num.sqrt _.
+set c := Num.sqrt _.
+simpl in *.
+rewrite add_mul2 ?mulrN ?mulNr.
+rewrite mulrA.
+set e := _ * (- a - c).
+replace e with (a*a - c*c) by (subst e; nra).
+clear e.
+rewrite !sqr_sqrt; try (subst a c; lra).
+clear c.
+clear b.
+set u := _ / 7 - _ / 7.
+replace u with ((4/7)*s3) by (subst u; nra). clear u.
+rewrite ?mulrA.
+rewrite invrN mulNr.
+rewrite invrM; try (rewrite unitfE; lra).
+2: rewrite unitfE; assert (0 < a) by (rewrite sqrtr_gt0; lra);  lra.
+rewrite (mulrC _ a).
+rewrite mulrA.
+rewrite mulfV.
+2: assert (0 < a) by (rewrite sqrtr_gt0; lra);  lra.
+clear a.
+subst d.
+rewrite -(mulNr (2*s3) (inv 7)).
+rewrite -mulrDl.
+rewrite r_ring.
+rewrite addrC.
+rewrite -(mulrA _ s3).
+rewrite (mulrC _ (s3 * _)).
+rewrite (mulrA (s3 * 2)).
+rewrite invrM; [  |  rewrite unitfE; lra ..].
+rewrite invrK.
+rewrite mulNr.
+rewrite (mulrC 7).
+rewrite -(mulrA _ 7).
+rewrite (mulrC 7).
+rewrite (mulrDl _ _ 7).
+rewrite -(mulrA _ (inv 7)).
+rewrite (mulrC (inv 7) 2).
+rewrite -(mulrA _ (2/7)).
+rewrite -(mulrA _ (inv 7) 7).
+rewrite mulVr;  [ | rewrite unitfE; lra ].
+rewrite mulr1.
+rewrite -(mulrA s3).
+rewrite invrM;   [ | rewrite unitfE; lra ..].
+rewrite -(mulrA _ (inv s3)).
+rewrite (mulrDl _ _ 2).
+rewrite addrC.
+rewrite addrA.
+set e := _ + (3*2).
+rewrite (mulrDr (inv _)).
+rewrite  mulNr mulrN.
+rewrite (mulrC 2 s3) -(mulrA s3).
+rewrite (mulrA _ s3).
+rewrite mulVr;  [ | rewrite unitfE; lra ].
+rewrite mul1r.
+rewrite mulrC.
+rewrite (mulrC _ e).
+subst e.
+rewrite (mulrDl _ _ (inv (2*4))).
+rewrite !mulNr.
+rewrite (addrC (- (_ * 7))).
+rewrite (mulrC _ (inv(2*4))).
+rewrite mulrA.
+rewrite opprB.
+subst RHS.
+rewrite -(invf_div 6 5).
+rewrite sqrtrV; [ | lra].
+change (Num.sqrt _) with s3.
+nra.
+Qed.
+
+Lemma sub_mul2: forall (x :R), -x-x = -(2*x).
+Proof. intros. lra. Qed.
+
+Lemma opp_sub: forall (x y:R), -x-y = -(x+y).
+Proof. intros. lra. Qed.
+
+Lemma gauss_weight_4_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 1 isT) = 
+       1/2 + Num.sqrt(5/6)/6.
+Proof.
+set RHS := _ + _. simpl in RHS.
+rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+set s3 := Num.sqrt (6/5). simpl in s3.
+rewrite opprK.
+rewrite intgal_linear1.
+match goal with |- ?A * _ = _ => set a := A end.
+rewrite -opp_funC.
+set (b := Num.sqrt _).
+set (c := Num.sqrt _). simpl in a,b,c.
+rewrite ?mul_funDl ?mul_funDr.
+simpl.
+rewrite ?intgal_linear2 ?intgal_linear1.
+rewrite  -?mul_funA.
+rewrite ?pull_left_const ?intgal_linear1.
+rewrite ?r_intgal.
+rewrite ?r_ring.
+rewrite ?opprK.
+assert (is_true (1 < s3)) by (rewrite -{1}sqrtr1 ltr_sqrt;  lra).
+assert (s3<6/5). rewrite -(sqr_sqrt (6/5)) -/s3; try lra. nra.
+assert (is_true (0 <= (3 - 2 * s3) / 7)) by nra.
+rewrite mulrA ?mulrN ?mulNr.
+rewrite opprK.
+rewrite (mulrC (b*c)) -(mulrA 2 b) (mulrA b b) sqr_sqrt; try lra.
+rewrite ?(mulrDr a) ?mulrN.
+set u := (a * (b * _)).
+rewrite -(mulrC c).
+rewrite !(mulrA _ _ (_ 7)).
+rewrite (mulrDr c).
+rewrite (mulrDr 2).
+rewrite (mulrDr a).
+rewrite !(mulrC 2 (c * _)).
+rewrite -(mulrA c 3 2).
+rewrite -(mulrA c (2 * s3)).
+rewrite !(mulrA a c).
+set (v := a*c).
+match goal with |- (?x + ?z) + (?y + ?A) = RHS =>  transitivity (z + A) end.
+ring.
+clear u.
+subst v a.
+clear b.
+subst c.
+set c := (3 - 2*s3)/7.
+set b := (3 + 2*s3)/7.
+rewrite sub_mul2 ?mulNr ?mulrN.
+rewrite opp_sub ?mulrN ?mulnR ?opprK ?mulrN.
+rewrite ?mulrDr ?mulNr ?mulrN.
+rewrite ?mulr1.
+rewrite -?(mulrA 2).
+rewrite sqr_sqrt; auto.
+rewrite mul_sqrt_sqrt.
+rewrite ?(addrC (- _)).
+rewrite ?(mulrA _ 2) ?(mulrC _ 2).
+rewrite -?(mulrA 2 _ c).
+rewrite ?(mulrDl _ _ c).
+rewrite ?(mulrDr 2) ?mulrN ?mulNr ?mulrN.
+rewrite ?(mulrDl (2*_) _ (Num.sqrt _)) ?mul1r.
+set bcc := Num.sqrt b * c.
+set ccc := Num.sqrt c * c.
+rewrite -(mulrA 2 (Num.sqrt b) (Num.sqrt (c*b))).
+rewrite mul_sqrt_sqrt.
+rewrite mulNr.
+rewrite -(mulrA 2 (Num.sqrt c) (Num.sqrt (c*b))).
+rewrite mul_sqrt_sqrt.
+rewrite (mulrA c c).
+rewrite (mulrC (c*c)).
+rewrite -(mul_sqrt_sqrt b (c*c)).
+rewrite (@sqrtrM _ c c); auto.
+rewrite sqr_sqrt; auto.
+rewrite (mulrC b (c*b)) -(mulrA c b b).
+rewrite (@sqrtrM _ c (b*b)); auto.
+rewrite (@sqrtrM _ b b); [ | subst b; lra].
+rewrite sqr_sqrt; [ | subst b; lra].
+fold bcc.
+set cbb := Num.sqrt c * b.
+rewrite add_mul2.
+rewrite add_mul2.
+set u := (_ - _)+ (_ - _).
+replace u with (2*(cbb-ccc)) by (subst u; lra).
+clear u.
+assert (cbb - ccc \is a unit). {
+ rewrite unitfE.
+ subst cbb ccc. clear bcc. rewrite -mulrBr.
+apply mulf_neq0.
+assert (c > 0). subst c; lra.
+rewrite -sqrtr_gt0 in H2. lra.
+subst b c. lra.
+}
+rewrite invrM; [  |  rewrite unitfE; lra | auto ].
+set u := (cbb-ccc).
+unfold cbb, ccc in u.
+revert u.
+rewrite -mulrBr. simpl.
+rewrite invrM; [ | rewrite unitfE ..].
+2:{ 
+assert (c > 0). subst c; lra.
+rewrite -sqrtr_gt0 in H3; lra.
+}
+2: subst b c; lra.
+rewrite !mulrA.
+rewrite (mulrC _ (inv 2)).
+rewrite !mulrA.
+rewrite mulVf; [ | lra].
+rewrite mul1r.
+rewrite (mulrC _ 3).
+rewrite (mulrC _ (inv 3)).
+rewrite (mulrC _ (inv 2)).
+rewrite (mulrC _ s3).
+rewrite  -!mulrA.
+rewrite mulVf.
+2: {
+assert (c > 0). subst c; lra.
+rewrite -sqrtr_gt0 in H3; lra. }
+rewrite mulr1.
+clear ccc cbb bcc H2. 
+rewrite !mulrA.
+subst b c.
+revert RHS.
+rewrite -(invrK (5/6)).
+rewrite sqrtrV; [ |  lra].
+rewrite invf_div.
+change (Num.sqrt _) with s3.
+intro.
+rewrite (mulrC 3).
+rewrite !(mulrC _ (inv 7)).
+rewrite -?(mulrBr (inv 7)).
+set u := (_ + _)- (_ - _).
+replace u with (4 * s3)%R by (subst u; lra).
+clear u.
+rewrite mulrDr.
+rewrite invrM; [ | rewrite unitfE; lra .. ].
+rewrite -(mulrA s3 (inv 2)).
+rewrite invrK.
+rewrite mulVf; [ | lra]. rewrite mulr1.
+rewrite (mulrC _ 7).
+rewrite -(mulrA _ _ 3).
+rewrite (mulrA _ 7).
+rewrite mulVf; [ | lra].
+rewrite mul1r.
+rewrite (mulrC (s3 * 2)).
+rewrite -(mulrA _ _ (s3*2)).
+rewrite (mulrA _ 7).
+rewrite mulVf; [ | lra].
+rewrite mul1r.
+rewrite invrM; [ | rewrite unitfE; lra ..].
+rewrite (mulrC _ (inv 4)).
+rewrite -(mulrA _ (inv s3) (_ * 2)).
+rewrite (mulrC (inv 4) (_ * (_ * 2))).
+rewrite mulrA.
+rewrite mulVr.
+2: rewrite unitfE; lra.
+rewrite mul1r.
+rewrite (addrC _ (2/4)).
+rewrite -addrA.
+subst RHS.
+f_equal.
+lra.
+lra.
+Qed.
+
+Lemma gauss_weight_4_2: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 2 isT) = 
+       1/2 + Num.sqrt(5/6)/6.
+Proof.
+rewrite -gauss_weight_4_1.
+rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ] .. ].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+set s3 := Num.sqrt (6/5). simpl in s3.
+rewrite ?opprK.
+rewrite ?intgal_linear1.
+set (b := Num.sqrt _).
+set (c := Num.sqrt _). simpl in b,c.
+rewrite ?mul_funDl ?mul_funDr.
+rewrite ?intgal_linear2 ?intgal_linear1.
+rewrite ?opprK. rewrite ?mulNr ?mulrN.
+rewrite ?pull_left_const ?intgal_linear1.
+rewrite ?r_intgal.
+rewrite ?r_ring.
+rewrite !mulrN ?mulNr.
+rewrite ?opp_sub ?mulrN ?mulnR.
+set cu := (c*(2/3)).
+set cv := (b * (2/3)).
+set cb2c := (c * (b * (2 * c))).
+set u1 := (_ + cv + _ ).
+replace u1 with (cv - cb2c)%R by (subst u1; lra). clear u1.
+set u2 := (_ + (_ -- _)).
+replace u2 with (-(cv - cb2c))%R by (subst u2; lra); clear u2.
+rewrite mulrN.
+rewrite ?mulrA.
+rewrite -mulNr.
+f_equal.
+rewrite ?mulrN ?mulNr opprK.
+rewrite -invrN.
+f_equal.
+lra.
+Qed.
+
+Lemma gauss_weight_4_3: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 3 isT) = 
+       1/2 - Num.sqrt(5/6)/6.
+Proof.
+rewrite -gauss_weight_4_0.
+rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
+rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ] .. ].
+rewrite bigop.unlock index_enum_ord_enum;
+  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+  rewrite /extend_roots /= ?r_horner ?r_lift.
+ rewrite ?r_ring.
+set s3 := Num.sqrt (6/5). simpl in s3.
+rewrite ?opprK.
+rewrite ?intgal_linear1.
+set (b := Num.sqrt _).
+set (c := Num.sqrt _). simpl in b,c.
+rewrite ?mul_funDl ?mul_funDr.
+rewrite ?intgal_linear2 ?intgal_linear1.
+rewrite ?opprK. rewrite ?mulNr ?mulrN.
+rewrite ?pull_left_const ?intgal_linear1.
+rewrite ?r_intgal.
+rewrite ?r_ring.
+rewrite !mulrN ?mulNr.
+rewrite ?opp_sub ?mulrN ?mulnR.
+set cu := (c*(2/3)).
+set cv := (b * (2/3)).
+rewrite (mulrC b).
+rewrite (mulrC 2 c).
+rewrite !(mulrA c).
+rewrite (mulrA (c *c)).
+set cb2c := (c * c * 2 * b).
+set u1 := (_ + cu+ _ ).
+replace u1 with (cv - cb2c)%R by (subst u1; lra). clear u1.
+set u2 := (_ + (_ -- _)).
+replace u2 with (-(cv - cb2c))%R by (subst u2; lra); clear u2.
+rewrite mulrN.
+rewrite ?mulrA.
+rewrite -mulNr.
+f_equal.
+rewrite ?mulrN ?mulNr opprK.
+rewrite -invrN.
+f_equal.
+lra.
+Qed.
+
+Definition gauss_weights_4 : gauss_weights 4.
+ apply (Build_gauss_weights legendre_roots_4
+   [:: 1/2 - Num.sqrt(5/6)/6; 1/2 + Num.sqrt(5/6)/6; 1/2 + Num.sqrt(5/6)/6; 1/2 - Num.sqrt(5/6)/6]).
+Proof.
+intros.
+matrix_util.ord_enum_cases i.
+apply gauss_weight_4_0.
+apply gauss_weight_4_1.
+apply gauss_weight_4_2.
+apply gauss_weight_4_3.
+Defined.
 
 End R.
+
+
 End Legendre.
 
 (** 22.  If we take [[a,b]]=[[0,∞]] and w(x)=e^{-x}, we get a formula to approximate
