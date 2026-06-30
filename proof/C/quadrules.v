@@ -185,14 +185,14 @@ Definition v___stderrp := {|
 Definition v_gauss_pts := {|
   gvar_info := (tarray tdouble 55);
   gvar_init := (Init_float64 (Float.of_bits (Int64.repr 0)) ::
-                Init_float64 (Float.of_bits (Int64.repr (-4619996508395130082))) ::
-                Init_float64 (Float.of_bits (Int64.repr 4603375528459645726)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4619996508395130084))) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603375528459645724)) ::
                 Init_float64 (Float.of_bits (Int64.repr (-4618219870767582648))) ::
                 Init_float64 (Float.of_bits (Int64.repr 0)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4605152166087193160)) ::
                 Init_float64 (Float.of_bits (Int64.repr (-4617440390965479035))) ::
-                Init_float64 (Float.of_bits (Int64.repr (-4623575862932062723))) ::
-                Init_float64 (Float.of_bits (Int64.repr 4599796173922713085)) ::
+                Init_float64 (Float.of_bits (Int64.repr (-4623575862932062724))) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599796173922713084)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4605931645889296773)) ::
                 Init_float64 (Float.of_bits (Int64.repr (-4617034674876499351))) ::
                 Init_float64 (Float.of_bits (Int64.repr (-4620346716940814588))) ::
@@ -273,10 +273,10 @@ Definition v_gauss_wts := {|
                 Init_float64 (Float.of_bits (Int64.repr 4603179219131243638)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4606181618882823965)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4603179219131243638)) ::
-                Init_float64 (Float.of_bits (Int64.repr 4599938015721666158)) ::
-                Init_float64 (Float.of_bits (Int64.repr 4604049220898137289)) ::
-                Init_float64 (Float.of_bits (Int64.repr 4604049220898137289)) ::
-                Init_float64 (Float.of_bits (Int64.repr 4599938015721666158)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599938015721666155)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4604049220898137291)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4604049220898137291)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4599938015721666155)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4597704210940560265)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4602293827526345043)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4603299315121306848)) ::
