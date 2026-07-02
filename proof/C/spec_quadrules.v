@@ -225,32 +225,63 @@ Definition gauss_weight_spec_lowlevel : ident * funspec :=
     RETURN (Vfloat (Znth (npts*(npts-1)/2+i) gauss_wts_list))
     SEP( gauss_wts_pred gv ).
  
-Require Import CFEM.quadrature CFEM.polyroots. Import MethodB.
+Definition gauss2d_npoint1d_spec : ident * funspec :=
+  DECLARE _gauss2d_npoint1d
+  WITH s: Z
+  PRE [ tint ]
+    PROP(1 <= s <= 5)
+    PARAMS( Vint (Int.repr (s*s)))
+    SEP( )
+  POST[ tint ]
+    PROP( )
+    RETURN (Vint (Int.repr s))
+    SEP( ).
 
-Instance Inh_poly_and_roots: Inhabitant (poly_and_roots Tdouble) :=
-  Build_poly_and_roots 0 nil Legendre.gauss_weights_0.
+Require Import CFEM.quadrature.
 
-Fixpoint is_nth {T: Type} (al: list T) (i: nat) (X: T) :=
- match al, i with
- | Y::al', O => Y=X
- | _::al', S j => is_nth al' j X
- | _, _  => False
- end.
+Require Import Interval.Tactic.
 
-Instance InhR: Inhabitant R := 0.
+(* TODO: move this to quadrature.v *)
+Lemma legendre_roots_unique: forall {R} [n] (r r': @Legendre.legendre_roots R n),
+    r=r'.
+Proof.
+intros.
+destruct r as [f1 Hf1 roots1].
+destruct r' as [f2 Hf2 roots2].
+subst f1 f2.
+f_equal.
+apply roots_of_ortho_p_unique.
+apply Legendre.lo_lt_hi.
+apply Legendre.w_positive.
+Qed.
+
+From mathcomp Require Import Rstruct.
+From Stdlib Require Import Reals.
+
+Import Legendre.
+
+Definition float_near (r: R) (x: ftype Tdouble) :=
+  (Rabs (FT2R x - r) <= Rabs (FT2R x) * FPCore.default_rel (coretype_of_type Tdouble))%R.
+
+Definition ith_gauss_point(n: 'I_5) (i: 'I_n) :=
+    (tuple.tnth (@ROOTS_vals Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real  Legendre.lo Legendre.hi Legendre.w n (LR_roots _ (nth_iseq some_legendre_roots n))) i).
+
+
+Definition ith_gauss_weight (n: 'I_5) (i: 'I_n) :=
+ tuple.tnth (GW_vals _ (nth_iseq (@some_gauss_weights Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real) n)) i.
 
 Definition gauss_point_spec : ident * funspec :=
   DECLARE _gauss_point
-  WITH n: nat, i: nat, gv: globals
-  PRE [ tint, tint ]
-    PROP((i < n <= 4)%nat)
+  WITH X: { n: 'I_5 & 'I_n}, gv: globals
+  PRE [ tint, tint ] let '(existT _ n i) := X in 
+    PROP()
     PARAMS( Vint (Int.repr (Z.of_nat i)); Vint (Int.repr (Z.of_nat n)))
     GLOBALS (gv)
     SEP( gauss_pts_pred gv )
-  POST[ tdouble]
-    EX P : poly_and_roots Tdouble, EX X: root_near (legendre (PR_n P)) Tdouble,
-    PROP(PR_n P =  n; is_nth (PR_roots P) i X)
-    RETURN (Vfloat (fst (proj1_sig X)))
+  POST[ tdouble] let '(existT _ n i) := X in 
+    EX x: ftype Tdouble,
+    PROP(float_near (ith_gauss_point n i) x)
+    RETURN (Vfloat x)
     SEP( gauss_pts_pred gv ).
 
 Lemma sub_gauss_point: funspec_sub (snd gauss_point_spec_lowlevel) (snd gauss_point_spec).
@@ -259,41 +290,49 @@ apply NDsubsume_subsume.
 split; auto.
 unfold snd.
 hnf; intros.
-split; auto. intros [[n i] gv] [? ?]. Exists (Z.of_nat n, Z.of_nat i, gv) emp.
+split; auto. intros [[n [i Hi]] gv] [? ?]. Exists (Z.of_nat n, Z.of_nat i, gv) emp.
 normalize.
+set (x := Znth _ gauss_pts_list).
+destruct n as [n Hn].
+simpl nat_of_ord.
+pose proof (@ssrnat.ltP n 5). rewrite Hn in H0.
+inv H0.
+simpl in Hi.
+pose proof (@ssrnat.ltP i n). rewrite Hi in H0. inv H0.
 unfold_for_go_lower; normalize. simpl; entailer!; intros.
-Exists (nth n legendre_roots Inh_poly_and_roots).
+split; [ | repeat split; auto; try lia].
+entailer!.
+rewrite <- H4. clear rho' H3 H4.
+Exists x.
+entailer!!.
 destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
 destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
-unfold legendre_roots, nth, PR_n, PR_roots;
-EExists;
-(normalize; apply andp_right; [apply prop_right | apply derives_refl];
- split; [ reflexivity |];
- split; [split; [reflexivity | auto] | ];
- split3; [ assumption | congruence | auto]).
+red;
+set (d := FPCore.default_rel _); hnf in d; simpl in d; subst d;
+unfold ith_gauss_point, tuple.tnth; simpl;
+try change nmodule.Algebra.zero with 0%R;
+repeat change (ssralg.GRing.mul ?A ?B) with (A*B)%R;
+repeat change (nmodule.Algebra.opp ?A) with (- A)%R;
+repeat change (nmodule.Algebra.add ?A ?B) with (A + B)%R;
+try change (ssralg.GRing.one _) with 1%R;
+repeat change (ssralg.GRing.inv ?A) with (/A)%R;
+rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE, ?Rminus_diag;
+first [rewrite ?Rabs_R0; Lra.lra | interval with (i_prec(110%positive))].
 Qed.
-
-Definition ord_ext [n n'] (H: n=n') :  'I_n -> 'I_n' :=
-  eq_rect_r (fun n0 : nat => 'I_n0 -> 'I_n') (fun i0 : ordinal n' => i0) H.
-
-Definition weight_near (r: R) (x: ftype Tdouble) :=
-  (Rabs (FT2R x - r) <= Rabs (FT2R x) * FPCore.default_rel (coretype_of_type Tdouble))%R.
 
 Definition gauss_weight_spec : ident * funspec :=
   DECLARE _gauss_weight
-  WITH X: { n: nat & 'I_n}, gv: globals
+  WITH X: { n: 'I_5 & 'I_n}, gv: globals
   PRE [ tint, tint ] let '(existT _ n i) := X in 
-    PROP((n <= 4)%nat)
-    PARAMS( Vint (Int.repr (Z.of_nat (nat_of_ord i))); Vint (Int.repr (Z.of_nat n)))
+    PROP()
+    PARAMS( Vint (Int.repr (Z.of_nat i)); Vint (Int.repr (Z.of_nat n)))
     GLOBALS (gv)
     SEP( gauss_wts_pred gv )
   POST[ tdouble] let '(existT _ n i) := X in 
-    EX P : poly_and_roots Tdouble, EX H: n = PR_n P, EX x: ftype Tdouble,
-    PROP(weight_near (tuple.tnth (Legendre.GW_vals _ (PR_weights P)) (ord_ext H i)) x)
+    EX x: ftype Tdouble,
+    PROP(float_near (ith_gauss_weight n i) x)
     RETURN (Vfloat x)
     SEP( gauss_wts_pred gv ).
-
-Require Import Interval.Tactic.
 
 Lemma sub_gauss_weight: funspec_sub (snd gauss_weight_spec_lowlevel) (snd gauss_weight_spec).
 Proof.
@@ -303,41 +342,70 @@ unfold snd.
 hnf; intros.
 split; auto. intros [[n [i Hi]] gv] [? ?]. Exists (Z.of_nat n, Z.of_nat i, gv) emp.
 normalize.
-unfold_for_go_lower; normalize.
-simpl; normalize.
-entailer!; intros.
-Exists (nth n legendre_roots Inh_poly_and_roots).
-assert (Hn: n = PR_n (nth n legendre_roots Inh_poly_and_roots)).
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia; try reflexivity.
-Exists Hn.
-EExists.
-normalize; apply andp_right; [apply prop_right | apply derives_refl].
-split3; [ | | split3]; auto; try apply H3; try congruence.
-red.
-set (d := FPCore.default_rel _); hnf in d; simpl in d; subst d.
+set (x := Znth _ gauss_wts_list).
+destruct n as [n Hn].
+simpl nat_of_ord.
+pose proof (@ssrnat.ltP n 5). rewrite Hn in H0.
+inv H0.
+simpl in Hi.
+pose proof (@ssrnat.ltP i n). rewrite Hi in H0. inv H0.
+unfold_for_go_lower; normalize. simpl; entailer!; intros.
+split; [ | repeat split; auto; try lia].
+entailer!.
+rewrite <- H4. clear rho' H3 H4.
+Exists x.
+entailer!!.
 destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
 destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
-rewrite <- nth_Znth by (rewrite Zlength_correct; simpl; lia);
-simpl in Hn|-*;
-rewrite (proof_irr Hn eq_refl); clear Hn;
-simpl;
-unfold tuple.tnth, ord_ext, eq_rect_r, eq_rect, eq_sym;
-unfold tuple.tval, reverse_coercion, tuple.cons_tuple, tuple.nil_tuple, tuple.tval;
-simpl;
-unfold Defs.F2R, Defs.Fnum, Defs.Fexp;
+red;
+set (d := FPCore.default_rel _); hnf in d; simpl in d; subst d;
+unfold ith_gauss_weight, tuple.tnth; simpl;
 try change nmodule.Algebra.zero with 0%R;
 repeat change (ssralg.GRing.mul ?A ?B) with (A*B)%R;
 repeat change (nmodule.Algebra.opp ?A) with (- A)%R;
 repeat change (nmodule.Algebra.add ?A ?B) with (A + B)%R;
 try change (ssralg.GRing.one _) with 1%R;
 repeat change (ssralg.GRing.inv ?A) with (/A)%R;
-rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE;
-interval with (i_prec(110%positive)).
+rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE, ?Rminus_diag;
+first [rewrite ?Rabs_R0; Lra.lra | interval with (i_prec(110%positive))].
 Qed.
+
+ Definition gauss2d_point_spec : ident * funspec :=
+  DECLARE _gauss2d_point
+  WITH sh: share, p: val, X: {n: 'I_5 & 'I_n * 'I_n}, gv: globals
+  PRE [ tptr tdouble, tint, tint ]  let '(existT _ n (x,y)) := X in
+    PROP(writable_share sh)
+    PARAMS(p; Vint (Int.repr (Z.of_nat (y*n+x)%nat)); Vint (Int.repr (Z.of_nat (n*n)%nat)))
+    GLOBALS (gv)
+    SEP(data_at_ sh (tarray tdouble 2) p; gauss_pts_pred gv )
+  POST[ tvoid ]  let '(existT _ n (x,y)) := X in
+    EX rx: ftype Tdouble, EX ry: ftype Tdouble,
+    PROP(float_near (ith_gauss_point n x) rx;
+                 float_near (ith_gauss_point n y) ry)
+    RETURN ()
+    SEP(data_at sh (tarray tdouble 2) [Vfloat rx; Vfloat ry] p; gauss_pts_pred gv).
+
+ Definition gauss2d_weight_spec : ident * funspec :=
+  DECLARE _gauss2d_weight
+  WITH sh:share, X: {n: 'I_5 & 'I_n * 'I_n}, gv: globals
+  PRE [ tint, tint ]  let '(existT _ n (x,y)) := X in
+    PROP(writable_share sh)
+    PARAMS(Vint (Int.repr (Z.of_nat (y*n+x)%nat)); Vint (Int.repr (Z.of_nat (n*n)%nat)))
+    GLOBALS (gv)
+    SEP(gauss_wts_pred gv )
+  POST[ tdouble ]  let '(existT _ n (x,y)) := X in
+    EX x': ftype Tdouble, EX y': ftype Tdouble,
+    PROP(float_near (ith_gauss_weight n x) x';
+                 float_near (ith_gauss_weight n y) y')
+    RETURN ( Vfloat (x' * y')%F64)
+    SEP(gauss_wts_pred gv).
 
 (** Finally we build an Abstract Specification Interface (ASI) containing all the instantiated specs *)
 Definition quadrules_ASI: funspecs :=
- [ gauss_point_spec; gauss_weight_spec ].
+ [ gauss2d_npoint1d_spec;
+   gauss_point_spec; gauss_weight_spec;
+   gauss2d_point_spec; gauss2d_weight_spec
+  ].
 
 
 

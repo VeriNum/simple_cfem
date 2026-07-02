@@ -142,3 +142,143 @@ f_equal. f_equal. f_equal.
 apply Zquot.Zquot_Zdiv_pos; nia.
 Qed.
 
+Lemma body_gauss2d_npoint1d: semax_body Vprog Gprog f_gauss2d_npoint1d gauss2d_npoint1d_spec.
+Proof.
+start_function.
+assert (repable_signed (s*s)).  (* See https://github.com/PrincetonUniversity/VST/issues/858  *)
+  unfold repable_signed, Int.min_signed, Int.max_signed, Int.half_modulus, Int.modulus, Int.wordsize.
+  simpl. nia. 
+forward_if False.
+1-5: forward; entailer!!; f_equal; f_equal; nia.
+rewrite !Int.unsigned_repr in NE,NE0,NE1,NE2,NE3 by rep_lia.
+exfalso.
+destruct s; try nia.
+destruct p; try nia.
+Qed.
+
+Lemma body_gauss2d_point: semax_body Vprog Gprog f_gauss2d_point gauss2d_point_spec.
+Proof.
+start_function.
+forward_call (Z.of_nat n).
+entailer!!. simpl. f_equal. f_equal. f_equal. lia.
+destruct n as [n Hn]; simpl.
+pose proof (@ssrnat.ltP n 5). rewrite Hn in H. inv H.
+destruct x as [x Hx]. simpl in Hx.
+pose proof (@ssrnat.ltP x n). rewrite Hx in H. inv H. lia.
+destruct n as [n Hn].
+pose proof (@ssrnat.ltP n 5). rewrite Hn in H. inv H.
+destruct x as [x Hx].
+pose proof (@ssrnat.ltP x n). simpl in Hx; rewrite Hx in H. inv H.
+destruct y as [y Hy].
+pose proof (@ssrnat.ltP y n). simpl in Hy; rewrite Hy in H. inv H.
+assert (H3: 0 <= Z.of_nat (y * n + x) <= 25) by nia.
+forward.
+entailer!!.
+split.
+intro H'; apply repr_inj_signed in H';  rep_lia.
+intros [? ?].
+apply repr_inj_signed in H; try rep_lia.
+forward.
+entailer!!.
+split.
+intro H'; apply repr_inj_signed in H';  rep_lia.
+intros [? ?].
+apply repr_inj_signed in H; try rep_lia.
+simpl nat_of_ord.
+rewrite divs_repr; try rep_lia.
+rewrite mods_repr; try rep_lia.
+pose (X := existT (fun n => 'I_(nat_of_ord n)) (Ordinal  Hn) (Ordinal Hx)).
+forward_call (X, gv); clear X.
+entailer!!.
+simpl. f_equal. f_equal. f_equal.
+rewrite <- Nat2Z.inj_mod. f_equal.
+rewrite Nat.Div0.add_mod, Nat.Div0.mul_mod, Nat.Div0.mod_same, Nat.mul_0_r, Nat.Div0.mod_0_l, Nat.add_0_l.
+rewrite Nat.Div0.mod_mod, Nat.mod_small; lia.
+Intros x'.
+forward.
+pose (X := existT (fun n => 'I_(nat_of_ord n)) (Ordinal  Hn) (Ordinal Hy)).
+forward_call (X,gv); clear X.
+entailer!!.
+simpl. f_equal. f_equal. f_equal.
+rewrite Nat2Z.inj_add, Nat2Z.inj_mul.
+rewrite Z.quot_add_l; try lia.
+rewrite Z.quot_small; try lia.
+Intros y'.
+forward.
+Exists x' y'.
+entailer!!.
+Qed.
+
+Lemma body_gauss2d_weight: semax_body Vprog Gprog f_gauss2d_weight gauss2d_weight_spec.
+Proof.
+start_function.
+forward_call (Z.of_nat n).
+entailer!!. simpl. f_equal. f_equal. f_equal. lia.
+destruct n as [n Hn]; simpl.
+pose proof (@ssrnat.ltP n 5). rewrite Hn in H. inv H.
+destruct x as [x Hx]. simpl in Hx.
+pose proof (@ssrnat.ltP x n). rewrite Hx in H. inv H. lia.
+destruct n as [n Hn].
+pose proof (@ssrnat.ltP n 5). rewrite Hn in H. inv H.
+destruct x as [x Hx].
+pose proof (@ssrnat.ltP x n). simpl in Hx; rewrite Hx in H. inv H.
+destruct y as [y Hy].
+pose proof (@ssrnat.ltP y n). simpl in Hy; rewrite Hy in H. inv H.
+assert (H3: 0 <= Z.of_nat (y * n + x) <= 25) by nia.
+forward.
+entailer!!.
+split.
+intro H'; apply repr_inj_signed in H';  rep_lia.
+intros [? ?].
+apply repr_inj_signed in H; try rep_lia.
+forward.
+entailer!!.
+split.
+intro H'; apply repr_inj_signed in H';  rep_lia.
+intros [? ?].
+apply repr_inj_signed in H; try rep_lia.
+simpl nat_of_ord.
+rewrite divs_repr; try rep_lia.
+rewrite mods_repr; try rep_lia.
+pose (X := existT (fun n => 'I_(nat_of_ord n)) (Ordinal  Hn) (Ordinal Hx)).
+forward_call (X, gv); clear X.
+entailer!!.
+simpl. f_equal. f_equal. f_equal.
+rewrite <- Nat2Z.inj_mod. f_equal.
+rewrite Nat.Div0.add_mod, Nat.Div0.mul_mod, Nat.Div0.mod_same, Nat.mul_0_r, Nat.Div0.mod_0_l, Nat.add_0_l.
+rewrite Nat.Div0.mod_mod, Nat.mod_small; lia.
+Intros x'.
+pose (X := existT (fun n => 'I_(nat_of_ord n)) (Ordinal  Hn) (Ordinal Hy)).
+forward_call (X,gv); clear X.
+entailer!!.
+simpl. f_equal. f_equal. f_equal.
+rewrite Nat2Z.inj_add, Nat2Z.inj_mul.
+rewrite Z.quot_add_l; try lia.
+rewrite Z.quot_small; try lia.
+Intros y'.
+forward.
+Exists x' y'.
+entailer!!.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

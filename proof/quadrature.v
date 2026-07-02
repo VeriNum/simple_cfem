@@ -284,10 +284,78 @@ Arguments ROOTS_zero [n].
 Arguments ROOTS_sorted [n].
 Arguments ROOTS_inrange [n].
 
+(** _Editor's note: the statement "14.  . . . are the n+1 zeros of [p_{n+1}]" implicitly claims that 
+     there are at most n+1 zeros.  That is: *)
+
+Lemma roots_of_ortho_p_at_most: forall [n] (roots: roots_of_ortho_p n),
+  forall x, root (ortho_p n) x -> x \in ROOTS_vals roots.
+Admitted.
+
+
+Lemma size_behead: forall {A} [n] (x: (n.+1).-tuple A), size (behead x) == n.
+Proof. intros; rewrite size_behead size_tuple //. Qed.
+
+Definition tuple_behead {A} [n] (x: n.+1.-tuple A) : n.-tuple A :=
+  Tuple (size_behead x).
+
+Lemma tuple_ext: forall {A}[n] (x y: n.-tuple A), tval x = tval y -> x=y.
+Proof.
+intros.
+destruct x as [x Hx]; destruct y as [y Hy]; simpl in *; subst x. f_equal.
+apply eq_irrelevance.
+Qed.
+
+Lemma tuple_rehead {A} [n] (x: n.+1.-tuple A): cons_tuple (thead x) (tuple_behead x) = x.
+Proof.
+apply tuple_ext.
+simpl.
+pose proof tuple_eta x. symmetry.
+destruct x; simpl in H. inversion  H. simpl. auto.
+Qed.
+
+Lemma roots_of_ortho_p_unique (n: nat) : forall r r' : roots_of_ortho_p n, r=r'.
+Proof.
+move => r r'.
+move :(roots_of_ortho_p_at_most r) => J1.
+move :(roots_of_ortho_p_at_most r') => J2.
+destruct r as [v1 Hz1 Hs1 Hin1].
+destruct r' as [v2 Hz2 Hs2 Hin2].
+simpl in J1, J2.
+assert (forall x, x \in v1 <-> x \in v2). {
+ intros; split; intro.
+ + apply J2; move :Hz1; move  /allP => A1. apply A1; auto.
+ + apply J1; move :Hz2; move /allP => A2; apply A2; auto.
+}
+assert (v1 = v2). {
+clear - H Hs1 Hs2.
+revert v1 v2 Hs1 Hs2 H; induction n; simpl; intros.
+rewrite -boolp.eq_opE tuple0 eq_sym tuple0 //.
+specialize (IHn (tuple_behead v1) (tuple_behead v2)).
+rewrite -(tuple_rehead v1) -(tuple_rehead v2).
+assert (thead v1 = thead v2). {
+ pose proof (H (thead v1)).
+ pose proof (H (thead v2)).
+ admit.
+}
+rewrite H0.
+rewrite IHn; auto.
+rewrite -(tuple_rehead v1) in Hs1.
+simpl in Hs1. apply path_sorted in Hs1; auto.
+rewrite -(tuple_rehead v2) in Hs2.
+simpl in Hs2. apply path_sorted in Hs2; auto.
+intros.
+admit.
+}
+subst v1.
+f_equal; apply eq_irrelevance.
+all: fail.
+Admitted.
+
 (** _Editor's note:  The following is what we want; it is a constructive existence, so that we 
    can calculate with these roots.  But Stewart's proof is nonconstructive.
-  The roots of a rational-valued polynomial do exist constructively, see for example
-   the Jenkins-Traub algorithm(s).  There are simpler algorithms than Jenkins-Traub,
+  The complex roots of a rational-valued polynomial do exist constructively, see for example
+   the Jenkins-Traub algorithm(s); then one could use Stewart's proof to guarantee that all
+  the complex roots are real.  There are simpler algorithms than Jenkins-Traub,
    which don't converge as fast but would suffice for a constructive existence proof,
    but we want more than constructive existence, eventually we want to check how close
    certain floating-point numbers are to the true roots.  That is, we want constructive accuracy,
@@ -1501,8 +1569,54 @@ apply gauss_weight_4_2.
 apply gauss_weight_4_3.
 Defined.
 
-End R.
+Record legendre_roots_and_weights :=  { 
+    PR_n : nat ;
+    PR_roots: legendre_roots PR_n;
+    PR_weights: gauss_weights PR_n
+}.
 
+Inductive iseq (T: nat -> Type) : nat ->Type :=
+| i_nil: iseq T O
+| i_cons: forall i, T i -> iseq T i -> iseq T (S i).
+
+Arguments i_nil {T}.
+Arguments i_cons {T} [i].
+
+Fixpoint nth_iseq [T: nat -> Type] [n: nat] (s: iseq T n) (i: 'I_n) {struct n} : T i.
+destruct n; destruct i as [i Hi].
+discriminate.
+specialize (nth_iseq T n).
+inversion s. subst i0.
+simpl.
+destruct (PeanoNat.Nat.eq_dec i n).
+rewrite e; apply X.
+assert (i<n)%N by abstract Lia.lia.
+change i with (nat_of_ord (Ordinal H)).
+apply nth_iseq. apply X0.
+Defined.
+
+Declare Scope iseq_scope.
+Delimit Scope iseq_scope with iseq.
+
+Infix "::" := i_cons (at level 60, right associativity) : iseq_scope.
+
+Definition some_legendre_roots: iseq legendre_roots 5 := 
+   (legendre_roots_4 
+    :: legendre_roots_3
+    :: legendre_roots_2 
+    :: legendre_roots_1
+    :: legendre_roots_0  
+    :: i_nil )%iseq.
+
+Definition some_gauss_weights: iseq gauss_weights 5 := 
+   (gauss_weights_4 
+    :: gauss_weights_3
+    :: gauss_weights_2 
+    :: gauss_weights_1
+    :: gauss_weights_0  
+    :: i_nil )%iseq.
+
+End R.
 
 End Legendre.
 
