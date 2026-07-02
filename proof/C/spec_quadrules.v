@@ -258,6 +258,8 @@ Qed.
 From mathcomp Require Import Rstruct.
 From Stdlib Require Import Reals.
 
+Instance InhR : Inhabitant R := 0%R.
+
 Import Legendre.
 
 Definition float_near (r: R) (x: ftype Tdouble) :=
@@ -400,11 +402,44 @@ Qed.
     RETURN ( Vfloat (x' * y')%F64)
     SEP(gauss_wts_pred gv).
 
+
+Definition hughes_points: list (R*R) := [ (1/2, 0); (1/2, 1/2); (0, 1/2) ]%R.
+
+Definition hughes_point_spec: ident * funspec :=
+  DECLARE _hughes_point
+  WITH sh: share, p: val, i: 'I_3
+  PRE [ tptr tdouble, tint, tint ]
+    PROP(writable_share sh)
+    PARAMS(p; Vint (Int.repr (Z.of_nat i)); Vint (Int.repr 3))
+    SEP(data_at_ sh (tarray tdouble 2) p )
+  POST[ tvoid ]
+    EX x: ftype Tdouble, EX y: ftype Tdouble,
+    PROP(Znth (Z.of_nat i) hughes_points = (FT2R x, FT2R y))
+    RETURN ()
+    SEP(data_at sh (tarray tdouble 2) [Vfloat x; Vfloat y] p).
+
+Definition hughes_weight: R := 1/6.
+
+ Definition hughes_weight_spec : ident * funspec :=
+  DECLARE _gauss2d_weight
+  WITH i: 'I_3
+  PRE [ tint, tint ]
+    PROP()
+    PARAMS(Vint (Int.repr (Z.of_nat i)); Vint (Int.repr 3))
+    SEP()
+  POST[ tdouble ]
+    EX w: ftype Tdouble,
+    PROP(float_near hughes_weight w)
+    RETURN ( Vfloat w )
+    SEP().
+
+
 (** Finally we build an Abstract Specification Interface (ASI) containing all the instantiated specs *)
 Definition quadrules_ASI: funspecs :=
  [ gauss2d_npoint1d_spec;
    gauss_point_spec; gauss_weight_spec;
-   gauss2d_point_spec; gauss2d_weight_spec
+   gauss2d_point_spec; gauss2d_weight_spec;
+   hughes_point_spec; hughes_weight_spec
   ].
 
 

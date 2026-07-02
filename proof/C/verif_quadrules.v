@@ -262,7 +262,46 @@ entailer!!.
 Qed.
 
 
+Lemma body_hughes_point: semax_body Vprog Gprog f_hughes_point hughes_point_spec.
+Proof.
+start_function.
+destruct i as [i Hi]. simpl.
+forward_if False.
+1,2,3:
+forward; forward; forward;
+do 2 EExists; entailer!!; [ | apply derives_refl]; simpl nat_of_ord; rewrite E; unfold Znth; simpl; f_equal;
+unfold FT2R;
+with_strategy transparent [Float.of_bits] simpl; compute; Lra.lra.
+rewrite !Int.unsigned_repr in *; try rep_lia.
+Qed.
 
+
+Import Rdefinitions Rbasic_fun.
+
+Lemma body_hughes_weight: semax_body Vprog Gprog f_hughes_weight hughes_weight_spec.
+Proof.
+start_function.
+forward.
+EExists.
+entailer!!.
+red. 
+change Float.div with (@BDIV _ Tdouble).
+with_strategy transparent [Float.of_bits] unfold Float.of_bits.
+rewrite !Int64.unsigned_repr by rep_lia.
+set (d := FPCore.default_rel _); hnf in d; simpl in d; subst d.
+set (x := (_ / _)%F64).
+unfold Bits.b64_of_bits, Bits.binary_float_of_bits, Binary.FF2B in x.
+simpl in x.
+hnf in x.
+revert x.
+set (H := proj1 _). clearbody H. simpl in H.
+simpl.
+unfold Defs.F2R, Defs.Fnum, Defs.Fexp.
+unfold hughes_weight.
+rewrite (Rabs_right (_ * _)%R).
+2: compute; Lra.nra.
+rewrite Rabs_left; compute; Lra.lra.
+Qed.
 
 
 
