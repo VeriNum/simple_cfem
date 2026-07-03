@@ -642,9 +642,121 @@ Qed.
 
 Definition pull_left_const := (@pull_left_const1, @pull_left_const2, @pull_left_const3, @pull_left_const4, @pull_left_const5).
 
+Lemma hornerX_i: (fun x: Real.sort R => x) = (@horner (reals_Real__to__GRing_NzSemiRing R) 'X).
+Proof. extensionality x. rewrite hornerX //. Qed.
+
+Lemma derivable_oo_LRcontinuous_horner: forall P lo hi, @derivable_oo_LRcontinuous R _ (horner P) lo hi.
+Admitted.
+
+Definition integ (p: {poly R}) : {poly R} := cons_poly 0 (\poly_(i < (size p)) (p`_i / ((S i)%:R))).
+
+Lemma poly0: forall f, @poly (reals_Real__to__GRing_NzSemiRing R) 0 f = 0.
+Proof.
+intros.
+unlock poly.
+rewrite locked_withE /poly_expanded_def /= polyC0 //.
+Qed.
+
+Lemma deriv_integ: forall p: {poly R}, deriv (integ p) = p.
+Proof.
+intro.
+rewrite /integ /deriv.
+destruct p as [s H].
+simpl.
+apply poly_inj.
+destruct (size s) eqn:?H.
+-
+destruct s; try discriminate H0. clear H0.
+rewrite /= poly0 size_cons_poly nil_poly ?eq_refl /= poly0 polyseq0 //.
+-
+assert (H7: is_true (s`_n != 0)). {
+rewrite (last_nth Algebra.zero) H0 in H. auto.
+}
+rewrite size_cons_poly.
+rewrite H0.
+unfold nilp.
+rewrite size_poly_eq.
+2:{  rewrite ?prednK; try Lia.lia. simpl. 
+revert H7.
+set d := s`_n. clearbody d.
+apply contraNN.
+intro.
+rewrite mulIr_eq0 in H1; auto.
+intros ? ? ?.
+set (u := natmul _ _) in H1. 
+assert (u > 0)%R by apply ltr0Sn.
+clearbody u.
+assert (x1 / u * u = x2 / u * u)%R. f_equal; auto.
+rewrite -!mulrA in H3.
+rewrite mulVf ?mulr1 in H3; auto.
+apply lt0r_neq0; auto.
+}
+simpl.
+apply (@eq_from_nth _ 0).
+rewrite size_poly_eq; auto.
+simpl. 
+rewrite coef_cons. simpl.
+rewrite coefE ltnSn.
+{
+clear - H7.
+rewrite mulrn_eq0.
+simpl.
+rewrite mulf_eq0 negb_or H7 /= invr_neq0 //.
+}
+intros.
+rewrite size_poly_eq in H1.
+2:{
+rewrite coef_cons. simpl. rewrite coefE ltnSn.
+rewrite mulrn_eq0 /=.
+rewrite mulf_eq0 negb_or H7 /= invr_neq0 //.
+}
+rewrite coefE H1.
+rewrite coef_cons /=.
+rewrite coefE H1.
+rewrite -mulrnAr.
+rewrite -mulr_natr.
+rewrite mulVr ?mulr1 //.
+rewrite unitfE.
+rewrite mulrn_eq0 /=  oner_eq0 //.
+Qed.
+
+Lemma Rintegral_poly: forall lo hi (lo_lt_hi: lo<hi)
+  (P: polynomial (reals_Real__to__GRing_NzSemiRing R)),
+eq
+  (Rintegral (reverse_coercion (lebesgue_measure_lebesgue_measure__canonical__measure_function_Measure R) (@lebesgue_measure R))
+     (mkset
+        (fun x : Order.POrder.sort (reals_Real__to__Order_POrder R) =>
+         is_true (in_mem x (mem (Interval (BSide true lo) (BSide false hi))))))
+     (fun x : Measurable.sort (measurable_structure_g_sigma_algebraType__canonical__measurable_structure_Measurable measurable) =>
+      horner P x))
+ (GRing.add (horner (integ P) hi) (opp (horner (integ P) lo))).
+Proof.
+intros.
+unfold Rintegral.
+rewrite (@continuous_FTC2 R (horner P) (horner (integ P)) lo hi lo_lt_hi).
+- reflexivity.
+- apply derivable_within_continuous; intros ? ?; apply derivable_horner.
+- apply derivable_oo_LRcontinuous_horner.
+-  intros ? ?. 
+rewrite -derivE. rewrite deriv_integ //.
+Qed.
+
 End R.
 
 End Rewriting.
+
+Lemma index_enum_ord_enum: forall n: nat, 
+   index_enum (fintype_ordinal__canonical__fintype_Finite n) = ord_enum n.
+Proof.
+intros.
+unfold index_enum.
+rewrite locked_withE.
+rewrite Finite.enum.unlock.
+simpl.
+auto.
+Qed.
+
+
 Module Legendre.
  Section R.
  Context {R : realType}.
@@ -657,11 +769,18 @@ Module Legendre.
  Lemma w_positive: forall x, is_true (lo <= x <= hi) -> is_true (0 < w x).
  Proof. intros. rewrite /w. lra. Qed.
 
+ Definition intgal1 (f: R->R) := \int[lebesgue_measure]_(x in `[lo,hi]%classic) (f x).
 
- Notation "∫" := (@intgal R lo hi w).
+ Lemma intgal_eq: @intgal R lo hi w = intgal1.
+ Proof. extensionality f. rewrite /intgal /intgal1. f_equal. simpl. f_equal. extensionality x. rewrite /w mulr1 //. Qed.
+
+ Notation "∫" := intgal1.
 
 Definition intgal_linear1 := @intgal_linear1 R (-1) 1 lo_lt_hi w ltac:(intros; rewrite /lo /hi /w /=; lra).
 Definition intgal_linear2 := @intgal_linear2 R lo hi lo_lt_hi w ltac:(intros; rewrite /lo /hi /w /=; lra).
+
+Lemma hornerw_i: w = horner 1%:P.
+Proof. extensionality x. rewrite /w hornerC //. Qed.
 
 Lemma intgal_w1_x:  ∫ id = 0.
 Proof.
@@ -737,6 +856,7 @@ Qed.
 Proof.
 intros.
 rewrite compute_G_eq.
+rewrite -intgal_eq.
 apply quadrature_error. apply lo_lt_hi. apply w_positive.
 Qed.
 
@@ -745,13 +865,221 @@ Proof.
 rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
 Qed.
 
+Definition r_integral := Rintegral_poly _ _ lo_lt_hi.
+
+Ltac is_ground_nat n := lazymatch n with O => idtac | S ?n' => is_ground_nat n' end.
+
+Ltac compute_ord_enum n := 
+  tryif is_ground_nat n then idtac 
+      else  fail "compute_ord_enum: Need a ground term natural number, but got" n; 
+  pattern (ord_enum n); 
+  match goal with |- ?F _ => 
+    let f := fresh "f" in set (f:=F);
+      let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
+      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
+        [ replace e with ssrbool.isT by apply eq_irrelevance; clear e | try (contradiction e; reflexivity)]);
+     subst f
+  end.
+
+Lemma intgal_X: ∫ (horner 'X) = 0.
+Proof.
+rewrite /intgal1 ?r_integral.
+rewrite /integ ?size_polyX ?size_poly0 ?size_polyC ?polyseq0 /= ?oner_neq0 /=.
+rewrite ?hornerE ?horner_poly ?index_enum_ord_enum.
+rewrite bigop.unlock /=.
+repeat change (ord_enum (natmul _ ?n)) with (ord_enum n).
+repeat match goal with |- context [reducebig _ (ord_enum ?n)] => compute_ord_enum n end.
+simpl.
+rewrite /hi /lo.
+rewrite ?polyseqX ?polyseq1 ?polyseq0 ?scale_polyE /=.
+ring.
+Qed.
+
+Lemma intgal_0: ∫ (horner 0) = 0.
+Proof.
+rewrite /intgal1 ?r_integral.
+rewrite /integ ?size_polyX ?size_poly0 ?size_polyC ?polyseq0 /= ?oner_neq0 /=.
+rewrite ?hornerE ?horner_poly ?index_enum_ord_enum.
+rewrite bigop.unlock /=.
+repeat change (ord_enum (natmul _ ?n)) with (ord_enum n).
+ring.
+Qed.
+
+Lemma intgal_1: ∫ (horner 1%:P) = 2.
+Proof.
+rewrite /intgal1 ?r_integral.
+rewrite /integ ?size_polyX ?size_poly0 ?size_polyC ?polyseq0 /= ?oner_neq0 /=.
+rewrite ?hornerE ?horner_poly ?index_enum_ord_enum.
+rewrite bigop.unlock /=.
+repeat change (ord_enum (natmul _ ?n)) with (ord_enum n).
+repeat match goal with |- context [reducebig _ (ord_enum ?n)] => compute_ord_enum n end.
+simpl.
+rewrite /hi /lo.
+rewrite ?polyseqX ?polyseq1 ?polyseq0 ?scale_polyE /=.
+rewrite ?r_ring.
+rewrite mulrN opprK ?r_ring.
+rewrite invr1.
+ring.
+Qed.
+
+
 Lemma Legendre_poly_1: legendre 1 =  fun x:R => x.
 Proof.
-rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
+rewrite /legendre /ortho_p /= hornerX_i -?hornerM' ?mulr1 ?mul1r ?mulr0 ?mul0r intgal_eq.
+f_equal.
+rewrite ?intgal_0 ?intgal_1 ?intgal_X ?scale_polyE. ring.
 Qed.
+
 
 Lemma Legendre_poly_2: legendre 2 =   fun x :R => x*x - 1/3.
 Proof.
+rewrite /legendre.
+set HORNER := horner.
+rewrite  /ortho_p /= hornerX_i -?hornerM' ?mulr1 ?mul1r ?mulr0 ?mul0r intgal_eq.
+rewrite ?intgal_0 ?intgal_1 ?intgal_X ?scale_polyE.
+rewrite ?r_ring.
+rewrite {1}/intgal1 ?r_integral.
+rewrite /integ ?size_polyX ?size_poly0 ?size_polyC ?polyseq0 /= ?oner_neq0 /=.
+rewrite ?mulrA ?size_mulX ?size_polyX.
+rewrite ?hornerE ?horner_poly ?index_enum_ord_enum.
+rewrite bigop.unlock /=.
+repeat change (ord_enum (natmul _ ?n)) with (ord_enum n).
+repeat match goal with |- context [reducebig _ (ord_enum ?n)] => compute_ord_enum n end.
+simpl.
+rewrite /hi /lo.
+rewrite ?polyseqX ?polyseq1 ?polyseq0 ?scale_polyE /=.
+ring.
+Qed.
+
+rewrite /legendre /ortho_p /= hornerX_i -?hornerM' ?mulr1 ?mul1r ?mulr0 ?mul0r intgal_eq.
+set d := intgal1 _.
+assert (d = 0).
+{
+clear.
+subst d.
+unfold intgal1.
+set P := 'X.
+
+
+
+unfold Rintegral.
+simpl.
+
+
+rewrite (@continuous_FTC2 R (horner P) (horner (integ P)) lo hi lo_lt_hi).
+-
+change (fine (GRing.add (EFin ?A) (oppe (EFin ?B)))) with (GRing.add A (opp B)).
+rewrite /integ.
+rewrite /lo /hi.
+rewrite size_polyX.
+rewrite ?hornerE /= ?horner_poly.
+rewrite bigop.unlock /= index_enum_ord_enum.
+unfold ord_enum.
+simpl pmap.
+unfold insub. destruct idP; [ | Lia.lia].
+simpl.
+rewrite ?r_ring.
+rewrite ?mulrN ?r_ring ?divr1 opprK.
+rewrite ?coefE /=. lra.
+- apply derivable_within_continuous; intros ? ?; apply derivable_horner.
+- apply derivable_oo_LRcontinuous_horner.
+- intros ? ?. set P := 'X.
+rewrite -derivE. rewrite deriv_integ //.
+}
+Search (derive1 (horner _)).
+
+
+ apply derivable_Nyo_continuousWoo.
+Search derivable_oo_LRcontinuous.
+ split. intros ? ?. apply derivable_horner.
+Search cvg_to horner.
+ intros ? ?.
+Search nbhs horner.
+ red. simpl. red. simpl. red. hnf. intro. simp. intros ? ?.
+  hnf.
+ red. intro.
+Search derivable_oo_LRcontinuous horner.
+ simpl.
+Search derivable horner.
+pose proof (@continuous_horner R 'X).
+Search concl:(continuous_at _ (from_subspace _ _)).
+apply continuous_subspaceW.
+apply continuous_subspace1.
+eapply continuous_in_subspaceT in H.
+ apply continuous_horner.
+Search continuous_at horner.
+simpl.
+rewrite hornerC.
+Search (horner (inv _)).
+ lra.
+rewrite ?hornerE.
+Search (horner _ - horner _).
+rewrite H.
+erewrite @continuous_FTC2 with (F := horner (1/2 * 'X * 'X)).
+5:{
+Search derive1 horner.
+rewrite -deriveE.
+pose proof @continuous_FTC2 R (horner 'X) (horner 1) lo hi lo_lt_hi.
+rewrite H.
+
+
+simpl in H.
+rewrite H.
+Search Rintegral polynomial.
+Search integral polynomial.
+Search EFin horner.
+
+Search integral  horner.
+
+simpl reverse_coercion.
+set d := id.
+Search mul_fun horner.
+Search (id \* horner _).
+rewrite horner0.
+Search horner.
+rewrite (hornerE 0%:P).
+Search (horner 0%:P).
+set (d := mul (polyC _) (polyC _)).
+assert (d = (1%:P)).
+{
+clear - d.
+subst d.
+rewrite mulr1.
+rewrite mul_1poly.
+apply poly_inj.
+
+rewrite /polyC /=.
+rewrite locked_withE /=.
+rewrite /mul_poly_def /=.
+
+simpl size.
+unfold mul_poly_def.
+simpl.
+simpl.
+unfold locked_with.
+ simpl.
+unfold mul. simpl.
+unfold mul_poly.
+unlock mul_poly.
+
+
+simpl.
+Locate unlockable.
+rewrite mul_poly_unlockable.
+Search polyseq mul.
+simpl.
+unfold mul. simpl.
+
+Search (polyseq _ == polyseq _).
+Search mul_poly.
+reflexivity.
+clear - 
+hnf in d.
+red in d. red in d.
+Search (mul (polyC _)). 
+Search mul_fun  horner.
+unfold legendre.
+
 rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift ?r_intgal //.
 extensionality x; simpl; lra.
 Qed. 
@@ -1001,17 +1329,6 @@ Definition legendre_roots_4: legendre_roots 4.
  apply (Build_roots_of_ortho_p lo hi _ _  legendre_roots_val
    legendre_roots_4a legendre_roots_4b legendre_roots_4c).
 Defined.
-
-Lemma index_enum_ord_enum: forall n: nat, 
-   index_enum (fintype_ordinal__canonical__fintype_Finite n) = ord_enum n.
-Proof.
-intros.
-unfold index_enum.
-rewrite locked_withE.
-rewrite Finite.enum.unlock.
-simpl.
-auto.
-Qed.
 
 
 Definition gauss_weights_0 : gauss_weights 0.
