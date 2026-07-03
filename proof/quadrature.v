@@ -492,53 +492,10 @@ End R.
 
 (* From mathcomp Require Import Rstruct.
 Import Rdefinitions. *)
+Module Rewriting.
 
-Module Legendre.
  Section R.
  Context {R : realType}.
- Definition lo : R := (-1)%R.
- Definition hi : R := 1%R.
- Lemma lo_lt_hi: (lo < hi)%R.
- Proof. unfold lo,hi. lra. Qed.
-
- Definition w (x: R) : R := 1%R.
- Notation "∫" := (@intgal R lo hi w).
-
-Definition intgal_linear1 := @intgal_linear1 R (-1) 1 lo_lt_hi w ltac:(intros; rewrite /lo /hi /w /=; lra).
-Definition intgal_linear2 := @intgal_linear2 R lo hi lo_lt_hi w ltac:(intros; rewrite /lo /hi /w /=; lra).
-
-Lemma intgal_w1_x:  ∫ id = 0.
-Proof.
-Admitted.
-
-Lemma intgal_w1_1:  ∫ (fun=>1) = 2.
-Admitted.
-
-Lemma intgal_w1_C: forall c,  ∫ (fun=>c) = 2*c.
-Admitted.
-
-Lemma intgal_w1_x2:  ∫(id \* id) = 2/3.
-Admitted.
-
-Lemma intgal_w1_x3: ∫ (id \* (id \* id)) = 0.
-Admitted.
-
-Lemma intgal_w1_x4: ∫ (id \* (id \* (id \* id))) = 2/5.
-Admitted.
-
-Lemma intgal_w1_x5: ∫ (id \* (id \* (id \* (id \* id)))) = 0.
-Admitted.
-
-Lemma intgal_w1_x6: ∫ (id \* (id \* (id \* (id \* (id \* id))))) = 2/7.
-Admitted.
-
-Lemma intgal_w1_x7: ∫ (id \* (id \* (id \* (id \* (id \* (id \* id)))))) = 0.
-Admitted.
-
-Definition r_intgal := (intgal_w1_1,intgal_w1_C, intgal_w1_x, intgal_w1_x2, 
-        intgal_w1_x3, intgal_w1_x4, intgal_w1_x5,
-        intgal_w1_x6, intgal_w1_x7 ).
-
 
 Lemma hornerXsubC': forall [R : nzRingType] (a : NzRing.sort R), horner('X - a%:P) = (id \- fun=>a).
 Proof.
@@ -649,24 +606,6 @@ Definition r_ring := (@mulr1, @mul1r, @mulr0, @mul0r, @addr0, @add0r, @oppr0, @s
 Definition r_lift := (@mul_funr1, @mul_fun1r, @mul_funr0, @mul_fun0r, @mul_fun_consts,
                                @add_funr0, @add_fun0r, @opp_funr0, @sub_funr0, @opp_funC).
 
-Definition legendre (n: nat) : R -> R :=  horner (ortho_p lo hi w n) .
-
-Lemma Legendre_poly_0: legendre 0 = fun x: R => 1%R.
-Proof.
-rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
-Qed.
-
-Lemma Legendre_poly_1: legendre 1 =  fun x:R => x.
-Proof.
-rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
-Qed.
-
-Lemma Legendre_poly_2: legendre 2 =   fun x :R => x*x - 1/3.
-Proof.
-rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift ?r_intgal //.
-extensionality x; simpl; lra.
-Qed. 
-
 Lemma pull_left_const1: forall  {s : comPzSemiRingType} (c: s) (B: s->s),
   mul_fun (fun x: ComPzSemiRing.sort s => x)
      (mul_fun (fun=>c)  B)
@@ -702,6 +641,120 @@ extensionality x. simpl. lra.
 Qed.
 
 Definition pull_left_const := (@pull_left_const1, @pull_left_const2, @pull_left_const3, @pull_left_const4, @pull_left_const5).
+
+End R.
+
+End Rewriting.
+Module Legendre.
+ Section R.
+ Context {R : realType}.
+ Import Rewriting.
+ Definition lo : R := (-1)%R.
+ Definition hi : R := 1%R.
+ Lemma lo_lt_hi: (lo < hi)%R.
+ Proof. unfold lo,hi. lra. Qed.
+ Definition w (x: R) : R := 1%R.
+ Lemma w_positive: forall x, is_true (lo <= x <= hi) -> is_true (0 < w x).
+ Proof. intros. rewrite /w. lra. Qed.
+
+
+ Notation "∫" := (@intgal R lo hi w).
+
+Definition intgal_linear1 := @intgal_linear1 R (-1) 1 lo_lt_hi w ltac:(intros; rewrite /lo /hi /w /=; lra).
+Definition intgal_linear2 := @intgal_linear2 R lo hi lo_lt_hi w ltac:(intros; rewrite /lo /hi /w /=; lra).
+
+Lemma intgal_w1_x:  ∫ id = 0.
+Proof.
+Admitted.
+
+Lemma intgal_w1_1:  ∫ (fun=>1) = 2.
+Admitted.
+
+Lemma intgal_w1_C: forall c,  ∫ (fun=>c) = 2*c.
+Admitted.
+
+Lemma intgal_w1_x2:  ∫(id \* id) = 2/3.
+Admitted.
+
+Lemma intgal_w1_x3: ∫ (id \* (id \* id)) = 0.
+Admitted.
+
+Lemma intgal_w1_x4: ∫ (id \* (id \* (id \* id))) = 2/5.
+Admitted.
+
+Lemma intgal_w1_x5: ∫ (id \* (id \* (id \* (id \* id)))) = 0.
+Admitted.
+
+Lemma intgal_w1_x6: ∫ (id \* (id \* (id \* (id \* (id \* id))))) = 2/7.
+Admitted.
+
+Lemma intgal_w1_x7: ∫ (id \* (id \* (id \* (id \* (id \* (id \* id)))))) = 0.
+Admitted.
+
+Definition r_intgal := (intgal_w1_1,intgal_w1_C, intgal_w1_x, intgal_w1_x2, 
+        intgal_w1_x3, intgal_w1_x4, intgal_w1_x5,
+        intgal_w1_x6, intgal_w1_x7 ).
+
+Definition legendre (n: nat) : R -> R :=  horner (ortho_p lo hi w n) .
+
+Record legendre_roots (n: nat) := {
+   LR_poly: R -> R;
+   LR_poly_eq: legendre n = LR_poly;
+   LR_roots: roots_of_ortho_p lo hi w n
+}.
+Arguments LR_poly [n].
+Arguments LR_poly_eq [n].
+Arguments LR_roots [n].
+Arguments Build_legendre_roots [n].
+
+Record gauss_weights (n: nat) := {
+   GW_legendre: legendre_roots n;
+   GW_vals: n.-tuple R;
+   GW_good: forall i, gauss_weight _ _ _ _ (LR_roots GW_legendre) i = tnth GW_vals i
+}.
+Arguments GW_legendre [n].
+Arguments GW_vals [n].
+Arguments GW_good [n].
+Arguments Build_gauss_weights [n].
+
+ Let compute_G [n] (GW: gauss_weights n) (f: R -> R) :=
+  \sum_i (tnth (GW_vals GW) i) * f (tnth (ROOTS_vals lo hi w n (LR_roots (GW_legendre GW))) i).
+
+Lemma compute_G_eq: forall n (GW: gauss_weights n) f, compute_G GW f = G lo hi w n (LR_roots (GW_legendre GW)) f.
+Proof.
+intros.
+rewrite /compute_G /G.
+f_equal.
+extensionality i.
+f_equal.
+f_equal.
+symmetry; apply GW_good.
+Qed.
+
+ Lemma legendre_quadrature_error: forall [n: nat] (GW: gauss_weights n) (f: R -> R),
+      exists ξ:R, lo <= ξ <= hi /\
+       ∫ f - compute_G GW f =  derive1n (2*n+2) f ξ / natmul 1 (factorial(2*n+2)) * ∫ (fun x => (legendre (n+1) x)^2).
+Proof.
+intros.
+rewrite compute_G_eq.
+apply quadrature_error. apply lo_lt_hi. apply w_positive.
+Qed.
+
+Lemma Legendre_poly_0: legendre 0 = fun x: R => 1%R.
+Proof.
+rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
+Qed.
+
+Lemma Legendre_poly_1: legendre 1 =  fun x:R => x.
+Proof.
+rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
+Qed.
+
+Lemma Legendre_poly_2: legendre 2 =   fun x :R => x*x - 1/3.
+Proof.
+rewrite  /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_intgal ?r_ring ?r_lift  ?r_intgal ?r_ring ?r_lift ?r_intgal //.
+extensionality x; simpl; lra.
+Qed. 
 
 Lemma Legendre_poly_3: legendre 3 =  fun x :R => x*x*x - (3/5)*x.
 Proof.
@@ -755,16 +808,6 @@ simpl.
 field.
 auto.
 Qed.
-
-Record legendre_roots (n: nat) := {
-   LR_poly: R -> R;
-   LR_poly_eq: legendre n = LR_poly;
-   LR_roots: roots_of_ortho_p lo hi w n
-}.
-Arguments LR_poly [n].
-Arguments LR_poly_eq [n].
-Arguments LR_roots [n].
-Arguments Build_legendre_roots [n].
 
 Definition legendre_roots_0 : legendre_roots 0.
   apply (Build_legendre_roots _ Legendre_poly_0).
@@ -970,22 +1013,6 @@ simpl.
 auto.
 Qed.
 
-(* Move this up! *)
-Lemma w_positive: forall x, is_true (lo <= x <= hi) -> is_true (0 < w x).
-Proof.
-intros. rewrite /w. lra.
-Qed.
-
-Record gauss_weights (n: nat) := {
-   GW_legendre: legendre_roots n;
-   GW_vals: n.-tuple R;
-   GW_good: forall i, gauss_weight _ _ _ _ (LR_roots GW_legendre) i = tnth GW_vals i
-}.
-Arguments GW_legendre [n].
-Arguments GW_vals [n].
-Arguments GW_good [n].
-Arguments Build_gauss_weights [n].
-
 
 Definition gauss_weights_0 : gauss_weights 0.
  apply (Build_gauss_weights legendre_roots_0 [::]).
@@ -1167,9 +1194,6 @@ Proof. intros. lra. Qed.
 
 Lemma add_mul3: forall (x :R), x+(x+x) = 3*x.
 Proof. intros. lra. Qed.
-
-Lemma mul_sqrt_sqrt: forall x y: R, Num.sqrt x * Num.sqrt y = Num.sqrt (x * y).
-Admitted.
 
 Lemma gauss_weight_4_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 0 isT) = 
        1/2 - Num.sqrt(5/6)/6.
@@ -1363,7 +1387,7 @@ rewrite ?mulrDr ?mulNr ?mulrN.
 rewrite ?mulr1.
 rewrite -?(mulrA 2).
 rewrite sqr_sqrt; auto.
-rewrite mul_sqrt_sqrt.
+rewrite -sqrtrM; [ | subst c; lra].
 rewrite ?(addrC (- _)).
 rewrite ?(mulrA _ 2) ?(mulrC _ 2).
 rewrite -?(mulrA 2 _ c).
@@ -1373,13 +1397,13 @@ rewrite ?(mulrDl (2*_) _ (Num.sqrt _)) ?mul1r.
 set bcc := Num.sqrt b * c.
 set ccc := Num.sqrt c * c.
 rewrite -(mulrA 2 (Num.sqrt b) (Num.sqrt (c*b))).
-rewrite mul_sqrt_sqrt.
+rewrite -sqrtrM; [ | subst b; lra].
 rewrite mulNr.
 rewrite -(mulrA 2 (Num.sqrt c) (Num.sqrt (c*b))).
-rewrite mul_sqrt_sqrt.
+rewrite -sqrtrM; [ | subst c; lra].
 rewrite (mulrA c c).
 rewrite (mulrC (c*c)).
-rewrite -(mul_sqrt_sqrt b (c*c)).
+rewrite (@sqrtrM _ b (c*c)); [ | subst b; lra].
 rewrite (@sqrtrM _ c c); auto.
 rewrite sqr_sqrt; auto.
 rewrite (mulrC b (c*b)) -(mulrA c b b).

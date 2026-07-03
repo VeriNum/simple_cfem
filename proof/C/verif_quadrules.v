@@ -29,29 +29,6 @@ Definition quadrules_globals gv : mpred:= gauss_pts_pred gv.
 
 Definition Gprog := quadrules_imported_specs ++ quadrules_internal_specs.
 
-
-Definition Fle [t: type] (x y: ftype t) : bool := BCMP Gt false x y.
-
-
-Lemma Fle_Rle [t: type] (x y: ftype t):
-  Binary.is_finite x = true -> Binary.is_finite y = true -> 
-  Fle x y = Rle_bool (FT2R x) (FT2R y).
-Proof.
-intros.
-unfold Fle, BCMP, extend_comp.
-rewrite Binary.Bcompare_correct; auto.
-Qed.
-
-Lemma Fle_Rle' [t: type] (x y: ftype t):
-  Binary.is_finite x = true -> Binary.is_finite y = true -> 
-  Fle x y = true ->
-  Rdefinitions.Rle (FT2R x) (FT2R y).
-Proof.
-intros.
-rewrite Fle_Rle in H1; auto.
-destruct (Rle_bool_spec (FT2R x) (FT2R y)); auto; discriminate.
-Qed.
-
 Lemma divs_repr: forall i j, 
   Int.min_signed <= i <= Int.max_signed ->
   Int.min_signed <= j <= Int.max_signed -> 
