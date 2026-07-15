@@ -3,6 +3,7 @@ From mathcomp Require Import all_boot ssralg ssrnum archimedean finfun order.
 From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory GRing.
 From mathcomp.algebra_tactics Require Import ring lra.
+Locate Ltac lra.
 Import classical_sets.
 Import numFieldNormedType.Exports.
 From Stdlib Require Import FunctionalExtensionality.
@@ -16,6 +17,410 @@ Local Open Scope R_scope.
 Local Open Scope order_scope.
 Local Open Scope ring_scope.
 
+
+(** First, some preliminaries *)
+
+(* begin details : Many general-purpose supporting lemmas, not specific to quadrature *)
+
+Lemma size_behead: forall {A} [n] (x: (n.+1).-tuple A), size (behead x) == n.
+Proof. intros; rewrite size_behead size_tuple //. Qed.
+
+Definition tuple_behead {A} [n] (x: n.+1.-tuple A) : n.-tuple A :=
+  Tuple (size_behead x).
+
+Lemma tuple_ext: forall {A}[n] (x y: n.-tuple A), tval x = tval y -> x=y.
+Proof.
+intros.
+destruct x as [x Hx]; destruct y as [y Hy]; simpl in *; subst x. f_equal.
+apply eq_irrelevance.
+Qed.
+
+Lemma tuple_rehead {A} [n] (x: n.+1.-tuple A): cons_tuple (thead x) (tuple_behead x) = x.
+Proof.
+apply tuple_ext.
+simpl.
+pose proof tuple_eta x. symmetry.
+destruct x; simpl in H. inversion  H. simpl. auto.
+Qed.
+
+
+Lemma sorted_ij {R: realType}: 
+ forall (rl: list R) (i j: nat) (d1 d2: R),
+  is_true (sorted <%R rl) ->
+  is_true (i < size rl)%N ->
+  is_true (j < size rl)%N ->
+  (nth d1 rl i < nth d2 rl j)%R = (i < j)%N.
+Proof.
+intros.
+revert i j H0 H1; induction rl; intros.
+simpl in H0; Lia.lia.
+simpl in H0,H1.
+destruct i,j; simpl in *.
+-
+rewrite ltnn lt_irreflexive //.
+-
+rewrite ltn0Sn.
+ apply order_path_min in H; [ | intros ? ? ?; lra].
+  pose proof (@all_nthP _  (> a)  rl d2). rewrite H in H2. inversion H2.
+  rewrite H3; auto.
+-
+ replace (i.+1<0)%N with false by Lia.lia.
+ apply order_path_min in H; [ | intros ? ? ?; lra].
+  pose proof (@all_nthP _  (> a)  rl d1). rewrite H in H2. inversion H2.
+  assert (is_true (i<size rl)%N). Lia.lia.
+  specialize (H3 _ H4). lra.
+-
+ rewrite IHrl; auto.
+ apply path_sorted in H; auto.
+Qed.
+
+Module Rewriting.
+
+ Section R.
+ Context {R : realType}.
+
+Lemma hornerXsubC': forall [R : nzRingType] (a : NzRing.sort R), horner('X - a%:P) = (id \- fun=>a).
+Proof.
+intros. extensionality x. apply hornerXsubC.
+Qed.
+
+Lemma hornerX': forall {R : nzSemiRingType}, @horner R ('X) = id.
+Proof.
+intros. extensionality x. apply hornerX.
+Qed.
+
+Lemma hornerC': forall (c: R), horner (polyC c) = (fun=>c).
+Proof. intros. extensionality x. apply hornerC.
+Qed.
+
+Lemma hornerD': forall [R] (a b: {poly R}), horner (a+b) = horner a \+ horner b.
+Proof. intros. extensionality x. apply hornerD.
+Qed.
+
+Lemma hornerM': forall [R: comNzSemiRingType] (a b: {poly R}), horner (a*b) = horner a \* horner b.
+Proof. intros. extensionality x. apply hornerM.
+Qed.
+
+Lemma hornerN': forall [R: nzRingType] (a: {poly R}), horner (- a) = \- horner a.
+Proof. intros. extensionality x. apply hornerN.
+Qed.
+
+Definition r_horner := (@hornerXsubC, @hornerXsubC', @hornerX, @hornerX', @hornerC, @hornerC',
+                                      @hornerD, @hornerD', @hornerM, @hornerM', @hornerN, @hornerN').
+
+Lemma mul_fun1r: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun (fun=>1) f = f.
+Proof.
+intros. extensionality x. simpl. apply mul1r.
+Qed.
+
+Lemma mul_funr1: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun f (fun=>1) = f.
+Proof.
+intros. extensionality x. simpl. apply mulr1.
+Qed.
+Hint Rewrite @mul1r @mul_fun1r @mulr1 @mul_funr1 : horner.
+
+Lemma mul_fun0r: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun (fun=>0) f = (fun=>0).
+Proof.
+intros. extensionality x. simpl. apply mul0r.
+Qed.
+
+Lemma mul_funr0: forall
+   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
+    mul_fun f (fun=>0) = (fun=>0).
+Proof.
+intros. extensionality x. simpl. apply mulr0.
+Qed.
+Hint Rewrite @mul0r @mul_fun0r @mulr0 @mul_funr0 : horner.
+
+Lemma opp_funC: forall  {U : Type} {V : BaseZmodule.type} (c: V), 
+  @opp_fun U V (fun=>c) = (fun=> opp c).
+Proof.
+intros. extensionality x. reflexivity.
+Qed.
+
+Lemma opp_funr0:  forall {U: Type}, (fun _:U=> (-0):R) = (fun _:U => 0:R).
+Proof.
+intros. extensionality x. apply oppr0.
+Qed.
+
+Lemma sub_funr0: forall {U: Type} {V: zmodType} (f: U -> V),
+  sub_fun f (fun=>0) = f.
+Proof. intros. extensionality x. simpl. apply subr0.
+Qed.
+
+Lemma add_fun0r: forall {U: Type} {V: nmodType} (f: U -> V),
+  add_fun (fun=>0) f = f.
+Proof. intros. extensionality x. simpl. apply add0r.
+Qed.
+
+Lemma add_funr0: forall {U: Type} {V: nmodType} (f: U -> V),
+  add_fun f (fun=>0) = f.
+Proof. intros. extensionality x. simpl. apply addr0.
+Qed.
+
+Lemma mul_funDr: forall  {s : pzSemiRingType} {T: Type},
+   @right_distributive (T -> PzSemiRing.sort s) _ mul_fun add_fun.
+Proof. intros. red. intros. extensionality i. simpl. apply mulrDr. Qed.
+
+Lemma mul_funDl: forall  {s : pzSemiRingType} {T: Type},
+   @left_distributive (T -> PzSemiRing.sort s) _ mul_fun add_fun.
+Proof. intros. red. intros. extensionality i. simpl. apply mulrDl. Qed.
+
+Lemma mul_funA: forall  {s : pzSemiRingType} {T: Type},
+   @associative (T -> PzSemiRing.sort s) mul_fun.
+Proof. intros. red. intros. extensionality i. simpl. apply mulrA. Qed.
+
+Lemma mul_funC: forall  {s : comPzSemiRingType} {T: Type},
+   @commutative (T -> s) _ mul_fun.
+Proof. intros. red. intros. extensionality i. simpl. apply mulrC. Qed.
+
+Lemma mul_fun_consts: forall {s : comPzSemiRingType} {T: Type} (a b: s),
+    @mul_fun s T (fun=>a) (fun=>b) = fun=> a*b.
+Proof. intros; extensionality i; auto. Qed.
+
+Definition r_ring := (@mulr1, @mul1r, @mulr0, @mul0r, @addr0, @add0r, @oppr0, @subr0).
+Definition r_lift := (@mul_funr1, @mul_fun1r, @mul_funr0, @mul_fun0r, @mul_fun_consts,
+                               @add_funr0, @add_fun0r, @opp_funr0, @sub_funr0, @opp_funC).
+
+Lemma hornerX_i: (fun x: Real.sort R => x) = (@horner (reals_Real__to__GRing_NzSemiRing R) 'X).
+Proof. extensionality x. rewrite hornerX //. Qed.
+
+Lemma poly0 {F: Num.NumDomain.type}: forall f, @poly  F 0 f = 0.
+Proof.
+intros.
+unlock poly.
+rewrite locked_withE /poly_expanded_def /= polyC0 //.
+Qed.
+
+Lemma mul_polyC': forall a b: R, polyC a * polyC b = polyC (a*b).
+Proof.
+intros.
+rewrite mul_polyC scale_polyC //.
+Qed.
+
+Lemma polyCN: forall  (x:R), polyC(opp x) = - polyC x.
+Proof. intros.
+rewrite -scaleN1r -scale_polyC scaleN1r //.
+Qed.
+
+Definition polynil: {poly R} := @Polynomial _ nil oner_neq0.
+Lemma polynil_eq: polynil=0.
+Proof.
+apply /eqP.
+rewrite -nil_poly //.
+Qed.
+
+Lemma polyC1': 1%:P = @Polynomial R [:: 1] oner_neq0.
+Proof.
+rewrite polyC1.
+apply poly_inj.
+rewrite polyseq1 //.
+Qed.
+
+Lemma polyC': forall (c: R) (H: is_true (c != 0)), c%:P = @Polynomial R [:: c] H.
+Proof.
+intros.
+apply poly_inj.
+unlock polyC. rewrite /insubd /poly_nil /odflt /oapp /insub.
+destruct idP; auto.
+simpl in n. contradiction.
+Qed.
+
+Lemma polyC0': 0%:P = @Polynomial R [:: ] oner_neq0.
+Proof.
+rewrite polyC0.
+rewrite -polynil_eq.
+apply poly_inj; auto.
+Qed.
+
+Lemma polyX': 'X = @Polynomial R [:: 0; 1] oner_neq0.
+Proof.
+intros.
+unlock polyX; destruct polyX_key; rewrite /polyX_def  /=.
+unlock cons_poly;
+rewrite ?polyC0' ?polyC1' //.
+Qed.
+
+Lemma polyX2': 'X * 'X = @Polynomial R [:: 0; 0; 1] oner_neq0.
+Proof.
+intros.
+apply poly_inj.
+rewrite polyseqMX.
+rewrite  /= polyX' //.
+rewrite polyX_eq0 //.
+Qed.
+
+Lemma polyX3': 'X * ('X * 'X) = @Polynomial R [:: 0; 0; 0; 1] oner_neq0.
+Proof.
+intros.
+apply poly_inj.
+rewrite polyX2'.
+rewrite mulrC polyseqMX //.
+rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
+Qed.
+
+Lemma polyX4': 'X * ('X * ('X * 'X)) = @Polynomial R [:: 0; 0; 0; 0; 1] oner_neq0.
+Proof.
+intros.
+apply poly_inj.
+rewrite polyX3'.
+rewrite mulrC polyseqMX //.
+rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
+Qed.
+
+Lemma polyX5': 'X * ('X * ('X * ('X * 'X))) = @Polynomial R [:: 0; 0; 0; 0; 0; 1] oner_neq0.
+Proof.
+intros.
+apply poly_inj.
+rewrite polyX4'.
+rewrite mulrC polyseqMX //.
+rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
+Qed.
+
+Lemma polyX6': 'X * ('X * ('X * ('X * ('X * 'X)))) = @Polynomial R [:: 0; 0; 0; 0; 0; 0; 1] oner_neq0.
+Proof.
+intros.
+apply poly_inj.
+rewrite polyX5'.
+rewrite mulrC polyseqMX //.
+rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
+Qed.
+
+Lemma polyX7': 'X * ('X * ('X * ('X * ('X * ('X * 'X))))) = @Polynomial R [:: 0; 0; 0; 0; 0; 0; 0; 1] oner_neq0.
+Proof.
+intros.
+apply poly_inj.
+rewrite polyX6'.
+rewrite mulrC polyseqMX //.
+rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
+Qed.
+
+Definition integ (p: {poly R}) : {poly R} := cons_poly 0 (\poly_(i < (size p)) (p`_i / ((S i)%:R))).
+
+Lemma deriv_integ: forall p: {poly R}, deriv (integ p) = p.
+Proof.
+move => [s H].
+rewrite /integ /deriv /=.
+apply poly_inj.
+destruct (size s) eqn:H0.
+-
+destruct s; try discriminate H0. clear H0.
+rewrite /= poly0 size_cons_poly nil_poly ?eq_refl /= poly0 polyseq0 //.
+-
+assert (H7: is_true (s`_n != 0))
+ by (rewrite (last_nth Algebra.zero) H0 in H; auto).
+rewrite size_cons_poly H0 /nilp size_poly_eq.
+2:{  rewrite ?prednK; try Lia.lia. simpl. 
+revert H7.
+set d := s`_n. clearbody d.
+apply contraNN.
+intro.
+rewrite mulIr_eq0 in H1; auto.
+intros ? ? ?.
+set (u := natmul _ _) in H1. 
+assert (u > 0)%R by apply ltr0Sn.
+clearbody u.
+assert (x1 / u * u = x2 / u * u)%R. f_equal; auto.
+rewrite -!mulrA in H3.
+rewrite mulVf ?mulr1 in H3; auto.
+apply lt0r_neq0; auto.
+}
+simpl.
+apply (@eq_from_nth _ 0).
+rewrite size_poly_eq //. 
+simpl. 
+rewrite coef_cons. simpl.
+rewrite coefE ltnSn.
+clear - H7; rewrite mulrn_eq0 /= mulf_eq0 negb_or H7 /= invr_neq0 //.
+intros.
+rewrite size_poly_eq in H1.
+2: rewrite coef_cons /= coefE ltnSn mulrn_eq0 /= mulf_eq0 negb_or H7 /= invr_neq0 //.
+rewrite coefE H1 coef_cons /= coefE H1 -mulrnAr -mulr_natr mulVr ?mulr1 //.
+rewrite unitfE mulrn_eq0 /=  oner_eq0 //.
+Qed.
+
+Lemma derivable_oo_LRcontinuous_horner: forall P lo hi, @derivable_oo_LRcontinuous R _ (horner P) lo hi.
+Proof.
+intros.
+split.
+- intros ? ?. apply derivable_horner.
+- exact/cvg_at_right_filter/continuous_horner.
+- exact/cvg_at_left_filter/continuous_horner.
+Qed.
+
+Lemma Rintegral_poly: forall lo hi (lo_lt_hi: lo<hi)
+  (P: polynomial (reals_Real__to__GRing_NzSemiRing R)),
+eq
+  (Rintegral (reverse_coercion (lebesgue_measure_lebesgue_measure__canonical__measure_function_Measure R) (@lebesgue_measure R))
+     (mkset
+        (fun x : Order.POrder.sort (reals_Real__to__Order_POrder R) =>
+         is_true (in_mem x (mem (Interval (BSide true lo) (BSide false hi))))))
+     (fun x : Measurable.sort (measurable_structure_g_sigma_algebraType__canonical__measurable_structure_Measurable measurable) =>
+      horner P x))
+ (GRing.add (horner (integ P) hi) (opp (horner (integ P) lo))).
+Proof.
+intros.
+rewrite /Rintegral (@continuous_FTC2 R (horner P) (horner (integ P)) lo hi lo_lt_hi).
+- reflexivity.
+- apply derivable_within_continuous; intros ? ?; apply derivable_horner.
+- apply derivable_oo_LRcontinuous_horner.
+-  intros ? ?. 
+rewrite -derivE. rewrite deriv_integ //.
+Qed.
+
+End R.
+
+End Rewriting.
+
+Import Rewriting.
+
+Lemma index_enum_ord_enum: forall n: nat, 
+   index_enum (fintype_ordinal__canonical__fintype_Finite n) = ord_enum n.
+Proof.
+intros.
+unfold index_enum.
+rewrite locked_withE.
+rewrite Finite.enum.unlock.
+simpl.
+auto.
+Qed.
+
+Ltac is_ground_nat n := lazymatch n with O => idtac | S ?n' => is_ground_nat n' end.
+
+Ltac compute_ord_enum n := 
+  tryif is_ground_nat n then idtac 
+      else  fail "compute_ord_enum: Need a ground term natural number, but got" n; 
+  pattern (ord_enum n); 
+  match goal with |- ?F _ => 
+    let f := fresh "f" in set (f:=F);
+      let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
+      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
+        [ replace e with ssrbool.isT by apply eq_irrelevance; clear e | try (contradiction e; reflexivity)]);
+     subst f
+  end.
+
+Ltac expand_bigop :=
+ match goal with |- context [bigop.body _ (index_enum (fintype_ordinal__canonical__fintype_Finite ?n))] =>
+ let B := fresh "B" in 
+ set B := bigop.body _ _ _; pattern B; subst B; 
+ lazymatch goal with |- ?b _ => set B := b end;
+rewrite bigop.unlock index_enum_ord_enum;
+ compute_ord_enum n;
+ try rewrite ?/reducebig ?/foldr ?/applybig;
+  repeat change (comp ?A ?B ?C) with (A (B C));
+ cbv beta match;
+ repeat change (nat_of_ord (@Ordinal _ ?a _)) with a;
+ simpl nth;
+ subst B; cbv beta
+end.
+
+(* end details *)
 
 Section R.
 Context {R : realType}.
@@ -285,36 +690,16 @@ Arguments ROOTS_sorted [n].
 Arguments ROOTS_inrange [n].
 
 (** _Editor's note: the statement "14.  . . . are the n+1 zeros of [p_{n+1}]" implicitly claims that 
-     there are at most n+1 zeros.  That is: *)
+     there are at most n+1 zeros.  That is any zero of the polynomial is already in the roots list,
+     which is explicitly an n.-tuple: *)
 
 Lemma roots_of_ortho_p_at_most: forall [n] (roots: roots_of_ortho_p n),
   forall x, root (ortho_p n) x -> x \in ROOTS_vals roots.
 Admitted.
 
-
-Lemma size_behead: forall {A} [n] (x: (n.+1).-tuple A), size (behead x) == n.
-Proof. intros; rewrite size_behead size_tuple //. Qed.
-
-Definition tuple_behead {A} [n] (x: n.+1.-tuple A) : n.-tuple A :=
-  Tuple (size_behead x).
-
-Lemma tuple_ext: forall {A}[n] (x y: n.-tuple A), tval x = tval y -> x=y.
-Proof.
-intros.
-destruct x as [x Hx]; destruct y as [y Hy]; simpl in *; subst x. f_equal.
-apply eq_irrelevance.
-Qed.
-
-Lemma tuple_rehead {A} [n] (x: n.+1.-tuple A): cons_tuple (thead x) (tuple_behead x) = x.
-Proof.
-apply tuple_ext.
-simpl.
-pose proof tuple_eta x. symmetry.
-destruct x; simpl in H. inversion  H. simpl. auto.
-Qed.
-
 Lemma roots_of_ortho_p_unique (n: nat) : forall r r' : roots_of_ortho_p n, r=r'.
 Proof.
+(* begin details: partial proof of this lemma *)
 move => r r'.
 move :(roots_of_ortho_p_at_most r) => J1.
 move :(roots_of_ortho_p_at_most r') => J2.
@@ -349,6 +734,7 @@ admit.
 subst v1.
 f_equal; apply eq_irrelevance.
 all: fail.
+(* end details *)
 Admitted.
 
 (** _Editor's note:  The following is what we want; it is a constructive existence, so that we 
@@ -395,10 +781,49 @@ Abort.
 
   (** Editor's note: we need this [extend_roots] to prove injectivity when using [lagrangeE] *)
   Definition extend_roots  (i: nat) : R :=
-     nth ((i+1-n)%:R) zeros_of_ortho_p i.
+     nth ((i+1)%:R+b) zeros_of_ortho_p i.
 
-  Lemma extend_roots_injective: injective extend_roots.
-  Admitted.
+Lemma extend_roots_injective: injective extend_roots.
+ Proof.
+(* begin details *)
+  pose proof ROOTS_inrange roots.
+  pose proof ROOTS_sorted roots.
+  rewrite /extend_roots /zeros_of_ortho_p.
+  set rl := tval (ROOTS_vals roots) in H,H0|-*. clearbody rl.
+  simpl in H.
+  assert (is_true (all (fun x => x <= b) rl)).
+  eapply sub_all; [ | apply H].  intros ? ?. lra. clear H. rename H1 into H.
+  intros i j H1.
+  assert (is_true (i < size rl) \/ is_true (i >= size rl))%N by Lia.lia.
+  assert (is_true (j < size rl) \/ is_true (j >= size rl))%N by Lia.lia.
+  destruct H2 as [Hi|Hi];  destruct H3 as [Hj|Hj].
+-
+  assert ((i < j)%N \/ i=j \/ (j<i)%N) by Lia.lia.
+  destruct H2 as [? |[?|?]]; auto.
+  rewrite <- (sorted_ij rl i j ((i + 1)%:R + b)%E ((j + 1)%:R + b)%E H0 Hi Hj) in H2.
+  rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
+  rewrite <- (sorted_ij rl j i ((j + 1)%:R + b)%E ((i + 1)%:R + b)%E H0 Hj Hi) in H2.
+  rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
+- 
+  pose proof (@all_nthP _  (fun x => x  <= b)  rl ((i + 1)%:R + b)%E). rewrite H in H2. inversion H2.
+  apply H3 in Hi.
+  rewrite H1 in Hi. clear H2 H3.
+  rewrite nth_default in Hi; auto.
+  assert ((j+1)%:R <= 0%:R) by lra.
+  rewrite ler_nat in H2. Lia.lia.
+- 
+  pose proof (@all_nthP _  (fun x => x  <= b)  rl ((j + 1)%:R + b)%E). rewrite H in H2. inversion H2.
+  apply H3 in Hj.
+  rewrite -H1 in Hj. clear H2 H3.
+  rewrite nth_default in Hj; auto.
+  assert ((i+1)%:R <= 0%:R) by lra.
+  rewrite ler_nat in H2. Lia.lia.
+-
+  rewrite ?nth_default in H1; auto.
+  assert ((j+1)%:R == (i+1)%:R) by lra.
+  rewrite eqr_nat in H2. Lia.lia.
+(* end details *)
+Qed.
 
   Definition L : n.-tuple {poly_n R} := lagrange n extend_roots.
   Definition gauss_weight (i: 'I_n) := ∫ (horner (tnth L i)).
@@ -490,284 +915,9 @@ End R.
     The corresponding orthogonal polynomials are called Legendre polynomials.
 *)
 
-(* From mathcomp Require Import Rstruct.
-Import Rdefinitions. *)
-Module Rewriting.
-
- Section R.
- Context {R : realType}.
-
-Lemma hornerXsubC': forall [R : nzRingType] (a : NzRing.sort R), horner('X - a%:P) = (id \- fun=>a).
-Proof.
-intros. extensionality x. apply hornerXsubC.
-Qed.
-
-Lemma hornerX': forall {R : nzSemiRingType}, @horner R ('X) = id.
-Proof.
-intros. extensionality x. apply hornerX.
-Qed.
-
-Lemma hornerC': forall (c: R), horner (polyC c) = (fun=>c).
-Proof. intros. extensionality x. apply hornerC.
-Qed.
-
-Lemma hornerD': forall [R] (a b: {poly R}), horner (a+b) = horner a \+ horner b.
-Proof. intros. extensionality x. apply hornerD.
-Qed.
-
-Lemma hornerM': forall [R: comNzSemiRingType] (a b: {poly R}), horner (a*b) = horner a \* horner b.
-Proof. intros. extensionality x. apply hornerM.
-Qed.
-
-Lemma hornerN': forall [R: nzRingType] (a: {poly R}), horner (- a) = \- horner a.
-Proof. intros. extensionality x. apply hornerN.
-Qed.
-
-Definition r_horner := (@hornerXsubC, @hornerXsubC', @hornerX, @hornerX', @hornerC, @hornerC',
-                                      @hornerD, @hornerD', @hornerM, @hornerM', @hornerN, @hornerN').
-
-Lemma mul_fun1r: forall
-   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
-    mul_fun (fun=>1) f = f.
-Proof.
-intros. extensionality x. simpl. apply mul1r.
-Qed.
-
-Lemma mul_funr1: forall
-   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
-    mul_fun f (fun=>1) = f.
-Proof.
-intros. extensionality x. simpl. apply mulr1.
-Qed.
-Hint Rewrite @mul1r @mul_fun1r @mulr1 @mul_funr1 : horner.
-
-Lemma mul_fun0r: forall
-   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
-    mul_fun (fun=>0) f = (fun=>0).
-Proof.
-intros. extensionality x. simpl. apply mul0r.
-Qed.
-
-Lemma mul_funr0: forall
-   {R : PzSemiRing.type} {T : Type} (f: T -> PzSemiRing.sort R),
-    mul_fun f (fun=>0) = (fun=>0).
-Proof.
-intros. extensionality x. simpl. apply mulr0.
-Qed.
-Hint Rewrite @mul0r @mul_fun0r @mulr0 @mul_funr0 : horner.
-
-Lemma opp_funC: forall  {U : Type} {V : BaseZmodule.type} (c: V), 
-  @opp_fun U V (fun=>c) = (fun=> opp c).
-Proof.
-intros. extensionality x. reflexivity.
-Qed.
-
-Lemma opp_funr0:  forall {U: Type}, (fun _:U=> (-0):R) = (fun _:U => 0:R).
-Proof.
-intros. extensionality x. apply oppr0.
-Qed.
-
-Lemma sub_funr0: forall {U: Type} {V: zmodType} (f: U -> V),
-  sub_fun f (fun=>0) = f.
-Proof. intros. extensionality x. simpl. apply subr0.
-Qed.
-
-Lemma add_fun0r: forall {U: Type} {V: nmodType} (f: U -> V),
-  add_fun (fun=>0) f = f.
-Proof. intros. extensionality x. simpl. apply add0r.
-Qed.
-
-Lemma add_funr0: forall {U: Type} {V: nmodType} (f: U -> V),
-  add_fun f (fun=>0) = f.
-Proof. intros. extensionality x. simpl. apply addr0.
-Qed.
-
-Lemma mul_funDr: forall  {s : pzSemiRingType} {T: Type},
-   @right_distributive (T -> PzSemiRing.sort s) _ mul_fun add_fun.
-Proof. intros. red. intros. extensionality i. simpl. apply mulrDr. Qed.
-
-Lemma mul_funDl: forall  {s : pzSemiRingType} {T: Type},
-   @left_distributive (T -> PzSemiRing.sort s) _ mul_fun add_fun.
-Proof. intros. red. intros. extensionality i. simpl. apply mulrDl. Qed.
-
-Lemma mul_funA: forall  {s : pzSemiRingType} {T: Type},
-   @associative (T -> PzSemiRing.sort s) mul_fun.
-Proof. intros. red. intros. extensionality i. simpl. apply mulrA. Qed.
-
-Lemma mul_funC: forall  {s : comPzSemiRingType} {T: Type},
-   @commutative (T -> s) _ mul_fun.
-Proof. intros. red. intros. extensionality i. simpl. apply mulrC. Qed.
-
-Lemma mul_fun_consts: forall {s : comPzSemiRingType} {T: Type} (a b: s),
-    @mul_fun s T (fun=>a) (fun=>b) = fun=> a*b.
-Proof. intros; extensionality i; auto. Qed.
-
-Definition r_ring := (@mulr1, @mul1r, @mulr0, @mul0r, @addr0, @add0r, @oppr0, @subr0).
-Definition r_lift := (@mul_funr1, @mul_fun1r, @mul_funr0, @mul_fun0r, @mul_fun_consts,
-                               @add_funr0, @add_fun0r, @opp_funr0, @sub_funr0, @opp_funC).
-
-Lemma pull_left_const1: forall  {s : comPzSemiRingType} (c: s) (B: s->s),
-  mul_fun (fun x: ComPzSemiRing.sort s => x)
-     (mul_fun (fun=>c)  B)
-= mul_fun (fun=>c) (mul_fun (fun x: ComPzSemiRing.sort s => x) B).
-Proof.
-intros. rewrite mul_funC. rewrite -mul_funA. f_equal. apply mul_funC.
-Qed. 
-
-Lemma pull_left_const2: forall  {s : comPzSemiRingType} (c: s),
-  mul_fun (fun x: ComPzSemiRing.sort s => x) (fun=>c)  
-= mul_fun (fun=>c) (fun x: ComPzSemiRing.sort s => x).
-Proof. intros; apply  mul_funC.
-Qed.
-
-Lemma pull_left_const3: forall  {s : comPzSemiRingType} (c d: s) (B: s->s),
-  mul_fun (fun=> c) (mul_fun (fun=>d) B) 
-= mul_fun (fun=> c*d) B.
-Proof. intros. rewrite mul_funA. f_equal.
-Qed.
-
-Lemma pull_left_const4: forall (c: R) (B: R -> R),
-  opp_fun (mul_fun (fun=>c) B) = mul_fun (fun=> - c) B.
-Proof.
-intros.
-extensionality x. simpl. lra.
-Qed.
-
-Lemma pull_left_const5 : forall (c: R),
-  opp_fun (fun x : R =>c) = (fun x : R => - c).
-Proof.
-intros.
-extensionality x. simpl. lra.
-Qed.
-
-Definition pull_left_const := (@pull_left_const1, @pull_left_const2, @pull_left_const3, @pull_left_const4, @pull_left_const5).
-
-Lemma hornerX_i: (fun x: Real.sort R => x) = (@horner (reals_Real__to__GRing_NzSemiRing R) 'X).
-Proof. extensionality x. rewrite hornerX //. Qed.
-
-Lemma derivable_oo_LRcontinuous_horner: forall P lo hi, @derivable_oo_LRcontinuous R _ (horner P) lo hi.
-Proof.
-intros.
-split.
-- intros ? ?. apply derivable_horner.
-- intros ? ?. simpl in *. 
-admit.
-- admit.
-Admitted.
-
-Lemma poly0 {F: Num.NumDomain.type}: forall f, @poly  F 0 f = 0.
-Proof.
-intros.
-unlock poly.
-rewrite locked_withE /poly_expanded_def /= polyC0 //.
-Qed.
-
-
-Definition integ (p: {poly R}) : {poly R} := cons_poly 0 (\poly_(i < (size p)) (p`_i / ((S i)%:R))).
-
-Lemma deriv_integ: forall p: {poly R}, deriv (integ p) = p.
-Proof.
-intro.
-rewrite (*integ_eq*) /integ /deriv.
-destruct p as [s H].
-simpl.
-apply poly_inj.
-destruct (size s) eqn:?H.
--
-destruct s; try discriminate H0. clear H0.
-rewrite /= poly0 size_cons_poly nil_poly ?eq_refl /= poly0 polyseq0 //.
--
-assert (H7: is_true (s`_n != 0)). {
-rewrite (last_nth Algebra.zero) H0 in H. auto.
-}
-rewrite size_cons_poly.
-rewrite H0.
-unfold nilp.
-rewrite size_poly_eq.
-2:{  rewrite ?prednK; try Lia.lia. simpl. 
-revert H7.
-set d := s`_n. clearbody d.
-apply contraNN.
-intro.
-rewrite mulIr_eq0 in H1; auto.
-intros ? ? ?.
-set (u := natmul _ _) in H1. 
-assert (u > 0)%R by apply ltr0Sn.
-clearbody u.
-assert (x1 / u * u = x2 / u * u)%R. f_equal; auto.
-rewrite -!mulrA in H3.
-rewrite mulVf ?mulr1 in H3; auto.
-apply lt0r_neq0; auto.
-}
-simpl.
-apply (@eq_from_nth _ 0).
-rewrite size_poly_eq; auto.
-simpl. 
-rewrite coef_cons. simpl.
-rewrite coefE ltnSn.
-{
-clear - H7.
-rewrite mulrn_eq0.
-simpl.
-rewrite mulf_eq0 negb_or H7 /= invr_neq0 //.
-}
-intros.
-rewrite size_poly_eq in H1.
-2:{
-rewrite coef_cons. simpl. rewrite coefE ltnSn.
-rewrite mulrn_eq0 /=.
-rewrite mulf_eq0 negb_or H7 /= invr_neq0 //.
-}
-rewrite coefE H1.
-rewrite coef_cons /=.
-rewrite coefE H1.
-rewrite -mulrnAr.
-rewrite -mulr_natr.
-rewrite mulVr ?mulr1 //.
-rewrite unitfE.
-rewrite mulrn_eq0 /=  oner_eq0 //.
-Qed.
-
-Lemma Rintegral_poly: forall lo hi (lo_lt_hi: lo<hi)
-  (P: polynomial (reals_Real__to__GRing_NzSemiRing R)),
-eq
-  (Rintegral (reverse_coercion (lebesgue_measure_lebesgue_measure__canonical__measure_function_Measure R) (@lebesgue_measure R))
-     (mkset
-        (fun x : Order.POrder.sort (reals_Real__to__Order_POrder R) =>
-         is_true (in_mem x (mem (Interval (BSide true lo) (BSide false hi))))))
-     (fun x : Measurable.sort (measurable_structure_g_sigma_algebraType__canonical__measurable_structure_Measurable measurable) =>
-      horner P x))
- (GRing.add (horner (integ P) hi) (opp (horner (integ P) lo))).
-Proof.
-intros.
-unfold Rintegral.
-rewrite (@continuous_FTC2 R (horner P) (horner (integ P)) lo hi lo_lt_hi).
-- reflexivity.
-- apply derivable_within_continuous; intros ? ?; apply derivable_horner.
-- apply derivable_oo_LRcontinuous_horner.
--  intros ? ?. 
-rewrite -derivE. rewrite deriv_integ //.
-Qed.
-
-End R.
-
-End Rewriting.
-
-Lemma index_enum_ord_enum: forall n: nat, 
-   index_enum (fintype_ordinal__canonical__fintype_Finite n) = ord_enum n.
-Proof.
-intros.
-unfold index_enum.
-rewrite locked_withE.
-rewrite Finite.enum.unlock.
-simpl.
-auto.
-Qed.
-
 Module Legendre.
  Section R.
  Context {R : realType}.
- Import Rewriting.
  Definition lo : R := (-1)%R.
  Definition hi : R := 1%R.
  Lemma lo_lt_hi: (lo < hi)%R.
@@ -775,6 +925,16 @@ Module Legendre.
  Definition w (x: R) : R := 1%R.
  Lemma w_positive: forall x, is_true (lo <= x <= hi) -> is_true (0 < w x).
  Proof. intros. rewrite /w. lra. Qed.
+ 
+ Definition legendre (n: nat) : R -> R :=  horner (ortho_p lo hi w n) .
+
+ (** Presto! the Legendre polynomials have been defined.  But we want to put
+  them into a much more usable form.  The remaninder of this Module Legendre
+  will instantiate the theory of orthogonal polynomials for this instance,
+  then prove specific useful things (in this theory) about the Legendre polynomials of 
+  degree up to 4. *)
+
+ (** First, instantiate the notion of integral from lo to hi, from the general theory into the specific: *)
 
  Definition intgal1 (f: R->R) := \int[lebesgue_measure]_(x in `[lo,hi]%classic) (f x).
 
@@ -782,6 +942,8 @@ Module Legendre.
  Proof. extensionality f. rewrite /intgal /intgal1. f_equal. simpl. f_equal. extensionality x. rewrite /w mulr1 //. Qed.
 
  Notation "∫" := intgal1.
+
+(** Now, a whole bunch of useful rewriting lemmas, to be used automatically in the rewrite tactic: *)
 
 Lemma intgal_linear1 : forall (α : R) (f : R -> R), ∫ (α \*: f) =  α * ∫ f.
 Proof.
@@ -831,10 +993,16 @@ Qed.
 
 Definition intgal_linear := (intgal_linear1'', intgal_linear1', intgal_linear1, intgal_linearN, intgal_linearN', intgal_linear2', intgal_linear2).
 
-Lemma hornerw_i: w = horner 1%:P.
-Proof. extensionality x. rewrite /w hornerC //. Qed.
+(** ** Packaging the Legendre polynials *)
 
-Definition legendre (n: nat) : R -> R :=  horner (ortho_p lo hi w n) .
+(** We want to build packages, for each n up to degree 4, of:
+  - LR_poly:  the conventional simplified form of the normalized Legendre polynomial
+    (in contrast to ortho_p which produces a very large expression); 
+  - LR_poly_eq: a proof that the legendre polynomial constructed by the three-term recurrence
+     really is equal to LR_poly;
+  - LR_roots: an instance of the roots_of_ortho_p package, which itself is an n.-tuple of roots
+     along with a proof that they are strictly sorted and really evaluate to zero. 
+*)
 
 Record legendre_roots (n: nat) := {
    LR_poly: R -> R;
@@ -846,6 +1014,8 @@ Arguments LR_poly_eq [n].
 Arguments LR_roots [n].
 Arguments Build_legendre_roots [n].
 
+(** Similarly, we will build packages, for each n up to degree 4, of the gauss weights
+    for the nth Legendre polynomial. *)
 Record gauss_weights (n: nat) := {
    GW_legendre: legendre_roots n;
    GW_vals: n.-tuple R;
@@ -855,6 +1025,8 @@ Arguments GW_legendre [n].
 Arguments GW_vals [n].
 Arguments GW_good [n].
 Arguments Build_gauss_weights [n].
+
+(** This is a concrete implementation of the formula G_n(f) in Stewart's paragraph 15. *)
 
  Definition compute_G [n] (GW: gauss_weights n) (f: R -> R) :=
   \sum_i (tnth (GW_vals GW) i) * f (tnth (ROOTS_vals lo hi w n (LR_roots (GW_legendre GW))) i).
@@ -870,6 +1042,9 @@ f_equal.
 symmetry; apply GW_good.
 Qed.
 
+(** Now we instantiate the general quadrature_error theorem for the instance of
+   Legendre polynomials *)
+
  Lemma legendre_quadrature_error: forall [n: nat] (GW: gauss_weights n) (f: R -> R),
       exists ξ:R, lo <= ξ <= hi /\
        ∫ f - compute_G GW f =  derive1n (2*n+2) f ξ / natmul 1 (factorial(2*n+2)) * ∫ (fun x => (legendre (n.+1) x)^2).
@@ -880,138 +1055,18 @@ rewrite -intgal_eq.
 apply quadrature_error. apply lo_lt_hi. apply w_positive.
 Qed.
 
-Lemma Legendre_poly_0: legendre 0 = fun x: R => 1%R.
-Proof.
-rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring ?r_lift ?r_intgal ?r_lift ?r_ring ?r_lift //.
-Qed.
+(** A bunch of useful rewriting rules *)
 
-Definition r_integral := Rintegral_poly _ _ lo_lt_hi.
-
-Ltac is_ground_nat n := lazymatch n with O => idtac | S ?n' => is_ground_nat n' end.
-
-Ltac compute_ord_enum n := 
-  tryif is_ground_nat n then idtac 
-      else  fail "compute_ord_enum: Need a ground term natural number, but got" n; 
-  pattern (ord_enum n); 
-  match goal with |- ?F _ => 
-    let f := fresh "f" in set (f:=F);
-      let c := constr:(ord_enum n) in let d :=  eval compute in c in change (f d);
-      let e := fresh "e" in repeat (destruct ssrbool.idP as [e|e];
-        [ replace e with ssrbool.isT by apply eq_irrelevance; clear e | try (contradiction e; reflexivity)]);
-     subst f
-  end.
-
-Definition polynil: {poly R} := @Polynomial _ nil oner_neq0.
-Lemma polynil_eq: polynil=0.
-Proof.
-apply /eqP.
-rewrite -nil_poly //.
-Qed.
-
-Lemma polyC1': 1%:P = @Polynomial R [:: 1] oner_neq0.
-Proof.
-rewrite polyC1.
-apply poly_inj.
-rewrite polyseq1 //.
-Qed.
-
-Lemma polyC': forall (c: R) (H: is_true (c != 0)), c%:P = @Polynomial R [:: c] H.
-Proof.
-intros.
-apply poly_inj.
-unlock polyC. rewrite /insubd /poly_nil /odflt /oapp /insub.
-destruct idP; auto.
-simpl in n. contradiction.
-Qed.
-
-Lemma polyC0': 0%:P = @Polynomial R [:: ] oner_neq0.
-Proof.
-rewrite polyC0.
-rewrite -polynil_eq.
-apply poly_inj; auto.
-Qed.
-
-Lemma polyX': 'X = @Polynomial R [:: 0; 1] oner_neq0.
-Proof.
-intros.
-unlock polyX; destruct polyX_key; rewrite /polyX_def  /=.
-unlock cons_poly;
-rewrite ?polyC0' ?polyC1' //.
-Qed.
-
-Lemma polyX2': 'X * 'X = @Polynomial R [:: 0; 0; 1] oner_neq0.
-Proof.
-intros.
-apply poly_inj.
-rewrite polyseqMX.
-rewrite  /= polyX' //.
-rewrite polyX_eq0 //.
-Qed.
-
-Lemma polyX3': 'X * ('X * 'X) = @Polynomial R [:: 0; 0; 0; 1] oner_neq0.
-Proof.
-intros.
-apply poly_inj.
-rewrite polyX2'.
-rewrite mulrC polyseqMX //.
-rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
-Qed.
-
-Lemma polyX4': 'X * ('X * ('X * 'X)) = @Polynomial R [:: 0; 0; 0; 0; 1] oner_neq0.
-Proof.
-intros.
-apply poly_inj.
-rewrite polyX3'.
-rewrite mulrC polyseqMX //.
-rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
-Qed.
-
-Lemma polyX5': 'X * ('X * ('X * ('X * 'X))) = @Polynomial R [:: 0; 0; 0; 0; 0; 1] oner_neq0.
-Proof.
-intros.
-apply poly_inj.
-rewrite polyX4'.
-rewrite mulrC polyseqMX //.
-rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
-Qed.
-
-Lemma polyX6': 'X * ('X * ('X * ('X * ('X * 'X)))) = @Polynomial R [:: 0; 0; 0; 0; 0; 0; 1] oner_neq0.
-Proof.
-intros.
-apply poly_inj.
-rewrite polyX5'.
-rewrite mulrC polyseqMX //.
-rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
-Qed.
-
-Lemma polyX7': 'X * ('X * ('X * ('X * ('X * ('X * 'X))))) = @Polynomial R [:: 0; 0; 0; 0; 0; 0; 0; 1] oner_neq0.
-Proof.
-intros.
-apply poly_inj.
-rewrite polyX6'.
-rewrite mulrC polyseqMX //.
-rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
-Qed.
-
-Ltac simpl_polyseq_X :=
-let u := fresh "u" in let v := fresh "v" in 
-set u := @polyX _; pattern u;
-match goal with |- ?G u => set v := G end;
-subst u;
-unlock polyX; destruct polyX_key; rewrite /polyX_def  /=;
-unlock cons_poly;
-rewrite ?polyC0' ?polyC1';
-subst v; cbv beta;
-change (polyseq (@Polynomial _ ?A _)) with A.
+Definition r_integral:
+ forall P : {poly R}, \int[lebesgue_measure]_(x in `[lo, hi]) P.[x] = (integ P).[hi] - (integ P).[lo]
+ := Rintegral_poly _ _ lo_lt_hi.
 
 Lemma intgal_X: ∫ (horner 'X) = 0.
 Proof.
 rewrite polyX'.
 rewrite /intgal1 ?r_integral.
 rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+repeat expand_bigop.
 ring.
 Qed.
 
@@ -1021,100 +1076,74 @@ rewrite polyC0.
 rewrite /intgal1 ?r_integral.
 rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
 rewrite size_poly0.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_1: ∫ (horner 1%:P) = 2.
 Proof.
 rewrite polyC1.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
-rewrite size_polyC oner_neq0 /=.
-rewrite polyseq1.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+rewrite /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly size_polyC oner_neq0 /= polyseq1.
+repeat expand_bigop.
 field; auto.
 Qed.
 
 Lemma intgal_C: forall c,  ∫ (horner c%:P) = 2*c.
 Proof.
 intros.
-replace (c%:P) with (c%:P * 1) by ring.
-rewrite ?intgal_linear intgal_1 mulrC //.
+rewrite -(mulr1 c%:P) ?intgal_linear intgal_1 mulrC //.
 Qed.
 
 Lemma intgal_X2: ∫ (horner ('X * 'X)) = 2/3.
 Proof.
-rewrite polyX2'.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+rewrite polyX2' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X3: ∫ (horner ('X * ('X * 'X))) = 0.
 Proof.
-rewrite polyX3'.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+rewrite polyX3' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X4: ∫ (horner ('X * ('X * ('X * 'X)))) = 2/5.
 Proof.
-rewrite polyX4'.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+rewrite polyX4' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X5:  ∫ (horner ('X * ('X * ('X * ('X * 'X))))) = 0.
 Proof.
-rewrite polyX5'.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+rewrite polyX5' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X6:  ∫ (horner ('X * ('X * ('X * ('X * ('X * 'X)))))) = 2/7.
 Proof.
-rewrite polyX6'.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+rewrite polyX6' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X7:  ∫ (horner ('X * ('X * ('X * ('X * ('X * ('X * 'X))))))) = 0.
 Proof.
-rewrite polyX7'.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
-rewrite bigop.unlock /reducebig index_enum_ord_enum.
-match goal with |- context [ord_enum ?n] => compute_ord_enum n end.
-simpl.
+rewrite polyX7' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+repeat expand_bigop.
 ring.
 Qed.
 
 Definition r_intgal := (intgal_linear, intgal_0, intgal_1, intgal_C, intgal_X, intgal_X2, 
                       intgal_X3, intgal_X4, intgal_X5, intgal_X6, intgal_X7).
+
+
+Lemma Legendre_poly_0: legendre 0 = fun x: R => 1%R.
+Proof.
+rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring //.
+Qed.
 
 Lemma Legendre_poly_1: legendre 1 =  fun x:R => x.
 Proof.
@@ -1123,26 +1152,11 @@ f_equal.
 rewrite ?r_intgal ?scale_polyE. ring.
 Qed.
 
-Lemma mul_polyC': forall a b: R, polyC a * polyC b = polyC (a*b).
-Proof.
-intros.
-rewrite mul_polyC scale_polyC //.
-Qed.
-
-Lemma polyCN: forall  (x:R), polyC(opp x) = - polyC x.
-Proof. intros.
-rewrite -scaleN1r -scale_polyC scaleN1r //.
-Qed.
-
 Lemma Legendre_poly_2: legendre 2 =   fun x :R => x*x - 1/3.
 Proof.
-rewrite /legendre.
-rewrite /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
+rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
 rewrite ?intgal_eq ?r_intgal ?r_ring ?scale_0poly ?scale_1poly ?r_ring.
-rewrite ?r_intgal.
-rewrite ?r_ring scale_0poly ?r_ring.
-rewrite scale_polyE.
-rewrite mulr1.
+rewrite ?r_intgal ?r_ring scale_0poly ?r_ring scale_polyE mulr1.
 extensionality x.
 rewrite ?hornerE.
 field; auto.
@@ -1180,9 +1194,7 @@ Definition mulrD {R: pzRingType} := (@mulrDr R, @mulrDl R, @mulrN R, @mulNr R, @
 
 Lemma Legendre_poly_3: legendre 3 =  fun x :R => x*x*x - (3/5)*x.
 Proof.
-rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
-rewrite ?intgal_eq ?norm_poly.
-rewrite ?mulrD ?norm_poly.
+rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring ?intgal_eq ?norm_poly ?mulrD ?norm_poly.
 extensionality x.
 rewrite /= ?hornerE /=.
 field; auto.
@@ -1410,7 +1422,6 @@ Definition legendre_roots_4: legendre_roots 4.
    legendre_roots_4a legendre_roots_4b legendre_roots_4c).
 Defined.
 
-
 Definition gauss_weights_0 : gauss_weights 0.
  apply (Build_gauss_weights legendre_roots_0 [::]).
 intros.
@@ -1420,14 +1431,12 @@ Defined.
 Lemma gauss_weight_1_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_1) (@Ordinal 1 0 isT) = 2.
 Proof.
 rewrite /gauss_weight /legendre_roots_1 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
-  rewrite /extend_roots /= ?r_horner ?r_lift;
-  rewrite  invr1.
-set a := fun=>_. replace a with (@horner R (polyC 1)). 2: subst a; extensionality x; rewrite hornerE //.
-clear a.
-rewrite intgal_eq intgal_C mulr1 //.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
+ cbv zeta; expand_bigop.
+  rewrite /extend_roots /= ?r_horner invr1 ?r_lift.
+  rewrite (_: (fun=>1) = horner (polyC 1)).
+  2: extensionality x; rewrite hornerE //.
+  rewrite intgal_eq intgal_C mulr1 //.
 Qed.
 
 Definition gauss_weights_1 : gauss_weights 1.
@@ -1440,22 +1449,19 @@ Defined.
 Lemma gauss_weight_2_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_2) (@Ordinal 2 0 isT) = 1.
 Proof.
 rewrite /gauss_weight /legendre_roots_2 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
-  rewrite /extend_roots /= ?r_horner ?r_lift.
- rewrite ?r_ring.
- set s3 := Num.sqrt 3. simpl in s3.
-rewrite -(div1r s3) mulN1r.
-rewrite intgal_eq.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
+cbv zeta; expand_bigop.
+rewrite /extend_roots /= ?r_horner ?r_ring ?r_lift.
+set s3 := Num.sqrt 3. simpl in s3.
+rewrite -(div1r s3) mulN1r intgal_eq.
 transitivity ( ∫ (horner ('X * -(s3/2)%:P + (1/2)%:P))).
 -
 f_equal.
 extensionality x.
 simpl.
 rewrite ?hornerE.
-assert (0 < s3). rewrite sqrtr_gt0; lra.
-field. lra.
+field.
+assert (0 < s3); rewrite ?sqrtr_gt0; lra.
 -
 transitivity ( ∫ (horner (-(s3/2))%:P \* (horner 'X) \+ horner (1/2)%:P)).
 f_equal; extensionality x; rewrite ?hornerE /= ?hornerE;  lra.
@@ -1470,14 +1476,14 @@ Qed.
 Lemma gauss_weight_2_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_2) (@Ordinal 2 1 isT) = 1.
 Proof.
 rewrite /gauss_weight /legendre_roots_2 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
-  rewrite /extend_roots /= ?r_horner ?r_lift.
-rewrite intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
-rewrite -hornerM' ?r_intgal ?r_ring.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
+cbv zeta.
+expand_bigop.
+  rewrite /extend_roots /= ?r_horner ?r_lift
+        intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''
+        -hornerM' ?r_intgal ?r_ring.
 field.
-assert (0 < sqrt 3). rewrite sqrtr_gt0; lra. lra.
+assert (0 < sqrt 3);  rewrite ?sqrtr_gt0; lra.
 Qed.
 
 Definition gauss_weights_2 : gauss_weights 2.
@@ -1492,16 +1498,14 @@ Defined.
 Lemma gauss_weight_3_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 0 isT) = 5/9.
 Proof.
 rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
-  rewrite /extend_roots /= ?r_horner ?r_lift.
-rewrite intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
+cbv zeta; expand_bigop.
+  rewrite /extend_roots /= ?r_horner ?r_lift
+  intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
 set s3 := Num.sqrt (3/5). simpl in s3.
 rewrite -?hornerM'.
-set u := _ - _. replace u with (- (s3 * 2))%R by (subst u; lra). clear u.
-rewrite mulrNN.
-rewrite (mulrA s3). rewrite {1 2}/s3.
+rewrite (_: - s3 - s3 = -(s3 * 2) :> R); [ | lra].
+rewrite mulrNN (mulrA s3) {1 2}/s3.
 rewrite sqr_sqrt ; [ | lra].
 rewrite (mulrC _ 2) mulrA.
 do_one_integral (s3%:P).
@@ -1511,9 +1515,8 @@ Qed.
 Lemma gauss_weight_3_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 1 isT) = 8/9.
 Proof.
 rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
+cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
 rewrite intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
 set s3 := Num.sqrt (3/5). simpl in s3.
@@ -1532,9 +1535,8 @@ Qed.
 Lemma gauss_weight_3_2: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 2 isT) = 5/9.
 Proof.
 rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
+cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
 rewrite intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
 set s3 := Num.sqrt (3/5). simpl in s3.
@@ -1567,11 +1569,10 @@ Proof. intros. lra. Qed.
 Lemma gauss_weight_4_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 0 isT) = 
        1/2 - Num.sqrt(5/6)/6.
 Proof.
-set RHS := _ - _. simpl in RHS.
+set RHS := _ - _.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
+cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
 rewrite intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD'' ?r_ring.
 set s3 := Num.sqrt (6/5). simpl in s3.
@@ -1706,9 +1707,8 @@ Lemma gauss_weight_4_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordin
 Proof.
 set RHS := _ + _. simpl in RHS.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ]].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
+cbv zeta; expand_bigop.
   rewrite intgal_eq ?r_ring /extend_roots /= ?r_ring. 
 set s3 := Num.sqrt (6/5). simpl in s3.
 set (b := Num.sqrt _).
@@ -1873,9 +1873,8 @@ Lemma gauss_weight_4_2: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordin
 Proof.
 rewrite -gauss_weight_4_1.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ] .. ].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; apply lo_lt_hi .. ].
+cbv zeta; repeat expand_bigop.
   rewrite /extend_roots /= ?r_ring.
 set s3 := Num.sqrt (6/5). simpl in s3.
 rewrite ?intgal_eq.
@@ -1900,9 +1899,8 @@ Lemma gauss_weight_4_3: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordin
 Proof.
 rewrite -gauss_weight_4_0.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; [apply lo_lt_hi | apply w_positive ] .. ].
-rewrite bigop.unlock index_enum_ord_enum;
-  match goal with |- context [ord_enum ?n] => matrix_util.compute_ord_enum n end;
+rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; apply lo_lt_hi .. ].
+cbv zeta; repeat expand_bigop.
   rewrite /extend_roots /=  ?r_ring.
 set s3 := Num.sqrt (6/5). simpl in s3.
 rewrite ?opprK.
@@ -2005,7 +2003,8 @@ End Legendre.
      mathematical handbooks have tables of abscissas and coefficients.  The
      automatic generation of Gauss formulas is an interesting subject in its own right. *)
 
-
+(** The following experiment should probably be abandoned; perhaps there is
+   something in the CoqEAL library that's useful instead. *)
 Module ComputableIntegral.
 
 Section R.
@@ -2056,16 +2055,6 @@ replace b
 rewrite eqr_nat. auto.
 Qed.
 
-(*
-Definition integ {F: Num.NumDomain.type} (p: {poly F}) : {poly F} :=
-match p with
-| @Polynomial _ al i =>
-     (if nilp al as b return (nilp al = b -> {poly Num_NumDomain__to__GRing_NzSemiRing F})
-      then fun=> 0
-      else fun H1 : nilp al = false => Polynomial (integ_last_nonnil al 0 H1 i)) erefl
-end.
-*)
-
 Definition polylast {F: nzSemiRingType} (p: {poly F}) : last 1 (polyseq p) != 0 :=
   match p with @Polynomial _ _ H => H end.
 
@@ -2103,8 +2092,6 @@ subst p.
 rewrite polyseq_poly; [ | admit].
 set al := s::l. clearbody al. clear H0 H s l z.
 Admitted.
-
-
 
 Fixpoint add_poly' {R: nzSemiRingType} (al bl: seq R) :=
  match al, bl with
