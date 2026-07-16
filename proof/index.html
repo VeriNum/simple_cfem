@@ -22,19 +22,17 @@
 The goal of this project is build a Rocq proof of the correctness and accuracy of the <a href=../index.html>Simple FEM in C</a> program.
 The C sources are documented <a href=../index.html>there</a>.
 <p>
-At present just a few modules are specified and proved, as described below.
+At present just a few modules are specified and proved:
 </big>
 
 <div id="main">
-  <h2>Shape functions</h2>
-  Thus far in the project, the main things verified are,
   <ul><li><b>Dense matrix functions</b> (in the LAProof library, see specifications in <a href="https://verinum.org/LAProof/LAProof.C.spec_densemat.html">spec_densemat</a>
       and verifications in <a href="https://verinum.org/LAProof/LAProof.C.verif_densemat.html">verif_densemat</a>,
       <a href="https://verinum.org/LAProof/LAProof.C.verif_densemat_mult.html">verif_densemat_mult</a>,
       <a href="https://verinum.org/LAProof/LAProof.C.verif_densemat_cholesky.html">verif_densemat_cholesky</a>.
     <li><b>Shape functions.</b>
       Read the description <a href=https://verinum.org/simple_cfem#shape-functions>here</a>;
-      See the <a href=https://github.com/VeriNum/simple_cfem/blob/main/src/shapes.c>C program</a>;
+      see the <a href=https://github.com/VeriNum/simple_cfem/blob/main/src/shapes.c>C program</a>.
       Then, to see how it works for, e.g., the 2dP1 shape function, visit these pages:
       <ol>
 	<li><a href=CFEM.shape.html#shape>Real-valued functional model</a>
@@ -46,7 +44,16 @@ At present just a few modules are specified and proved, as described below.
 	<li><a href=CFEM.C.spec_shapes.html#spec_shape>General form of function specification for C shape functions</a>
 	<li><a href=CFEM.C.verif_shapes2d.html#2dP1>2dP1 C program correctness proof</a>
 	<li><a href=CFEM.C.VSU_shapes.html#VSU>C program correctness proof for entire shapes API</a>
-     </ol>
+      </ol>
+      <li><b>Gaussian Quadrature.</b>
+      Read the description <a href=https://verinum.org/simple_cfem#quadrature-rules>here</a>;        	  
+      see the <a href=https://github.com/VeriNum/simple_cfem/blob/main/src/quadrules.c>C program</a>;
+      then visit these pages:
+      <ol>
+	<li><a href=CFEM.quadrature.html#shape>Theory and instantiation of Gauss-Legendre quadrature</a>
+	<li><a href=CFEM.C.spec_quadrules.html>Function specifications of the C functions that return Gauss points and Gauss weights</a>
+	<li><a href=CFEM.C.verif_quadrules.html>VST verification that the C functions are correct</a>
+      </ol>
   </ul>
 	
 <h2>Rocq modules</h2>
@@ -67,6 +74,10 @@ At present just a few modules are specified and proved, as described below.
 	  <a href="CFEM.C.verif_shapes2d.html">C.verif_shapes2d</a>, 
           <a href="CFEM.C.verif_shapes2dP2.html">C.verif_shapes2dP2</a>
     <dd>VST verifications of 1-dimensional and 2-dimensional shape functions
+  <dt><a href="CFEM.quadrature.html">C.quadrature</a><dd>Theory and instantiation of Gaussian quadrature</dd>
+  <dt><a href="CFEM.C.spec_quadrules.html">C.spec_quadrules</a><dd>Specification of C functions in quadrules.c</dd>
+  <dt><a href="CFEM.C.verif_quadrules.html">C.verif_quadrules</a><dd>Verification of C functions in quadrules.c</dd>
+
 
   <dt><a href="https://verinum.org/LAProof/LAProof.C.matrix_model.html">matrix_model</a>
 <dd>Functional models of matrix operations.  We describe floating-point matrices using the

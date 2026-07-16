@@ -649,4 +649,28 @@ Ltac ord_enum_cases j :=
  repeat apply List.Forall_cons; try apply List.Forall_nil;
  clear j.
 
+Lemma index_enum_ord_enum: forall n: nat, 
+   index_enum (fintype_ordinal__canonical__fintype_Finite n) = ord_enum n.
+Proof.
+intros.
+unfold index_enum.
+rewrite locked_withE.
+rewrite Finite.enum.unlock.
+simpl.
+auto.
+Qed.
 
+Ltac expand_bigop :=
+ match goal with |- context [bigop.body _ (index_enum (fintype_ordinal__canonical__fintype_Finite ?n))] =>
+ let B := fresh "B" in 
+ set B := bigop.body _ _ _; pattern B; subst B; 
+ lazymatch goal with |- ?b _ => set B := b end;
+rewrite bigop.unlock index_enum_ord_enum;
+ compute_ord_enum n;
+ try rewrite ?/reducebig ?/foldr ?/applybig;
+  repeat change (comp ?A ?B ?C) with (A (B C));
+ cbv beta match;
+ repeat change (nat_of_ord (@Ordinal _ ?a _)) with a;
+ simpl nth;
+ subst B; cbv beta
+end.

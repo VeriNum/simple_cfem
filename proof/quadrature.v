@@ -380,6 +380,60 @@ End Rewriting.
 
 Import Rewriting.
 
+(* end details *)
+
+(* begin details:  Lemmas and tactics copied from matrix_util.v *)
+Lemma size_ord_enum: forall n, size (ord_enum n) = n.
+Proof.
+intros.
+pose proof val_ord_enum n.
+simpl in H.
+transitivity (size (iota 0 n)).
+transitivity (size (map (nat_of_ord (n:=n)) (ord_enum n))).
+rewrite size_map; auto.
+f_equal; auto.
+apply size_iota.
+Qed.
+
+
+Lemma nth_ord_enum': forall n (d i: 'I_n), nth d (ord_enum n) i = i.
+Proof.
+intros.
+pose proof (val_ord_enum n).
+simpl in H.
+apply ord_inj.
+pose proof ltn_ord i.
+rewrite <- nth_map with (x2:=nat_of_ord d).
+rewrite H. rewrite nth_iota. Lia.lia. Lia.lia.
+rewrite size_ord_enum.
+auto.
+Qed.
+
+Lemma nth_List_nth: forall {A: Type} (d: A) (l: seq.seq A) (n: nat),
+  seq.nth d l n = List.nth n l d.
+Proof.
+  move => A d l. elim : l => [//= n | //= h t IH n].
+  - by case : n.
+  - case: n. by []. move => n. by rewrite /= IH.
+Qed.
+
+Lemma ord_enum_cases: forall [n] (P: 'I_n -> Prop),
+  List.Forall P (ord_enum n) ->
+  forall i, P i.
+Proof.
+intros.
+rewrite List.Forall_forall in H.
+apply H.
+clear.
+pose proof @nth_ord_enum' n i i.
+rewrite nth_List_nth in H.
+rewrite <- H.
+apply List.nth_In.
+change @length with @size.
+rewrite size_ord_enum.
+pose proof (ltn_ord i); Lia.lia.
+Qed. 
+
 Lemma index_enum_ord_enum: forall n: nat, 
    index_enum (fintype_ordinal__canonical__fintype_Finite n) = ord_enum n.
 Proof.
@@ -405,6 +459,15 @@ Ltac compute_ord_enum n :=
      subst f
   end.
 
+Ltac ord_enum_cases j :=
+ lazymatch type of j with ordinal ?n => 
+  pattern j; 
+  apply ord_enum_cases;
+  compute_ord_enum n
+ end;
+ repeat apply List.Forall_cons; try apply List.Forall_nil;
+ clear j.
+
 Ltac expand_bigop :=
  match goal with |- context [bigop.body _ (index_enum (fintype_ordinal__canonical__fintype_Finite ?n))] =>
  let B := fresh "B" in 
@@ -422,11 +485,20 @@ end.
 
 (* end details *)
 
+(** Now, on with the show.  The [Context] command parameterizes the whole development
+  by any construction of the real numbers. *)
+
 Section R.
 Context {R : realType}.
 
 (** This derivation follows Lecture 23 of _Afternotes on Numerical Analysis_ 
-    by G. W. Stewart, SIAM Press, 1996 *)
+    by G. W. Stewart, SIAM Press, 1996.  Henceforth Stewart will be in Roman font
+  _and your humble Editor will write in Italics.  -- Andrew Appel_. *)
+
+(** _All the definitions and theorem-statements from Stewart are formalized
+  in Rocq, but many of the theorems are Admitted, not proved.  However,
+  all the theorems (below) for the specific application to Legendre polynomials
+  are proved_. *)
 
 (** ** Gaussian quadrature: The Setting *)
 
@@ -448,12 +520,15 @@ Section Integral.
  Variable Hab: a<b.
  Variable w: R -> R.
  Variable wpos: forall x, a <= x <= b -> w x > 0.
- Definition  intgal (f: R -> R) := \int[lebesgue_measure]_(x in `[a,b]%classic) (f x * w x).
+ Definition  intgal (f: R -> R) := 
+            \int[lebesgue_measure]_(x in `[a,b]%classic) (f x * w x).
  Notation "∫" := intgal.
  
-(** 3.  Regarded as an operator on functions, ∫  is linear.  That is, ∫ α f = α ∫  f and
-  ∫ (f + g) = ∫ f + ∫ g.  We will make extensive use of linearity in what follows. *)
+(** 3.  Regarded as an operator on functions, ∫  is linear.  That is, 
 
+         ∫ α f = α ∫  f and ∫ (f + g) = ∫ f + ∫ g.  
+
+     We will make extensive use of linearity in what follows. *)
 
  Lemma intgal_linear1: forall (α: R) (f:  R->R), ∫ (α \*: f) = α * ∫ f.
  Admitted.
@@ -472,14 +547,15 @@ Section Integral.
 
  Definition orthogonal (f g: R -> R) := ∫ (f \* g) = 0.
 
-(**  5. A sequence of  _orthogonal polynomials_ is a sequence {p_i}_{i=0}^∞ of polynomials
-   with deg(p_i) = i such that      i <> j -> ∫ p_i p_j = 0.                         (23.1)
+(**  5. A sequence of  _orthogonal polynomials_ is a sequence {p_i},  i={0,1,...,∞} of polynomials
+   with deg(p_i) = i such that      i ≠ j -> ∫ p_i p_j = 0.                         (23.1)
+
+  _Editor's note: the [size] of a polynomial is the degree plus 1_.
 *)
 
-
- Definition orthogonal_polynomals (p: nat -> {poly R}) : Prop := 
+ Definition orthogonal_polynomials (p: nat -> {poly R}) : Prop := 
    (forall i, size (p i) = (i+1)%N) /\
-   (forall i j: nat, i<>j -> ∫ (horner (p i) \* horner (p j)) = 0).
+   (forall i j: nat, i<>j ->  orthogonal (horner (p i)) (horner (p j))).
 
 (** Since orthogality is not altered by multiplication by a nonzero constant, we
    may normalize the polynomial p_i so that the coefficient of x^i is one: i.e.,
@@ -489,8 +565,7 @@ Section Integral.
  Such a polynomial is said to be _monic_.  *)
 
 Locate monic_pred.  (*  Constant mathcomp.algebra.poly.monic_pred *)
-Print monic_pred.  (* = fun (R : nzSemiRingType) (p : {poly R}) => lead_coef p == 1
-     : [ forall [R : nzSemiRingType], {poly R} -> bool  ] *)
+Print monic_pred.  (* = fun [R] (p : {poly R}) => lead_coef p == 1 *)
 
 (** 6. Our immediate goal is to establish the existence of orthogonal polynomials.
   Although we could, in principle, determine the coefficients [a_{ij}] of [p_i] in the
@@ -516,8 +591,9 @@ Section P.
 
   Lemma exist_orthogonal_polynomials:
       forall (n: nat) (q: {poly R}), 
-            size q = (n+2)%nat ->
-         { b: 'I_n.+1 -> R | horner q = \big[add_fun/fun=>0]_(i<n.+1) (b i  \*: horner (p i))}.
+        size q = (n+2)%nat ->
+        { b: 'I_n.+1 -> R | 
+          horner q = \big[add_fun/fun=>0]_(i<n.+1) (b i  \*: horner (p i))}.
 
 (** 7.  In establishing this result, we may assume that the polynomials [ p_i ] are monic.
   The proof is by induction.  For n=0 we have,
@@ -547,8 +623,10 @@ Admitted.
 
             [ ∫  p_{n+1} q = b_n ∫  p_{n+1} p_n + ⋯ + b_0 ∫  p_{n+2}p_0 = 0 ],
 
-       _(Note: [p_{n+2}p_0] sic in original, but surely p_{n+1}p_0 is meant.)_
       the last equality following from the orthogonality of the polynomials [p_i].
+
+
+       _(Note: [p_{n+2}p_0] sic in original, but surely p_{n+1}p_0 is meant.)_
 *)
 
 Lemma polySn_orthogonal_n: forall (n:nat) (q: {poly R}), 
@@ -645,7 +723,7 @@ Definition ortho_p n := fst (three_term_recurrence n).
 Lemma ortho_p_monic: forall n, monic_pred (ortho_p n).
 Admitted.
 
-Lemma ortho_p_orthogonal: forall i j, (i<>j)%N -> orthogonal (horner (ortho_p i)) (horner (ortho_p j)).
+Lemma ortho_p_orthogonal: orthogonal_polynomials ortho_p.
 Admitted.
 
 (** ** Zeros of orthogonal polynomials *)
@@ -675,8 +753,9 @@ Admitted.
          which is a contradiction.
 *)
 
-(** _Editor's note: This predicate says that [roots] is a list of n distinct values, all of which evaluate
-     (under the polynomial) to zero, which implies that they are simple roots._*)
+(** _Editor's note: The following predicate [roots_of_ortho_p] says that [roots] is 
+     a list of n distinct values, all of which evaluate (under the polynomial) to zero, 
+    which implies that they are simple roots_.*)
 
 Record roots_of_ortho_p (n: nat) := {
   ROOTS_vals: n.-tuple R;
@@ -691,7 +770,7 @@ Arguments ROOTS_inrange [n].
 
 (** _Editor's note: the statement "14.  . . . are the n+1 zeros of [p_{n+1}]" implicitly claims that 
      there are at most n+1 zeros.  That is any zero of the polynomial is already in the roots list,
-     which is explicitly an n.-tuple: *)
+     which is explicitly an n.-tuple_.  Therefore: *)
 
 Lemma roots_of_ortho_p_at_most: forall [n] (roots: roots_of_ortho_p n),
   forall x, root (ortho_p n) x -> x \in ROOTS_vals roots.
@@ -737,25 +816,17 @@ all: fail.
 (* end details *)
 Admitted.
 
-(** _Editor's note:  The following is what we want; it is a constructive existence, so that we 
-   can calculate with these roots.  But Stewart's proof is nonconstructive.
-  The complex roots of a rational-valued polynomial do exist constructively, see for example
-   the Jenkins-Traub algorithm(s); then one could use Stewart's proof to guarantee that all
-  the complex roots are real.  There are simpler algorithms than Jenkins-Traub,
-   which don't converge as fast but would suffice for a constructive existence proof,
-   but we want more than constructive existence, eventually we want to check how close
-   certain floating-point numbers are to the true roots.  That is, we want constructive accuracy,
-   i.e., fast convergence.  Either way, since the roots are found by iteration, then the construction
-   is effectively a Cauchy sequence_.
+(** _Editor's note:   Stewart's derivation talks about "THE roots" of the polynomial, as if
+  they constructively exist.  Well, indeed they do exist, but_:
+  - We want concretely presented roots in a simple form that we can calculate with, AND
+  - Mathcomp-Analysis does not yet have proof that a polynomial can be factored into n roots, AND
+  - Mathcomp-Analysis especially does not have a CONSTRUCTIVE such proof, AND
+  - Even a constructive proof would not be useful unless it presented the roots in a simple
+       form that we could calculate with.
 
-   _And furthermore, at present MathComp Analysis doesn't yet have a full theory of the roots of 
-   real polynomials, nor any formalization of Jenkins-Traub, so any such proof will not be trivial_. *)
-Definition roots_of_ortho_p_exist (n: nat) : roots_of_ortho_p n.
-Abort.
-
-(** _Therefore, we will proceed assuming that, for any given ortho_p (such as Gauss-Legendre,
-  Gauss-Hermite, etc.) someone will present an constructive instance of roots_of_ortho_p. *)
-
+  _Therefore we will do it slightly differently.  For the polynomials of interest, we will present
+   the roots explicitly, and prove that they are indeed roots and are indeed distinct.  That
+   is, we will present instances of the package [roots_of_ortho_p]_. *)
 
 (** ** Gaussian quadrature *)
 
@@ -779,51 +850,57 @@ Abort.
   Definition zeros_of_ortho_p := tval (ROOTS_vals roots).
 
 
-  (** Editor's note: we need this [extend_roots] to prove injectivity when using [lagrangeE] *)
+  (** _Editor's note: When manipulating Lagrange polynomials in MathComp, we
+     will need to prove that the numbers [x_0, x_1, ..., x_{n-1}] are distinct.  That is,
+    MathComp's lagrangeE lemma requires injectivity over (fun i => x_i).  In this case, 
+    the sequence x is the zeros_of_ortho_p, so we need to prove that function is injective.
+    Unfortunately, lagrangeE stupidly requires injectivity over all the natural numbers,
+    not just  over the [0..n-1] that index the roots list.  So we need this [extend_roots] 
+    function to make that work_. *)
   Definition extend_roots  (i: nat) : R :=
      nth ((i+1)%:R+b) zeros_of_ortho_p i.
 
-Lemma extend_roots_injective: injective extend_roots.
- Proof.
-(* begin details *)
-  pose proof ROOTS_inrange roots.
-  pose proof ROOTS_sorted roots.
-  rewrite /extend_roots /zeros_of_ortho_p.
-  set rl := tval (ROOTS_vals roots) in H,H0|-*. clearbody rl.
-  simpl in H.
-  assert (is_true (all (fun x => x <= b) rl)).
-  eapply sub_all; [ | apply H].  intros ? ?. lra. clear H. rename H1 into H.
-  intros i j H1.
-  assert (is_true (i < size rl) \/ is_true (i >= size rl))%N by Lia.lia.
-  assert (is_true (j < size rl) \/ is_true (j >= size rl))%N by Lia.lia.
-  destruct H2 as [Hi|Hi];  destruct H3 as [Hj|Hj].
--
-  assert ((i < j)%N \/ i=j \/ (j<i)%N) by Lia.lia.
-  destruct H2 as [? |[?|?]]; auto.
-  rewrite <- (sorted_ij rl i j ((i + 1)%:R + b)%E ((j + 1)%:R + b)%E H0 Hi Hj) in H2.
-  rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
-  rewrite <- (sorted_ij rl j i ((j + 1)%:R + b)%E ((i + 1)%:R + b)%E H0 Hj Hi) in H2.
-  rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
-- 
-  pose proof (@all_nthP _  (fun x => x  <= b)  rl ((i + 1)%:R + b)%E). rewrite H in H2. inversion H2.
-  apply H3 in Hi.
-  rewrite H1 in Hi. clear H2 H3.
-  rewrite nth_default in Hi; auto.
-  assert ((j+1)%:R <= 0%:R) by lra.
-  rewrite ler_nat in H2. Lia.lia.
-- 
-  pose proof (@all_nthP _  (fun x => x  <= b)  rl ((j + 1)%:R + b)%E). rewrite H in H2. inversion H2.
-  apply H3 in Hj.
-  rewrite -H1 in Hj. clear H2 H3.
-  rewrite nth_default in Hj; auto.
-  assert ((i+1)%:R <= 0%:R) by lra.
-  rewrite ler_nat in H2. Lia.lia.
--
-  rewrite ?nth_default in H1; auto.
-  assert ((j+1)%:R == (i+1)%:R) by lra.
-  rewrite eqr_nat in H2. Lia.lia.
+   Lemma extend_roots_injective: injective extend_roots.
+   (* begin details: Proof. ... Qed. *)
+   Proof.
+    pose proof ROOTS_inrange roots.
+    pose proof ROOTS_sorted roots.
+    rewrite /extend_roots /zeros_of_ortho_p.
+    set rl := tval (ROOTS_vals roots) in H,H0|-*. clearbody rl.
+    simpl in H.
+    assert (is_true (all (fun x => x <= b) rl)).
+    eapply sub_all; [ | apply H].  intros ? ?. lra. clear H. rename H1 into H.
+    intros i j H1.
+    assert (is_true (i < size rl) \/ is_true (i >= size rl))%N by Lia.lia.
+    assert (is_true (j < size rl) \/ is_true (j >= size rl))%N by Lia.lia.
+    destruct H2 as [Hi|Hi];  destruct H3 as [Hj|Hj].
+    -
+     assert ((i < j)%N \/ i=j \/ (j<i)%N) by Lia.lia.
+     destruct H2 as [? |[?|?]]; auto.
+     rewrite <- (sorted_ij rl i j ((i + 1)%:R + b)%E ((j + 1)%:R + b)%E H0 Hi Hj) in H2.
+     rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
+     rewrite <- (sorted_ij rl j i ((j + 1)%:R + b)%E ((i + 1)%:R + b)%E H0 Hj Hi) in H2.
+     rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
+   - 
+    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((i + 1)%:R + b)%E). rewrite H in H2. inversion H2.
+    apply H3 in Hi.
+    rewrite H1 in Hi. clear H2 H3.
+    rewrite nth_default in Hi; auto.
+    assert ((j+1)%:R <= 0%:R) by lra.
+    rewrite ler_nat in H2. Lia.lia.
+   - 
+    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((j + 1)%:R + b)%E). rewrite H in H2. inversion H2.
+    apply H3 in Hj.
+    rewrite -H1 in Hj. clear H2 H3.
+    rewrite nth_default in Hj; auto.
+    assert ((i+1)%:R <= 0%:R) by lra.
+    rewrite ler_nat in H2. Lia.lia.
+   -
+    rewrite ?nth_default in H1; auto.
+    assert ((j+1)%:R == (i+1)%:R) by lra.
+    rewrite eqr_nat in H2. Lia.lia.
+  Qed.
 (* end details *)
-Qed.
 
   Definition L : n.-tuple {poly_n R} := lagrange n extend_roots.
   Definition gauss_weight (i: 'I_n) := ∫ (horner (tnth L i)).
@@ -851,7 +928,8 @@ Qed.
 
 
 
-  Lemma quadrature_exact_for: forall f: {poly R}, (size f <= 2*n+2)%N -> ∫ (horner f) = G (horner f).
+  Lemma quadrature_exact_for: 
+      forall f: {poly R}, (size f <= 2*n+2)%N -> ∫ (horner f) = G (horner f).
   Admitted.
 
 (** 17. An important corollary of these results is that the coefficients [A_i] are positive.
@@ -883,7 +961,9 @@ Qed.
      where ξ ∈ [[a,b]]. *)
   Lemma quadrature_error: forall (f: R->R),
       exists ξ:R, a <= ξ <= b /\
-       ∫ f - G f =  derive1n (2*n+2) f ξ / natmul 1 (factorial(2*n+2)) * ∫ (fun x => (horner (ortho_p(n.+1)) x)^2).
+       ∫ f - G f =  
+       derive1n (2*n+2) f ξ /
+        (factorial(2*n+2))%:R * ∫ (fun x => (horner (ortho_p(n.+1)) x)^2).
   Admitted.
 
 (** 20. A consequence of the positivity of the coefficients A_i is that Gaussian
@@ -915,39 +995,46 @@ End R.
     The corresponding orthogonal polynomials are called Legendre polynomials.
 *)
 
+(** _Editor's note:  Thus ends Stewart's presentation, except for paragraph 22 (Gauss-Laguerre
+     quadrature), paragraph 23 (Gauss-Hermite quadrature), and paragraph 24 (there are many
+     other such Gauss formulas suitable for special purposes). In the remainder of this file, 
+     your humble editor permits himself to write in Roman font, not Italic. -- Andrew Appel_ *)
+
 Module Legendre.
  Section R.
  Context {R : realType}.
- Definition lo : R := (-1)%R.
- Definition hi : R := 1%R.
- Lemma lo_lt_hi: (lo < hi)%R.
- Proof. unfold lo,hi. lra. Qed.
- Definition w (x: R) : R := 1%R.
+ Definition lo : R := -1.
+ Definition hi : R := 1.
+ Lemma lo_lt_hi: (lo < hi)%R.    Proof. rewrite /lo /hi; lra. Qed.
+ Definition w (x: R) : R := 1.
  Lemma w_positive: forall x, is_true (lo <= x <= hi) -> is_true (0 < w x).
  Proof. intros. rewrite /w. lra. Qed.
  
- Definition legendre (n: nat) : R -> R :=  horner (ortho_p lo hi w n) .
+ Definition legendre (n: nat) : {poly R} :=  ortho_p lo hi w n.
 
  (** Presto! the Legendre polynomials have been defined.  But we want to put
-  them into a much more usable form.  The remaninder of this Module Legendre
+  them into a much more usable form.  The remainder of this Module Legendre
   will instantiate the theory of orthogonal polynomials for this instance,
   then prove specific useful things (in this theory) about the Legendre polynomials of 
   degree up to 4. *)
 
  (** First, instantiate the notion of integral from lo to hi, from the general theory into the specific: *)
 
- Definition intgal1 (f: R->R) := \int[lebesgue_measure]_(x in `[lo,hi]%classic) (f x).
+ Definition intgal := @intgal R lo hi w.
+ Notation "∫" := intgal.
 
- Lemma intgal_eq: @intgal R lo hi w = intgal1.
- Proof. extensionality f. rewrite /intgal /intgal1. f_equal. simpl. f_equal. extensionality x. rewrite /w mulr1 //. Qed.
+ Lemma intgal_eq: forall f,
+       ∫ f = \int[lebesgue_measure]_(x in `[lo,hi]%classic) (f x).
+(* begin details: Proof ... Qed. *)
+ Proof. intros. rewrite /intgal /quadrature.intgal. f_equal. extensionality x. rewrite /w mulr1 //. Qed.
+(* end details *)
 
- Notation "∫" := intgal1.
 
-(** Now, a whole bunch of useful rewriting lemmas, to be used automatically in the rewrite tactic: *)
+(* begin details: A whole bunch of useful rewriting lemmas, to be used automatically in the rewrite tactic *)
 
 Lemma intgal_linear1 : forall (α : R) (f : R -> R), ∫ (α \*: f) =  α * ∫ f.
 Proof.
-intros. rewrite -intgal_eq intgal_linear1 ?intgal_eq //. apply lo_lt_hi. 
+intros. rewrite /intgal intgal_linear1 -/intgal //. apply lo_lt_hi. 
 Qed.
 
 Lemma intgal_linear1' : forall (α : R) (f : {poly R}), ∫ (horner (polyC α * f)) =  α * ∫ (horner f).
@@ -981,7 +1068,7 @@ Qed.
 
 Lemma intgal_linear2: forall  f g : R -> R,  ∫ (f \+ g) =  ∫ f +  ∫ g.
 Proof.
-intros. rewrite -?intgal_eq intgal_linear2 ?intgal_eq //. apply lo_lt_hi. 
+intros. rewrite /intgal intgal_linear2 -/intgal //. apply lo_lt_hi. 
 Qed.
 
 Lemma intgal_linear2': forall  f g : {poly R},  ∫ (horner (f + g)) =  ∫ (horner f) +  ∫ (horner g).
@@ -992,6 +1079,7 @@ f_equal. extensionality x. rewrite hornerE //.
 Qed.
 
 Definition intgal_linear := (intgal_linear1'', intgal_linear1', intgal_linear1, intgal_linearN, intgal_linearN', intgal_linear2', intgal_linear2).
+(* end details *)
 
 (** ** Packaging the Legendre polynials *)
 
@@ -1001,12 +1089,12 @@ Definition intgal_linear := (intgal_linear1'', intgal_linear1', intgal_linear1, 
   - LR_poly_eq: a proof that the legendre polynomial constructed by the three-term recurrence
      really is equal to LR_poly;
   - LR_roots: an instance of the roots_of_ortho_p package, which itself is an n.-tuple of roots
-     along with a proof that they are strictly sorted and really evaluate to zero. 
+     along with proofs that they are strictly sorted and really evaluate to zero. 
 *)
 
 Record legendre_roots (n: nat) := {
    LR_poly: R -> R;
-   LR_poly_eq: legendre n = LR_poly;
+   LR_poly_eq: horner (legendre n) = LR_poly;
    LR_roots: roots_of_ortho_p lo hi w n
 }.
 Arguments LR_poly [n].
@@ -1026,36 +1114,37 @@ Arguments GW_vals [n].
 Arguments GW_good [n].
 Arguments Build_gauss_weights [n].
 
-(** This is a concrete implementation of the formula G_n(f) in Stewart's paragraph 15. *)
+(** The following is a concrete implementation of the formula G_n(f) in Stewart's paragraph 15. *)
 
  Definition compute_G [n] (GW: gauss_weights n) (f: R -> R) :=
   \sum_i (tnth (GW_vals GW) i) * f (tnth (ROOTS_vals lo hi w n (LR_roots (GW_legendre GW))) i).
 
-Lemma compute_G_eq: forall n (GW: gauss_weights n) f, compute_G GW f = G lo hi w n (LR_roots (GW_legendre GW)) f.
+Lemma compute_G_eq: forall n (GW: gauss_weights n) f, 
+  compute_G GW f = G lo hi w n (LR_roots (GW_legendre GW)) f.
+(* begin details:  Proof.  ... Qed. *)
 Proof.
 intros.
 rewrite /compute_G /G.
 f_equal.
 extensionality i.
-f_equal.
-f_equal.
-symmetry; apply GW_good.
+f_equal; f_equal; symmetry; apply GW_good.
 Qed.
+(* end details *)
 
 (** Now we instantiate the general quadrature_error theorem for the instance of
    Legendre polynomials *)
 
  Lemma legendre_quadrature_error: forall [n: nat] (GW: gauss_weights n) (f: R -> R),
       exists ξ:R, lo <= ξ <= hi /\
-       ∫ f - compute_G GW f =  derive1n (2*n+2) f ξ / natmul 1 (factorial(2*n+2)) * ∫ (fun x => (legendre (n.+1) x)^2).
+       ∫ f - compute_G GW f =  derive1n (2*n+2) f ξ / 
+       (factorial(2*n+2))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
 Proof.
 intros.
-rewrite compute_G_eq.
-rewrite -intgal_eq.
+rewrite compute_G_eq /intgal.
 apply quadrature_error. apply lo_lt_hi. apply w_positive.
 Qed.
 
-(** A bunch of useful rewriting rules *)
+(* begin details:  A bunch of useful rewriting rules *)
 
 Definition r_integral:
  forall P : {poly R}, \int[lebesgue_measure]_(x in `[lo, hi]) P.[x] = (integ P).[hi] - (integ P).[lo]
@@ -1063,18 +1152,14 @@ Definition r_integral:
 
 Lemma intgal_X: ∫ (horner 'X) = 0.
 Proof.
-rewrite polyX'.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyX' intgal_eq  r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_0: ∫ (horner 0%:P) = 0.
 Proof.
-rewrite polyC0.
-rewrite /intgal1 ?r_integral.
-rewrite /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyC0 intgal_eq ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 rewrite size_poly0.
 repeat expand_bigop.
 ring.
@@ -1082,85 +1167,60 @@ Qed.
 
 Lemma intgal_1: ∫ (horner 1%:P) = 2.
 Proof.
-rewrite polyC1.
-rewrite /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly size_polyC oner_neq0 /= polyseq1.
+rewrite polyC1 intgal_eq ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly size_polyC oner_neq0 /= polyseq1.
 repeat expand_bigop.
 field; auto.
 Qed.
 
 Lemma intgal_C: forall c,  ∫ (horner c%:P) = 2*c.
 Proof.
-intros.
-rewrite -(mulr1 c%:P) ?intgal_linear intgal_1 mulrC //.
+intros. rewrite -(mulr1 c%:P) ?intgal_linear intgal_1 mulrC //.
 Qed.
 
 Lemma intgal_X2: ∫ (horner ('X * 'X)) = 2/3.
 Proof.
-rewrite polyX2' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyX2' intgal_eq ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X3: ∫ (horner ('X * ('X * 'X))) = 0.
 Proof.
-rewrite polyX3' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyX3' intgal_eq ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X4: ∫ (horner ('X * ('X * ('X * 'X)))) = 2/5.
 Proof.
-rewrite polyX4' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyX4' intgal_eq ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X5:  ∫ (horner ('X * ('X * ('X * ('X * 'X))))) = 0.
 Proof.
-rewrite polyX5' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyX5' intgal_eq ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X6:  ∫ (horner ('X * ('X * ('X * ('X * ('X * 'X)))))) = 2/7.
 Proof.
-rewrite polyX6' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyX6' intgal_eq ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 repeat expand_bigop.
 ring.
 Qed.
 
 Lemma intgal_X7:  ∫ (horner ('X * ('X * ('X * ('X * ('X * ('X * 'X))))))) = 0.
 Proof.
-rewrite polyX7' /intgal1 ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyX7' intgal_eq ?r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 repeat expand_bigop.
 ring.
 Qed.
 
 Definition r_intgal := (intgal_linear, intgal_0, intgal_1, intgal_C, intgal_X, intgal_X2, 
                       intgal_X3, intgal_X4, intgal_X5, intgal_X6, intgal_X7).
-
-
-Lemma Legendre_poly_0: legendre 0 = fun x: R => 1%R.
-Proof.
-rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring //.
-Qed.
-
-Lemma Legendre_poly_1: legendre 1 =  fun x:R => x.
-Proof.
-rewrite /legendre /ortho_p /= hornerX_i -?hornerM' ?mulr1 ?mul1r ?mulr0 ?mul0r intgal_eq.
-f_equal.
-rewrite ?r_intgal ?scale_polyE. ring.
-Qed.
-
-Lemma Legendre_poly_2: legendre 2 =   fun x :R => x*x - 1/3.
-Proof.
-rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
-rewrite ?intgal_eq ?r_intgal ?r_ring ?scale_0poly ?scale_1poly ?r_ring.
-rewrite ?r_intgal ?r_ring scale_0poly ?r_ring scale_polyE mulr1.
-extensionality x.
-rewrite ?hornerE.
-field; auto.
-Qed.
 
 Lemma pull_left1: forall u: {poly R}, 'X * u = u * 'X.
 Proof. intros. ring. Qed.
@@ -1192,12 +1252,24 @@ Definition norm_poly := (mulrA'X, pull_left1', pull_left2', scale_1poly, scale_0
 
 Definition mulrD {R: pzRingType} := (@mulrDr R, @mulrDl R, @mulrN R, @mulNr R, @opprK R).
 
-Lemma Legendre_poly_3: legendre 3 =  fun x :R => x*x*x - (3/5)*x.
+Lemma hornerD'': forall (a b: {poly R}), @horner R (a-b) = horner a \- horner b.
+Proof. intros. extensionality x. rewrite hornerD. rewrite hornerN. reflexivity.
+Qed.
+
+Lemma eq_opI: forall {s} (A B: Equality.sort s), A=B -> is_true (eq_op A B).
 Proof.
-rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring ?intgal_eq ?norm_poly ?mulrD ?norm_poly.
-extensionality x.
-rewrite /= ?hornerE /=.
-field; auto.
+intros.
+subst.
+apply eq_refl.
+Qed.
+
+Lemma sub_mul2: forall (x :R), -x-x = -(2*x).
+Proof. intros. lra. Qed.
+
+Lemma opp_sub: forall {s: zmodType} (x y:s), -x-y = -(x+y).
+Proof. intros.
+pose proof (opprB x (-y)).
+rewrite opprK in H. rewrite H. apply addrC.
 Qed.
 
 Ltac do_one_integral u := 
@@ -1205,30 +1277,19 @@ let i := fresh "i" in let g := fresh "g" in
 set i := ∫ _;  pattern i; match goal with |- ?G _ => set g := G end; subst i;
 rewrite ?mulrD -?mulrA ?(pull_left u) ?r_intgal ?r_ring; subst g; cbv beta; rewrite ?r_ring ?scale_0poly ?r_ring.
 
-Lemma Legendre_poly_4: legendre 4 =  fun x :R => x*x*x*x - (30/35)*(x*x) + (3/35).
+(* end details *)
+
+(** *** The degree-0 Legendre polynomial *)
+
+(** First, prove that the 0-th Legendre polynomial, as constructed by the [ortho_p]
+    recurrence, is the constant function 1.  This is rather trivial, but when we get to n=3
+    and n=4 it won't be so easy. *)
+Lemma Legendre_poly_0: horner (legendre 0) = fun x: R => 1.
 Proof.
-rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
-match goal with |- _ = ?B => set RHS := B end.
-rewrite ?intgal_eq ?r_intgal ?r_ring ?scale_0poly ?scale_1poly ?r_ring.
-rewrite ?r_intgal ?r_ring ?scale_0poly ?r_ring scale_polyE ?r_ring.
-set u := ( _ / _ / _)%:P.
-rewrite (invf_div 2 3).
-set v := 3/2.
-rewrite ?scale_polyE.
-repeat do_one_integral u.
-subst v.
-set a := 2/5 - _.
-set b := inv _ * _.
-set c := inv _ * _.
-rewrite ?norm_poly.
-rewrite ?mulrD ?norm_poly.
-extensionality x.
-rewrite ?hornerE /=.
-subst u a b c  RHS.
-simpl.
-field; auto.
+rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring //.
 Qed.
 
+(** Second, package up the [legendre_roots] structure for degree 0 *)
 Definition legendre_roots_0 : legendre_roots 0.
   apply (Build_legendre_roots _ Legendre_poly_0).
   apply (Build_roots_of_ortho_p lo hi _ 0 (@Tuple 0 _ nil isT)).
@@ -1237,9 +1298,13 @@ Definition legendre_roots_0 : legendre_roots 0.
 - reflexivity.
 Defined.
 
-Require CFEM.matrix_util.
+(** *** The degree-1 Legendre polynomial *)
 
-Notation sqrt := (@Num.sqrt R).
+Lemma Legendre_poly_1: horner (legendre 1) =  fun x:R => x.
+Proof.
+rewrite /legendre /ortho_p /= hornerX_i -?hornerM' ?mulr1 ?mul1r ?mulr0 ?mul0r -/intgal ?r_intgal ?scale_polyE.
+f_equal; ring.
+Qed.
 
 Definition legendre_roots_1: legendre_roots 1.
   apply (Build_legendre_roots _ Legendre_poly_1).
@@ -1255,6 +1320,24 @@ reflexivity.
 simpl; red; rewrite /lo /hi ?Bool.andb_true_iff; repeat split;  lra.
 Defined.
 
+
+(** *** The degree-2 Legendre polynomial *)
+
+Lemma Legendre_poly_2: horner (legendre 2) =   fun x :R => x*x - 1/3.
+Proof.
+rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
+rewrite -/intgal ?r_intgal ?r_ring ?scale_0poly ?scale_1poly ?r_ring.
+rewrite ?r_intgal ?r_ring scale_0poly ?r_ring scale_polyE mulr1.
+extensionality x.
+rewrite ?hornerE.
+field; auto.
+Qed.
+
+(** Now we start to need square roots.  It could be worse: above degree 4, the roots
+  don't even have closed-form expressions with square roots.  Fortunately, we don't 
+  need to go above degree 4. *)
+Notation sqrt := (@Num.sqrt R).
+
 Lemma sqrt_exists: forall (x: R), 0 < x -> 
  in_mem (sqrt x) (mem unit).
 Proof.
@@ -1269,13 +1352,7 @@ intros.
 apply sqr_sqrtr; auto.
 Qed.
 
-Lemma eq_opI: forall {s} (A B: Equality.sort s), A=B -> is_true (eq_op A B).
-Proof.
-intros.
-subst.
-apply eq_refl.
-Qed.
-
+(** The roots of the degree-2 Legendre polynomial are  -1/sqrt(3) and +1/sqrt(3).  *)
 Definition legendre_roots_2: legendre_roots 2.
   apply (Build_legendre_roots _ Legendre_poly_2).
  apply (Build_roots_of_ortho_p lo hi _ _ (@Tuple 2 _ [:: -1/(sqrt 3); 1/(sqrt 3)]  isT)).
@@ -1299,6 +1376,18 @@ rewrite /root -/(legendre _);
   simpl; red; rewrite ?Bool.andb_true_iff; repeat split; rewrite /lo /hi; lra.
 Defined.
 
+
+(** *** The degree-3 Legendre polynomial *)
+
+Lemma Legendre_poly_3: horner (legendre 3) =  fun x :R => x*x*x - (3/5)*x.
+Proof.
+rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring -/intgal ?norm_poly ?mulrD ?norm_poly.
+extensionality x.
+rewrite /= ?hornerE /=.
+field; auto.
+Qed.
+
+(** The roots of the degree-2 Legendre polynomial are  -sqrt(3/5), 0, and +sqrt(3/5).  *)
 Definition legendre_roots_3: legendre_roots 3.
   apply (Build_legendre_roots _ Legendre_poly_3).
  apply (Build_roots_of_ortho_p lo hi _ _ (@Tuple 3 _ [:: -(sqrt (3/5)); 0; (sqrt (3/5))]  isT)).
@@ -1317,6 +1406,34 @@ rewrite /root -/(legendre _);
   simpl; red; rewrite ?Bool.andb_true_iff; repeat split; rewrite /lo /hi; lra.
 Defined.
 
+(** *** The degree-4 Legendre polynomial *)
+
+
+Lemma Legendre_poly_4: horner (legendre 4) =  fun x :R => x*x*x*x - (30/35)*(x*x) + (3/35).
+(* These proofs are getting longer and longer! *)
+Proof.
+rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
+match goal with |- _ = ?B => set RHS := B end.
+rewrite -/intgal ?r_intgal ?r_ring ?scale_0poly ?scale_1poly ?r_ring.
+rewrite ?r_intgal ?r_ring ?scale_0poly ?r_ring scale_polyE ?r_ring.
+set u := ( _ / _ / _)%:P.
+rewrite (invf_div 2 3).
+set v := 3/2.
+rewrite ?scale_polyE.
+repeat do_one_integral u.
+subst v.
+set a := 2/5 - _.
+set b := inv _ * _.
+set c := inv _ * _.
+rewrite ?norm_poly.
+rewrite ?mulrD ?norm_poly.
+extensionality x.
+rewrite ?hornerE /=.
+subst u a b c  RHS.
+simpl.
+field; auto.
+Qed.
+
 Definition legendre_roots_val := 
   @Tuple 4 _ 
     [:: -(sqrt ((3 + 2 * sqrt(6/5))/7)); -(sqrt ((3 - 2 * sqrt(6/5))/7)); 
@@ -1324,6 +1441,7 @@ Definition legendre_roots_val :=
 
 Lemma legendre_roots_4a: 
    is_true (all (root (ortho_p lo hi w 4)) (tval legendre_roots_val)).
+(* begin details: Proof. ... Qed. *)
 Proof.
 simpl.
 assert (H3: is_true (0 <= (3 - 2 * sqrt (6 / 5)) / 7)). {
@@ -1378,9 +1496,11 @@ assert (b*b = 24/5)
   by (rewrite /b {1}(mulrC 2) mulrA (mulrC (_ * _ * _)); lra).
 lra.
 Qed.
+(* end details *)
 
 Lemma legendre_roots_4b:
   is_true (sorted <%R (tval legendre_roots_val)).
+(* begin details: Proof. ... Qed. *)
 Proof.
 assert (H4: 0 < sqrt (6/5)) by (rewrite sqrtr_gt0; lra).
   simpl; red; rewrite ?Bool.andb_true_iff; repeat split.
@@ -1397,10 +1517,12 @@ rewrite -H. lra. lra.
 +
 rewrite ltr_sqrt; lra.
 Qed.
+(* end details *)
 
 Lemma legendre_roots_4c:
  is_true   (all (fun x : Order.Preorder.sort (reals_Real__to__Order_Preorder R) => lo <= x <= hi)
      (tval legendre_roots_val)).
+(* begin details: Proof. ... Qed. *)
 Proof.
 assert (1 < sqrt (6/5)) by (rewrite -{1}sqrtr1 ltr_sqrt;  lra).
 assert (sqrt(6/5)<6/5) by (rewrite -{2}(sqr_sqrt (6/5)); nra).
@@ -1414,20 +1536,28 @@ assert (sqrt((3 - (2 * Num.ExtraDef.sqrtr (6 / 5))) / 7) < 1)
   by ( rewrite -{6}sqrtr1 ltr_sqrt; lra).
   simpl; red; rewrite ?Bool.andb_true_iff; repeat split; rewrite /lo /hi; lra.
 Qed.
-
+(* end details *)
 
 Definition legendre_roots_4: legendre_roots 4.
   apply (Build_legendre_roots _ Legendre_poly_4).
  apply (Build_roots_of_ortho_p lo hi _ _  legendre_roots_val
    legendre_roots_4a legendre_roots_4b legendre_roots_4c).
-Defined.
+Defined. 
+
+(** ** Building the Gauss weights of Legendre polynomials *)
+
+(** *** Gauss weights of degree-0 Legendre polynomials *)
 
 Definition gauss_weights_0 : gauss_weights 0.
  apply (Build_gauss_weights legendre_roots_0 [::]).
-intros.
-matrix_util.ord_enum_cases i.
-Defined.
+ intros.
+ ord_enum_cases i.
+  (* no cases *)
+ Defined.
 
+
+(** *** Gauss weights of degree-1 Legendre polynomials *)
+(**  The Gauss weights of degree 1 is just the singleton 2. *)
 Lemma gauss_weight_1_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_1) (@Ordinal 1 0 isT) = 2.
 Proof.
 rewrite /gauss_weight /legendre_roots_1 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
@@ -1436,16 +1566,19 @@ rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
   rewrite /extend_roots /= ?r_horner invr1 ?r_lift.
   rewrite (_: (fun=>1) = horner (polyC 1)).
   2: extensionality x; rewrite hornerE //.
-  rewrite intgal_eq intgal_C mulr1 //.
+  rewrite -/intgal intgal_C mulr1 //.
 Qed.
 
 Definition gauss_weights_1 : gauss_weights 1.
  apply (Build_gauss_weights legendre_roots_1 [:: 2 ]).
-intros.
-matrix_util.ord_enum_cases i.
-apply gauss_weight_1_0.
+ intros. 
+ ord_enum_cases i.
+ - (* case 0 *) apply gauss_weight_1_0.
 Defined.
 
+
+(** *** Gauss weights of degree-2 Legendre polynomials *)
+(**  The Gauss weights of degree 2 are the sequence 1,1. *)
 Lemma gauss_weight_2_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_2) (@Ordinal 2 0 isT) = 1.
 Proof.
 rewrite /gauss_weight /legendre_roots_2 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
@@ -1453,7 +1586,7 @@ rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
 cbv zeta; expand_bigop.
 rewrite /extend_roots /= ?r_horner ?r_ring ?r_lift.
 set s3 := Num.sqrt 3. simpl in s3.
-rewrite -(div1r s3) mulN1r intgal_eq.
+rewrite -(div1r s3) mulN1r -/intgal.
 transitivity ( ∫ (horner ('X * -(s3/2)%:P + (1/2)%:P))).
 -
 f_equal.
@@ -1469,10 +1602,6 @@ rewrite -hornerM' ?r_intgal ?r_ring.
 lra.
 Qed.
 
-Lemma hornerD'': forall (a b: {poly R}), @horner R (a-b) = horner a \- horner b.
-Proof. intros. extensionality x. rewrite hornerD. rewrite hornerN. reflexivity.
-Qed.
-
 Lemma gauss_weight_2_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_2) (@Ordinal 2 1 isT) = 1.
 Proof.
 rewrite /gauss_weight /legendre_roots_2 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
@@ -1480,7 +1609,7 @@ rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ]
 cbv zeta.
 expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift
-        intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''
+        -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''
         -hornerM' ?r_intgal ?r_ring.
 field.
 assert (0 < sqrt 3);  rewrite ?sqrtr_gt0; lra.
@@ -1490,10 +1619,13 @@ Definition gauss_weights_2 : gauss_weights 2.
  apply (Build_gauss_weights legendre_roots_2 [:: 1; 1]).
 Proof.
 intros.
-matrix_util.ord_enum_cases i.
-apply gauss_weight_2_0.
-apply gauss_weight_2_1.
+ ord_enum_cases i.
+ - (* case 0 *) apply gauss_weight_2_0.
+ - (* case 1 *) apply gauss_weight_2_1.
 Defined.
+
+(** *** Gauss weights of degree-3 Legendre polynomials *)
+(**  The Gauss weights of degree 3 are 5/9, 8/9, 5/9. *)
 
 Lemma gauss_weight_3_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 0 isT) = 5/9.
 Proof.
@@ -1501,7 +1633,7 @@ rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_va
 rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
 cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift
-  intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
+  -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
 set s3 := Num.sqrt (3/5). simpl in s3.
 rewrite -?hornerM'.
 rewrite (_: - s3 - s3 = -(s3 * 2) :> R); [ | lra].
@@ -1518,7 +1650,7 @@ rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_va
 rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
 cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
-rewrite intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
+rewrite -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
 set s3 := Num.sqrt (3/5). simpl in s3.
 rewrite -?hornerM'.
 rewrite opprK mulrN.
@@ -1538,7 +1670,7 @@ rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_va
 rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
 cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
-rewrite intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
+rewrite -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
 set s3 := Num.sqrt (3/5). simpl in s3.
 rewrite -?hornerM'.
 set u := _ - _. replace u with ((s3 * 2))%R by (subst u; lra). clear u.
@@ -1553,11 +1685,14 @@ Definition gauss_weights_3 : gauss_weights 3.
  apply (Build_gauss_weights legendre_roots_3 [:: 5/9; 8/9; 5/9]).
 Proof.
 intros.
-matrix_util.ord_enum_cases i.
+ord_enum_cases i.
 apply gauss_weight_3_0.
 apply gauss_weight_3_1.
 apply gauss_weight_3_2.
 Defined.
+
+(** *** Gauss weights of degree-4 Legendre polynomials *)
+(**  The Gauss weights of degree 3 are 1/2-sqrt(5/6)/6, 1/2+sqrt(5/6)/6, 1/2+sqrt(5/6)/6, 1/2-sqrt(5/6)/6. *)
 
 Lemma add_mul2: forall (x :R), x+x = 2*x.
 Proof. intros. lra. Qed.
@@ -1565,16 +1700,16 @@ Proof. intros. lra. Qed.
 Lemma add_mul3: forall (x :R), x+(x+x) = 3*x.
 Proof. intros. lra. Qed.
 
-
 Lemma gauss_weight_4_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 0 isT) = 
        1/2 - Num.sqrt(5/6)/6.
+(* begin details: Proof.  ... very long and tedious ... Qed. *)
 Proof.
 set RHS := _ - _.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
 rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
 cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
-rewrite intgal_eq ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD'' ?r_ring.
+rewrite -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD'' ?r_ring.
 set s3 := Num.sqrt (6/5). simpl in s3.
 rewrite opprK.
 set a := inv _.
@@ -1691,25 +1826,17 @@ rewrite sqrtrV; [ | lra].
 change (Num.sqrt _) with s3.
 nra.
 Qed.
-
-Lemma sub_mul2: forall (x :R), -x-x = -(2*x).
-Proof. intros. lra. Qed.
-
-Lemma opp_sub: forall {s: zmodType} (x y:s), -x-y = -(x+y).
-Proof. intros.
-pose proof (opprB x (-y)).
-rewrite opprK in H. rewrite H. apply addrC.
-Qed.
-
+(* end details *)
 
 Lemma gauss_weight_4_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 1 isT) = 
        1/2 + Num.sqrt(5/6)/6.
+(* begin details: Proof.  ... very long and tedious ... Qed. *)
 Proof.
 set RHS := _ + _. simpl in RHS.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
 rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
 cbv zeta; expand_bigop.
-  rewrite intgal_eq ?r_ring /extend_roots /= ?r_ring. 
+  rewrite -/intgal ?r_ring /extend_roots /= ?r_ring. 
 set s3 := Num.sqrt (6/5). simpl in s3.
 set (b := Num.sqrt _).
 set (c := Num.sqrt _). simpl in b,c.
@@ -1867,9 +1994,11 @@ f_equal.
 lra.
 lra.
 Qed.
+(* end details *)
 
 Lemma gauss_weight_4_2: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 2 isT) = 
        1/2 + Num.sqrt(5/6)/6.
+(* begin details: make use of the gauss_weight_4_1 lemma, with appropriate adaptation *)
 Proof.
 rewrite -gauss_weight_4_1.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
@@ -1877,7 +2006,7 @@ rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; apply lo_lt
 cbv zeta; repeat expand_bigop.
   rewrite /extend_roots /= ?r_ring.
 set s3 := Num.sqrt (6/5). simpl in s3.
-rewrite ?intgal_eq.
+rewrite -/intgal.
 set (b := Num.sqrt _).
 set (c := Num.sqrt _). simpl in b,c.
 rewrite ?hornerE /= ?opprK ?r_ring.
@@ -1893,9 +2022,11 @@ rewrite ?mulrD ?mul_polyC' -?mulrA.
 rewrite ?(pull_left (polyC _)) ?r_intgal ?r_ring.
 ring.
 Qed.
+(* end details *)
 
 Lemma gauss_weight_4_3: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordinal 4 3 isT) = 
        1/2 - Num.sqrt(5/6)/6.
+(* begin details: make use of the gauss_weight_4_0 lemma, with appropriate adaptation *)
 Proof.
 rewrite -gauss_weight_4_0.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
@@ -1904,7 +2035,7 @@ cbv zeta; repeat expand_bigop.
   rewrite /extend_roots /=  ?r_ring.
 set s3 := Num.sqrt (6/5). simpl in s3.
 rewrite ?opprK.
-rewrite ?intgal_eq ?r_intgal.
+rewrite -/intgal ?r_intgal.
 set (b := Num.sqrt _).
 set (c := Num.sqrt _). simpl in b,c.
 rewrite ?hornerE /= ?polyCN ?opprK ?r_ring.
@@ -1915,24 +2046,28 @@ rewrite H; clear H a'.
 rewrite ?mulrD -?mulrA ?(pull_left (polyC _)) ?r_intgal ?r_ring.
 ring.
 Qed.
+(* end details *)
 
 Definition gauss_weights_4 : gauss_weights 4.
  apply (Build_gauss_weights legendre_roots_4
    [:: 1/2 - Num.sqrt(5/6)/6; 1/2 + Num.sqrt(5/6)/6; 1/2 + Num.sqrt(5/6)/6; 1/2 - Num.sqrt(5/6)/6]).
 Proof.
 intros.
-matrix_util.ord_enum_cases i.
+ord_enum_cases i.
 apply gauss_weight_4_0.
 apply gauss_weight_4_1.
 apply gauss_weight_4_2.
 apply gauss_weight_4_3.
 Defined.
 
-Record legendre_roots_and_weights :=  { 
-    PR_n : nat ;
-    PR_roots: legendre_roots PR_n;
-    PR_weights: gauss_weights PR_n
-}.
+(** ** Packaging together the packages *)
+
+(** We will construct a sequence such that for any ordinal n in 'I_5,
+  the ith element of the sequence is guaranteed to be the legendre_roots package for degree n,
+  and a similar sequence for gauss_weights.  That guarantee will be enforced by 
+  dependent types, so we first need to define the notion of a dependently typed list,
+  where the nth element has type T(n).
+*)
 
 Inductive iseq (T: nat -> Type) : nat ->Type :=
 | i_nil: iseq T O
@@ -1942,6 +2077,7 @@ Arguments i_nil {T}.
 Arguments i_cons {T} [i].
 
 Fixpoint nth_iseq [T: nat -> Type] [n: nat] (s: iseq T n) (i: 'I_n) {struct n} : T i.
+(* begin details: A function to return the ith element of an iseq *)
 destruct n; destruct i as [i Hi].
 discriminate.
 specialize (nth_iseq T n).
@@ -1953,11 +2089,14 @@ assert (i<n)%N by abstract Lia.lia.
 change i with (nat_of_ord (Ordinal H)).
 apply nth_iseq. apply X0.
 Defined.
+(* end details *)
 
 Declare Scope iseq_scope.
 Delimit Scope iseq_scope with iseq.
 
 Infix "::" := i_cons (at level 60, right associativity) : iseq_scope.
+
+(** *** The legendre_roots packages up to degree 4 *)
 
 Definition some_legendre_roots: iseq legendre_roots 5 := 
    (legendre_roots_4 
@@ -1967,6 +2106,8 @@ Definition some_legendre_roots: iseq legendre_roots 5 :=
     :: legendre_roots_0  
     :: i_nil )%iseq.
 
+(** *** The gauss_weights packages up to degree 4 *)
+
 Definition some_gauss_weights: iseq gauss_weights 5 := 
    (gauss_weights_4 
     :: gauss_weights_3
@@ -1975,10 +2116,29 @@ Definition some_gauss_weights: iseq gauss_weights 5 :=
     :: gauss_weights_0  
     :: i_nil )%iseq.
 
+Lemma legendre_roots_unique: forall [n] (r r': legendre_roots n),
+    r=r'.
+(* begin details: Proof.  ... easy, by roots_of_ortho_p_unique ... Qed. *)
+Proof.
+intros.
+destruct r as [f1 Hf1 roots1].
+destruct r' as [f2 Hf2 roots2].
+subst f1 f2.
+f_equal.
+apply roots_of_ortho_p_unique.
+apply lo_lt_hi.
+apply w_positive.
+Qed.
+(* end details *)
+
+(** *** Specialization of quadrature error to our instances for degrees up to 4 *)
+
   Lemma legendre_quadrature_error': forall (n: 'I_5) (f: R->R),
    let GW := nth_iseq some_gauss_weights n in
       exists ξ:R, lo <= ξ <= hi /\
-       ∫ f - compute_G GW f =  derive1n (2*n+2) f ξ / natmul 1 (factorial(2*n+2)) * ∫ (fun x => (legendre n.+1 x)^2).
+       ∫ f - compute_G GW f =  
+       derive1n (2*n+2) f ξ / 
+        (factorial(2*n+2))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
   Proof.
   intros. apply legendre_quadrature_error.
  Qed.
@@ -1987,6 +2147,7 @@ End R.
 
 End Legendre.
 
+(** ** The remainder of Stewart's Chapter 23. *)
 (** 22.  If we take [[a,b]]=[[0,∞]] and w(x)=e^{-x}, we get a formula to approximate
 
       [ ∫_0^∞ f(x) e^{-x} dx ].
@@ -2003,6 +2164,7 @@ End Legendre.
      mathematical handbooks have tables of abscissas and coefficients.  The
      automatic generation of Gauss formulas is an interesting subject in its own right. *)
 
+(* begin details: some scribblings that should be discarded *)
 (** The following experiment should probably be abandoned; perhaps there is
    something in the CoqEAL library that's useful instead. *)
 Module ComputableIntegral.
@@ -2160,7 +2322,7 @@ Admitted.
 
 End R.
 End ComputableIntegral.
-
+(* end details *)
 
 
 
