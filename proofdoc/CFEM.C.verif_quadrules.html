@@ -1,0 +1,337 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>CFEM: Simple C Finite Element Method, Verified</title>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var h1 = document.querySelector('h1');
+  if (h1) document.title = h1.textContent.trim();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+<h1 class="libtitle">CFEM.C.verif_quadrules</h1>
+
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">VST.floyd.proofauto</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">vcfloat</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">FPStdCompCert</span> <span class="id" title="library">FPStdLib</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">LAProof.accuracy_proofs</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">solve_model</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">LAProof.C</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">floatlib</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">Classes.RelationClasses</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">ssreflect</span> <span class="id" title="library">ssrbool</span> <span class="id" title="library">ssrfun</span> <span class="id" title="library">eqtype</span> <span class="id" title="library">ssrnat</span> <span class="id" title="library">seq</span> <span class="id" title="library">choice</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">fintype</span> <span class="id" title="library">finfun</span> <span class="id" title="library">bigop</span> <span class="id" title="library">finset</span> <span class="id" title="library">fingroup</span> <span class="id" title="library">perm</span> <span class="id" title="library">order</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">div</span> <span class="id" title="library">ssralg</span> <span class="id" title="library">countalg</span> <span class="id" title="library">finalg</span> <span class="id" title="library">zmodp</span> <span class="id" title="library">matrix</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp.zify</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="library">ssrZ</span> <span class="id" title="library">zify</span>.<br/>
+<span class="id" title="keyword">Export</span> <span class="id" title="module">fintype</span> <span class="id" title="module">matrix</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now we undo all the settings that mathcomp has modified 
+</div>
+<div class="code">
+<span class="id" title="keyword">Unset Implicit Arguments</span>.<br/>
+<span class="id" title="keyword">Unset</span> <span class="id" title="keyword">Strict</span> <span class="id" title="keyword">Implicit</span>.<br/>
+<span class="id" title="keyword">Unset</span> <span class="id" title="keyword">Printing</span> <span class="id" title="keyword">Implicit</span> <span class="id" title="var">Defensive</span>.<br/>
+<span class="id" title="keyword">Set</span> <span class="id" title="var">Bullet</span> <span class="id" title="var">Behavior</span> "Strict Subproofs".<br/>
+
+<br/>
+<span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">logic</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">CFEM.C</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.quadrules.html#"><span class="id" title="library">quadrules</span></a>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <a class="idref" href="CFEM.C.spec_quadrules.html#"><span class="id" title="library">CFEM.C.spec_quadrules</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="quadrules_E" class="idref" href="#quadrules_E"><span class="id" title="definition">quadrules_E</span></a> : <span class="id" title="definition">funspecs</span> := <span class="id" title="notation">[]</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="quadrules_internal_specs" class="idref" href="#quadrules_internal_specs"><span class="id" title="definition">quadrules_internal_specs</span></a> : <span class="id" title="definition">funspecs</span> := <a class="idref" href="CFEM.C.spec_quadrules.html#quadrules_ASI"><span class="id" title="definition">quadrules_ASI</span></a>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="quadrules_imported_specs" class="idref" href="#quadrules_imported_specs"><span class="id" title="definition">quadrules_imported_specs</span></a> : <span class="id" title="definition">funspecs</span> := <span class="id" title="notation">[]</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="quadrules_globals" class="idref" href="#quadrules_globals"><span class="id" title="definition">quadrules_globals</span></a> <a id="gv:1" class="idref" href="#gv:1"><span class="id" title="binder">gv</span></a> : <span class="id" title="definition">mpred</span>:= <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#gv:1"><span class="id" title="variable">gv</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Gprog" class="idref" href="#Gprog"><span class="id" title="definition">Gprog</span></a> := <a class="idref" href="CFEM.C.verif_quadrules.html#quadrules_imported_specs"><span class="id" title="definition">quadrules_imported_specs</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#quadrules_internal_specs"><span class="id" title="definition">quadrules_internal_specs</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="divs_repr" class="idref" href="#divs_repr"><span class="id" title="lemma">divs_repr</span></a>: <span class="id" title="keyword">∀</span> <a id="i:2" class="idref" href="#i:2"><span class="id" title="binder">i</span></a> <a id="j:3" class="idref" href="#j:3"><span class="id" title="binder">j</span></a>, <br/>
+&nbsp;&nbsp;<span class="id" title="definition">Int.min_signed</span> <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.verif_quadrules.html#i:2"><span class="id" title="variable">i</span></a> <span class="id" title="notation">≤</span> <span class="id" title="definition">Int.max_signed</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="definition">Int.min_signed</span> <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.verif_quadrules.html#j:3"><span class="id" title="variable">j</span></a> <span class="id" title="notation">≤</span> <span class="id" title="definition">Int.max_signed</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <br/>
+&nbsp;&nbsp;<span class="id" title="definition">Int.divs</span> (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.verif_quadrules.html#i:2"><span class="id" title="variable">i</span></a>) (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.verif_quadrules.html#j:3"><span class="id" title="variable">j</span></a>) <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="definition">Int.repr</span> (<a class="idref" href="CFEM.C.verif_quadrules.html#i:2"><span class="id" title="variable">i</span></a> <span class="id" title="notation">÷</span> <a class="idref" href="CFEM.C.verif_quadrules.html#j:3"><span class="id" title="variable">j</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="tactic">intros</span>.<br/>
+<span class="id" title="tactic">unfold</span> <span class="id" title="definition">Int.divs</span>.<br/>
+<span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">Int.signed_repr</span>; <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_gauss_point" class="idref" href="#body_gauss_point"><span class="id" title="lemma">body_gauss_point</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_quadrules.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.quadrules.html#f_gauss_point"><span class="id" title="definition">f_gauss_point</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_point_spec_lowlevel"><span class="id" title="definition">gauss_point_spec_lowlevel</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a>.<br/>
+<span class="id" title="tactic">assert</span> (0 <span class="id" title="notation">≤</span> <span class="id" title="var">npts</span> <span class="id" title="notation">×</span> <span class="id" title="notation">(</span><span class="id" title="var">npts</span><span class="id" title="notation">-</span>1<span class="id" title="notation">)</span> <span class="id" title="notation">≤</span> 90) <span class="id" title="tactic">by</span> <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="tactic">assert</span> (0 <span class="id" title="notation">≤</span> <span class="id" title="var">npts</span> <span class="id" title="notation">×</span> <span class="id" title="notation">(</span><span class="id" title="var">npts</span> <span class="id" title="notation">-</span> 1<span class="id" title="notation">)</span> <span class="id" title="notation">÷</span> 2  <span class="id" title="notation">≤</span> 45 ). {<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">split</span>. <span class="id" title="tactic">apply</span> <span class="id" title="lemma">Z.quot_pos</span>; <span class="id" title="var">lia</span>. <span class="id" title="tactic">apply</span> (<span class="id" title="lemma">Z.quot_le_mono</span> <span class="id" title="var">_</span> 90 2); <span class="id" title="var">lia</span>.<br/>
+}<br/>
+<span class="id" title="tactic">assert</span> (0 <span class="id" title="notation">≤</span><br/>
+<span class="id" title="definition">Int.signed</span><br/>
+&nbsp;&nbsp;(<span class="id" title="definition">Int.add</span> (<span class="id" title="definition">Int.divs</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="var">npts</span> <span class="id" title="notation">×</span> <span class="id" title="notation">(</span><span class="id" title="var">npts</span> <span class="id" title="notation">-</span> 1<span class="id" title="notation">)</span>)) (<span class="id" title="definition">Int.repr</span> 2))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="definition">Int.repr</span> <span class="id" title="var">i</span>)) <span class="id" title="notation">&lt;</span><br/>
+<span class="id" title="definition">Zlength</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_list"><span class="id" title="definition">gauss_pts_list</span></a>). {<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">j</span> := <span class="id" title="definition">Zlength</span> <span class="id" title="var">_</span>); <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <span class="id" title="var">j</span>; <span class="id" title="tactic">subst</span> <span class="id" title="var">j</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_quadrules.html#divs_repr"><span class="id" title="lemma">divs_repr</span></a>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">add_repr</span>. <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Int.signed_repr</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+}<br/>
+<span class="id" title="var">forward</span>.<br/>
+-<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Znth_map</span> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+-<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">split</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_quadrules.html#divs_repr"><span class="id" title="lemma">divs_repr</span></a>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Int.signed_repr</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">intros</span> [? ?]. <span class="id" title="var">inv</span> <span class="id" title="var">H5</span>.<br/>
+-<br/>
+<span class="id" title="tactic">change</span> (<span class="id" title="definition">Zlength</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> 55 <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_quadrules.html#divs_repr"><span class="id" title="lemma">divs_repr</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>|-*; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">add_repr</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>|-*.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Int.signed_repr</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>|-*; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Znth_map</span> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">clear</span> - <span class="id" title="var">H0</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="method">prop_right</span>.<br/>
+<span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">Zquot.Zquot_Zdiv_pos</span>; <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_gauss_weight" class="idref" href="#body_gauss_weight"><span class="id" title="lemma">body_gauss_weight</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_quadrules.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.quadrules.html#f_gauss_weight"><span class="id" title="definition">f_gauss_weight</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_weight_spec_lowlevel"><span class="id" title="definition">gauss_weight_spec_lowlevel</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_pred"><span class="id" title="definition">gauss_wts_pred</span></a>.<br/>
+<span class="id" title="tactic">assert</span> (0 <span class="id" title="notation">≤</span> <span class="id" title="var">npts</span> <span class="id" title="notation">×</span> <span class="id" title="notation">(</span><span class="id" title="var">npts</span><span class="id" title="notation">-</span>1<span class="id" title="notation">)</span> <span class="id" title="notation">≤</span> 90) <span class="id" title="tactic">by</span> <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="tactic">assert</span> (0 <span class="id" title="notation">≤</span> <span class="id" title="var">npts</span> <span class="id" title="notation">×</span> <span class="id" title="notation">(</span><span class="id" title="var">npts</span> <span class="id" title="notation">-</span> 1<span class="id" title="notation">)</span> <span class="id" title="notation">÷</span> 2  <span class="id" title="notation">≤</span> 45 ). {<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">split</span>. <span class="id" title="tactic">apply</span> <span class="id" title="lemma">Z.quot_pos</span>; <span class="id" title="var">lia</span>. <span class="id" title="tactic">apply</span> (<span class="id" title="lemma">Z.quot_le_mono</span> <span class="id" title="var">_</span> 90 2); <span class="id" title="var">lia</span>.<br/>
+}<br/>
+<span class="id" title="tactic">assert</span> (0 <span class="id" title="notation">≤</span><br/>
+<span class="id" title="definition">Int.signed</span><br/>
+&nbsp;&nbsp;(<span class="id" title="definition">Int.add</span> (<span class="id" title="definition">Int.divs</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="var">npts</span> <span class="id" title="notation">×</span> <span class="id" title="notation">(</span><span class="id" title="var">npts</span> <span class="id" title="notation">-</span> 1<span class="id" title="notation">)</span>)) (<span class="id" title="definition">Int.repr</span> 2))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="definition">Int.repr</span> <span class="id" title="var">i</span>)) <span class="id" title="notation">&lt;</span><br/>
+<span class="id" title="definition">Zlength</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_list"><span class="id" title="definition">gauss_wts_list</span></a>). {<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">j</span> := <span class="id" title="definition">Zlength</span> <span class="id" title="var">_</span>); <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <span class="id" title="var">j</span>; <span class="id" title="tactic">subst</span> <span class="id" title="var">j</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_quadrules.html#divs_repr"><span class="id" title="lemma">divs_repr</span></a>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">add_repr</span>. <span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Int.signed_repr</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+}<br/>
+<span class="id" title="var">forward</span>.<br/>
+-<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Znth_map</span> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+-<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">split</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_quadrules.html#divs_repr"><span class="id" title="lemma">divs_repr</span></a>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Int.signed_repr</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">intros</span> [? ?]. <span class="id" title="var">inv</span> <span class="id" title="var">H5</span>.<br/>
+-<br/>
+<span class="id" title="tactic">change</span> (<span class="id" title="definition">Zlength</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> 55 <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_quadrules.html#divs_repr"><span class="id" title="lemma">divs_repr</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>|-*; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">add_repr</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>|-*.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Int.signed_repr</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>|-*; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Znth_map</span> <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">clear</span> - <span class="id" title="var">H0</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="method">prop_right</span>.<br/>
+<span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">Zquot.Zquot_Zdiv_pos</span>; <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_gauss2d_npoint1d" class="idref" href="#body_gauss2d_npoint1d"><span class="id" title="lemma">body_gauss2d_npoint1d</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_quadrules.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.quadrules.html#f_gauss2d_npoint1d"><span class="id" title="definition">f_gauss2d_npoint1d</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss2d_npoint1d_spec"><span class="id" title="definition">gauss2d_npoint1d_spec</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="tactic">assert</span> (<span class="id" title="definition">repable_signed</span> (<span class="id" title="var">s</span><span class="id" title="notation">×</span><span class="id" title="var">s</span>)). <span class="comment">(*&nbsp;See&nbsp;https://github.com/PrincetonUniversity/VST/issues/858&nbsp;&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <span class="id" title="definition">repable_signed</span>, <span class="id" title="definition">Int.min_signed</span>, <span class="id" title="definition">Int.max_signed</span>, <span class="id" title="definition">Int.half_modulus</span>, <span class="id" title="definition">Int.modulus</span>, <span class="id" title="definition">Int.wordsize</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">simpl</span>. <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="var">forward_if</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#False"><span class="id" title="inductive">False</span></a>.<br/>
+1-5: <span class="id" title="var">forward</span>; <span class="id" title="var">entailer</span>!!; <span class="id" title="tactic">f_equal</span>; <span class="id" title="tactic">f_equal</span>; <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> !<span class="id" title="lemma">Int.unsigned_repr</span> <span class="id" title="tactic">in</span> <span class="id" title="var">NE</span>,<span class="id" title="var">NE0</span>,<span class="id" title="var">NE1</span>,<span class="id" title="var">NE2</span>,<span class="id" title="var">NE3</span> <span class="id" title="tactic">by</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="var">exfalso</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">s</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">p</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_gauss2d_point" class="idref" href="#body_gauss2d_point"><span class="id" title="lemma">body_gauss2d_point</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_quadrules.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.quadrules.html#f_gauss2d_point"><span class="id" title="definition">f_gauss2d_point</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss2d_point_spec"><span class="id" title="definition">gauss2d_point_spec</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="var">forward_call</span> (<span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">n</span>).<br/>
+<span class="id" title="var">entailer</span>!!. <span class="id" title="tactic">simpl</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">n</span> <span class="id" title="var">Hn</span>]; <span class="id" title="tactic">simpl</span>.<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">n</span> 5). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">x</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">x</span> <span class="id" title="var">Hx</span>]. <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hx</span>.<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">x</span> <span class="id" title="var">n</span>). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hx</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>. <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">n</span> <span class="id" title="var">Hn</span>].<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">n</span> 5). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">x</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">x</span> <span class="id" title="var">Hx</span>].<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">x</span> <span class="id" title="var">n</span>). <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hx</span>; <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hx</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">y</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">y</span> <span class="id" title="var">Hy</span>].<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">y</span> <span class="id" title="var">n</span>). <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hy</span>; <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hy</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">assert</span> (<span class="id" title="var">H3</span>: 0 <span class="id" title="notation">≤</span> <span class="id" title="definition">Z.of_nat</span> (<span class="id" title="var">y</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">×</span></a> <span class="id" title="var">n</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <span class="id" title="var">x</span>) <span class="id" title="notation">≤</span> 25) <span class="id" title="tactic">by</span> <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">split</span>.<br/>
+<span class="id" title="tactic">intro</span> <span class="id" title="var">H'</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">repr_inj_signed</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H'</span>;  <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">intros</span> [? ?].<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">repr_inj_signed</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">split</span>.<br/>
+<span class="id" title="tactic">intro</span> <span class="id" title="var">H'</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">repr_inj_signed</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H'</span>;  <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">intros</span> [? ?].<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">repr_inj_signed</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">simpl</span> <span class="id" title="definition">nat_of_ord</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_quadrules.html#divs_repr"><span class="id" title="lemma">divs_repr</span></a>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">mods_repr</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">pose</span> (<span class="id" title="var">X</span> := <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> (<span class="id" title="keyword">fun</span> <a id="n:4" class="idref" href="#n:4"><span class="id" title="binder"><span id="n:5" class="id">n</span></span></a> ⇒ <span class="id" title="notation">'</span><span class="id" title="notation">I_</span><span class="id" title="notation">(</span><span class="id" title="definition">nat_of_ord</span> <a class="idref" href="CFEM.C.verif_quadrules.html#n:4"><span class="id" title="variable">n</span></a><span class="id" title="notation">)</span>) (<span class="id" title="constructor">Ordinal</span>  <span class="id" title="var">Hn</span>) (<span class="id" title="constructor">Ordinal</span> <span class="id" title="var">Hx</span>)).<br/>
+<span class="id" title="var">forward_call</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">X</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="var">gv</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>; <span class="id" title="tactic">clear</span> <span class="id" title="var">X</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">simpl</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">rewrite</span> &lt;- <span class="id" title="lemma">Nat2Z.inj_mod</span>. <span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Nat.Div0.add_mod</span>, <span class="id" title="lemma">Nat.Div0.mul_mod</span>, <span class="id" title="lemma">Nat.Div0.mod_same</span>, <span class="id" title="lemma">Nat.mul_0_r</span>, <span class="id" title="lemma">Nat.Div0.mod_0_l</span>, <span class="id" title="lemma">Nat.add_0_l</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Nat.Div0.mod_mod</span>, <span class="id" title="definition">Nat.mod_small</span>; <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="var">Intros</span> <span class="id" title="var">x'</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="tactic">pose</span> (<span class="id" title="var">X</span> := <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> (<span class="id" title="keyword">fun</span> <a id="n:6" class="idref" href="#n:6"><span class="id" title="binder"><span id="n:7" class="id">n</span></span></a> ⇒ <span class="id" title="notation">'</span><span class="id" title="notation">I_</span><span class="id" title="notation">(</span><span class="id" title="definition">nat_of_ord</span> <a class="idref" href="CFEM.C.verif_quadrules.html#n:6"><span class="id" title="variable">n</span></a><span class="id" title="notation">)</span>) (<span class="id" title="constructor">Ordinal</span>  <span class="id" title="var">Hn</span>) (<span class="id" title="constructor">Ordinal</span> <span class="id" title="var">Hy</span>)).<br/>
+<span class="id" title="var">forward_call</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">X</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a><span class="id" title="var">gv</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>; <span class="id" title="tactic">clear</span> <span class="id" title="var">X</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">simpl</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Nat2Z.inj_add</span>, <span class="id" title="lemma">Nat2Z.inj_mul</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Z.quot_add_l</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Z.quot_small</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="var">Intros</span> <span class="id" title="var">y'</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">Exists</span> <span class="id" title="var">x'</span> <span class="id" title="var">y'</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_gauss2d_weight" class="idref" href="#body_gauss2d_weight"><span class="id" title="lemma">body_gauss2d_weight</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_quadrules.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.quadrules.html#f_gauss2d_weight"><span class="id" title="definition">f_gauss2d_weight</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss2d_weight_spec"><span class="id" title="definition">gauss2d_weight_spec</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="var">forward_call</span> (<span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">n</span>).<br/>
+<span class="id" title="var">entailer</span>!!. <span class="id" title="tactic">simpl</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">n</span> <span class="id" title="var">Hn</span>]; <span class="id" title="tactic">simpl</span>.<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">n</span> 5). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">x</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">x</span> <span class="id" title="var">Hx</span>]. <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hx</span>.<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">x</span> <span class="id" title="var">n</span>). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hx</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>. <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">n</span> <span class="id" title="var">Hn</span>].<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">n</span> 5). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">x</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">x</span> <span class="id" title="var">Hx</span>].<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">x</span> <span class="id" title="var">n</span>). <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hx</span>; <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hx</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">y</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">y</span> <span class="id" title="var">Hy</span>].<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">y</span> <span class="id" title="var">n</span>). <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hy</span>; <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hy</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">assert</span> (<span class="id" title="var">H3</span>: 0 <span class="id" title="notation">≤</span> <span class="id" title="definition">Z.of_nat</span> (<span class="id" title="var">y</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">×</span></a> <span class="id" title="var">n</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <span class="id" title="var">x</span>) <span class="id" title="notation">≤</span> 25) <span class="id" title="tactic">by</span> <span class="id" title="var">nia</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">split</span>.<br/>
+<span class="id" title="tactic">intro</span> <span class="id" title="var">H'</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">repr_inj_signed</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H'</span>;  <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">intros</span> [? ?].<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">repr_inj_signed</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">split</span>.<br/>
+<span class="id" title="tactic">intro</span> <span class="id" title="var">H'</span>; <span class="id" title="tactic">apply</span> <span class="id" title="lemma">repr_inj_signed</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H'</span>;  <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">intros</span> [? ?].<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">repr_inj_signed</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">simpl</span> <span class="id" title="definition">nat_of_ord</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <a class="idref" href="CFEM.C.verif_quadrules.html#divs_repr"><span class="id" title="lemma">divs_repr</span></a>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">mods_repr</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">pose</span> (<span class="id" title="var">X</span> := <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> (<span class="id" title="keyword">fun</span> <a id="n:8" class="idref" href="#n:8"><span class="id" title="binder"><span id="n:9" class="id">n</span></span></a> ⇒ <span class="id" title="notation">'</span><span class="id" title="notation">I_</span><span class="id" title="notation">(</span><span class="id" title="definition">nat_of_ord</span> <a class="idref" href="CFEM.C.verif_quadrules.html#n:8"><span class="id" title="variable">n</span></a><span class="id" title="notation">)</span>) (<span class="id" title="constructor">Ordinal</span>  <span class="id" title="var">Hn</span>) (<span class="id" title="constructor">Ordinal</span> <span class="id" title="var">Hx</span>)).<br/>
+<span class="id" title="var">forward_call</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">X</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="var">gv</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>; <span class="id" title="tactic">clear</span> <span class="id" title="var">X</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">simpl</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">rewrite</span> &lt;- <span class="id" title="lemma">Nat2Z.inj_mod</span>. <span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Nat.Div0.add_mod</span>, <span class="id" title="lemma">Nat.Div0.mul_mod</span>, <span class="id" title="lemma">Nat.Div0.mod_same</span>, <span class="id" title="lemma">Nat.mul_0_r</span>, <span class="id" title="lemma">Nat.Div0.mod_0_l</span>, <span class="id" title="lemma">Nat.add_0_l</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Nat.Div0.mod_mod</span>, <span class="id" title="definition">Nat.mod_small</span>; <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="var">Intros</span> <span class="id" title="var">x'</span>.<br/>
+<span class="id" title="tactic">pose</span> (<span class="id" title="var">X</span> := <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> (<span class="id" title="keyword">fun</span> <a id="n:10" class="idref" href="#n:10"><span class="id" title="binder"><span id="n:11" class="id">n</span></span></a> ⇒ <span class="id" title="notation">'</span><span class="id" title="notation">I_</span><span class="id" title="notation">(</span><span class="id" title="definition">nat_of_ord</span> <a class="idref" href="CFEM.C.verif_quadrules.html#n:10"><span class="id" title="variable">n</span></a><span class="id" title="notation">)</span>) (<span class="id" title="constructor">Ordinal</span>  <span class="id" title="var">Hn</span>) (<span class="id" title="constructor">Ordinal</span> <span class="id" title="var">Hy</span>)).<br/>
+<span class="id" title="var">forward_call</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">X</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a><span class="id" title="var">gv</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>; <span class="id" title="tactic">clear</span> <span class="id" title="var">X</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">simpl</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>. <span class="id" title="tactic">f_equal</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Nat2Z.inj_add</span>, <span class="id" title="lemma">Nat2Z.inj_mul</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Z.quot_add_l</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Z.quot_small</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="var">Intros</span> <span class="id" title="var">y'</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">Exists</span> <span class="id" title="var">x'</span> <span class="id" title="var">y'</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_hughes_point" class="idref" href="#body_hughes_point"><span class="id" title="lemma">body_hughes_point</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_quadrules.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.quadrules.html#f_hughes_point"><span class="id" title="definition">f_hughes_point</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#hughes_point_spec"><span class="id" title="definition">hughes_point_spec</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">i</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">i</span> <span class="id" title="var">Hi</span>]. <span class="id" title="tactic">simpl</span>.<br/>
+<span class="id" title="var">forward_if</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#False"><span class="id" title="inductive">False</span></a>.<br/>
+1,2,3:<br/>
+<span class="id" title="var">forward</span>; <span class="id" title="var">forward</span>; <span class="id" title="var">forward</span>;<br/>
+<span class="id" title="tactic">do</span> 2 <span class="id" title="var">EExists</span>; <span class="id" title="var">entailer</span>!!; [ | <span class="id" title="tactic">apply</span> <span class="id" title="method">derives_refl</span>]; <span class="id" title="tactic">simpl</span> <span class="id" title="definition">nat_of_ord</span>; <span class="id" title="tactic">rewrite</span> <span class="id" title="var">E</span>; <span class="id" title="tactic">unfold</span> <span class="id" title="definition">Znth</span>; <span class="id" title="tactic">simpl</span>; <span class="id" title="tactic">f_equal</span>;<br/>
+<span class="id" title="tactic">unfold</span> <span class="id" title="definition">FT2R</span>;<br/>
+<span class="id" title="var">with_strategy</span> <span class="id" title="var">transparent</span> [<span class="id" title="var">Float.of_bits</span>] <span class="id" title="tactic">simpl</span>; <span class="id" title="tactic">compute</span>; <span class="id" title="var">Lra.lra</span>.<br/>
+<span class="id" title="tactic">rewrite</span> !<span class="id" title="lemma">Int.unsigned_repr</span> <span class="id" title="tactic">in</span> *; <span class="id" title="tactic">try</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="module">Rdefinitions</span> <span class="id" title="module">Rbasic_fun</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="body_hughes_weight" class="idref" href="#body_hughes_weight"><span class="id" title="lemma">body_hughes_weight</span></a>: <span class="id" title="definition">semax_body</span> <a class="idref" href="CFEM.C.spec_quadrules.html#Vprog"><span class="id" title="definition">Vprog</span></a> <a class="idref" href="CFEM.C.verif_quadrules.html#Gprog"><span class="id" title="definition">Gprog</span></a> <a class="idref" href="CFEM.C.quadrules.html#f_hughes_weight"><span class="id" title="definition">f_hughes_weight</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#hughes_weight_spec"><span class="id" title="definition">hughes_weight_spec</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="var">start_function</span>.<br/>
+<span class="id" title="var">forward</span>.<br/>
+<span class="id" title="var">EExists</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">red</span>.<br/>
+<span class="id" title="tactic">change</span> <span class="id" title="definition">Float.div</span> <span class="id" title="keyword">with</span> (@<span class="id" title="definition">BDIV</span> <span class="id" title="var">_</span> <span class="id" title="definition">Tdouble</span>).<br/>
+<span class="id" title="var">with_strategy</span> <span class="id" title="var">transparent</span> [<span class="id" title="var">Float.of_bits</span>] <span class="id" title="tactic">unfold</span> <span class="id" title="definition">Float.of_bits</span>.<br/>
+<span class="id" title="tactic">rewrite</span> !<span class="id" title="lemma">Int64.unsigned_repr</span> <span class="id" title="tactic">by</span> <span class="id" title="var">rep_lia</span>.<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">d</span> := <a class="idref" href="CFEM.C.spec_quadrules.html#half_an_ulp"><span class="id" title="definition">half_an_ulp</span></a>); <span class="id" title="tactic">hnf</span> <span class="id" title="tactic">in</span> <span class="id" title="var">d</span>; <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">d</span>; <span class="id" title="tactic">subst</span> <span class="id" title="var">d</span>.<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">x</span> := (<span class="id" title="var">_</span> <span class="id" title="notation">/</span> <span class="id" title="var">_</span>)%<span class="id" title="var">F64</span>).<br/>
+<span class="id" title="tactic">unfold</span> <span class="id" title="definition">Bits.b64_of_bits</span>, <span class="id" title="definition">Bits.binary_float_of_bits</span>, <span class="id" title="definition">Binary.FF2B</span> <span class="id" title="tactic">in</span> <span class="id" title="var">x</span>.<br/>
+<span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">x</span>.<br/>
+<span class="id" title="tactic">hnf</span> <span class="id" title="tactic">in</span> <span class="id" title="var">x</span>.<br/>
+<span class="id" title="var">revert</span> <span class="id" title="var">x</span>.<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">H</span> := <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#proj1"><span class="id" title="lemma">proj1</span></a> <span class="id" title="var">_</span>). <span class="id" title="var">clearbody</span> <span class="id" title="var">H</span>. <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>.<br/>
+<span class="id" title="tactic">simpl</span>.<br/>
+<span class="id" title="tactic">unfold</span> <span class="id" title="definition">Defs.F2R</span>, <span class="id" title="projection">Defs.Fnum</span>, <span class="id" title="projection">Defs.Fexp</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.C.spec_quadrules.html#hughes_weight"><span class="id" title="definition">hughes_weight</span></a>.<br/>
+<span class="id" title="tactic">rewrite</span> (<span class="id" title="lemma">Rabs_right</span> (<span class="id" title="var">_</span> <span class="id" title="notation">×</span> <span class="id" title="var">_</span>)%<span class="id" title="var">R</span>).<br/>
+2: <span class="id" title="tactic">compute</span>; <span class="id" title="var">Lra.nra</span>.<br/>
+<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">Rabs_left</span>; <span class="id" title="tactic">compute</span>; <span class="id" title="var">Lra.lra</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="genindex.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

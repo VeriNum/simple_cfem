@@ -1,0 +1,645 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>CFEM: Simple C Finite Element Method, Verified</title>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var h1 = document.querySelector('h1');
+  if (h1) document.title = h1.textContent.trim();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+<h1 class="libtitle">CFEM.C.spec_quadrules: VST function specification for quadrules</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+<details><summary>Require Imports and Open Scope, etc. </summary><div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">VST.floyd.proofauto</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">CFEM.C</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.quadrules.html#"><span class="id" title="library">quadrules</span></a>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">vcfloat</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">FPStdCompCert</span> <span class="id" title="library">FPStdLib</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Coq.Classes.RelationClasses</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">ssreflect</span> <span class="id" title="library">ssrbool</span> <span class="id" title="library">ssrfun</span> <span class="id" title="library">eqtype</span> <span class="id" title="library">ssrnat</span> <span class="id" title="library">seq</span> <span class="id" title="library">choice</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">fintype</span> <span class="id" title="library">finfun</span> <span class="id" title="library">bigop</span> <span class="id" title="library">finset</span> <span class="id" title="library">fingroup</span> <span class="id" title="library">perm</span> <span class="id" title="library">order</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="comment">(*Import*)</span> <span class="id" title="library">div</span> <span class="id" title="library">ssralg</span> <span class="id" title="library">countalg</span> <span class="id" title="library">finalg</span> <span class="id" title="library">zmodp</span> <span class="id" title="library">matrix</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp.zify</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">ssrZ</span> <span class="id" title="library">zify</span>.<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="module">fintype</span> <span class="id" title="module">matrix</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="library">LAProof.accuracy_proofs.export</span>.<br/>
+<span class="id" title="keyword">Module</span> <a id="F" class="idref" href="#F"><span class="id" title="module">F</span></a> := <span class="id" title="module">LAProof.accuracy_proofs.mv_mathcomp.F</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now we undo all the settings that mathcomp has modified 
+</div>
+<div class="code">
+<span class="id" title="keyword">Unset Implicit Arguments</span>.<br/>
+<span class="id" title="keyword">Unset</span> <span class="id" title="keyword">Strict</span> <span class="id" title="keyword">Implicit</span>.<br/>
+<span class="id" title="keyword">Unset</span> <span class="id" title="keyword">Printing</span> <span class="id" title="keyword">Implicit</span> <span class="id" title="var">Defensive</span>.<br/>
+<span class="id" title="keyword">Set</span> <span class="id" title="var">Bullet</span> <span class="id" title="var">Behavior</span> "Strict Subproofs".<br/>
+
+<br/>
+#[<span class="id" title="var">export</span>] <span class="id" title="keyword">Instance</span> <a id="CompSpecs" class="idref" href="#CompSpecs"><span class="id" title="instance">CompSpecs</span></a> : <span class="id" title="class">compspecs</span>. <span class="id" title="var">make_compspecs</span> <a class="idref" href="CFEM.C.quadrules.html#prog"><span class="id" title="definition">prog</span></a>. <span class="id" title="keyword">Defined</span>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="Vprog" class="idref" href="#Vprog"><span class="id" title="definition">Vprog</span></a> : <span class="id" title="definition">varspecs</span>. <span class="id" title="var">mk_varspecs</span> <a class="idref" href="CFEM.C.quadrules.html#prog"><span class="id" title="definition">prog</span></a>. <span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.C.nonexpansive.html#"><span class="id" title="library">CFEM.C.nonexpansive</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">logic</span>.<br/>
+
+<br/>
+</div>
+</details><div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The C program has a local static array containing all these values in this order: 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="gauss_pts_list" class="idref" href="#gauss_pts_list"><span class="id" title="definition">gauss_pts_list</span></a> : <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> (<span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">[</span>      <span class="comment">(*&nbsp;One&nbsp;point&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Two&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.5773502691896257<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.5773502691896257<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Three&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.7745966692414834<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.7745966692414834<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Four&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.8611363115940526<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.33998104358485626<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.33998104358485626<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.8611363115940526<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Five&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.906179845938664<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.538469310105683<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.538469310105683<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.906179845938664<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Six&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.932469514203152<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.661209386466265<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.238619186083197<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.238619186083197<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.661209386466265<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.932469514203152<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Seven&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.949107912342759<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.741531185599394<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.405845151377397<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.405845151377397<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.741531185599394<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.949107912342759<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Eight&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.960289856497536<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.796666477413627<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.525532409916329<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.183434642495650<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.183434642495650<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.525532409916329<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.796666477413627<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.960289856497536<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Nine&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.968160239507626<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.836031107326636<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.613371432700590<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.324253423403809<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.324253423403809<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.613371432700590<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.836031107326636<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.968160239507626<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Ten&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.973906528517172<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.865063366688985<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.679409568299024<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.433395394129247<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-0.148874338981631<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.148874338981631<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.433395394129247<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.679409568299024<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.865063366688985<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.973906528517172<br/>
+&nbsp;&nbsp;<span class="id" title="notation">]</span>%<span class="id" title="var">F64</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This separation logic predicate describes an array containing those gauss_points values,
+   located at the C program's extern variable named gauss_pts. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="gauss_pts_pred" class="idref" href="#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a> (<a id="gv:1" class="idref" href="#gv:1"><span class="id" title="binder">gv</span></a>: <span class="id" title="definition">globals</span>) : <span class="id" title="definition">mpred</span> :=<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="definition">data_at</span> <span class="id" title="definition">Ers</span> (<span class="id" title="definition">tarray</span> <span class="id" title="definition">tdouble</span> (<span class="id" title="definition">Zlength</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_list"><span class="id" title="definition">gauss_pts_list</span></a>)) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Lists.ListDef.html#map"><span class="id" title="definition">map</span></a> <span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_list"><span class="id" title="definition">gauss_pts_list</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="CFEM.C.spec_quadrules.html#gv:1"><span class="id" title="variable">gv</span></a> <a class="idref" href="CFEM.C.quadrules.html#_gauss_pts"><span class="id" title="definition">_gauss_pts</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The C program has a local static array containing all these values in this order: 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="gauss_wts_list" class="idref" href="#gauss_wts_list"><span class="id" title="definition">gauss_wts_list</span></a> : <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> (<span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span>) := <span class="id" title="notation">[</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;One&nbsp;point&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.0<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Two&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Three&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.5555555555555556<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.8888888888888889<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.5555555555555556<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Four&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.34785484513745384<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.65214515486254616<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.65214515486254616<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.34785484513745384<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Five&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.236926885056189<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.478628670499366<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.568888888888889<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.478628670499366<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.236926885056189<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Six&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.171324492379170<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.360761573048139<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.467913934572691<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.467913934572691<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.360761573048139<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.171324492379170<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Seven&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.129484966168870<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.279705391489277<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.381830050505119<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.417959183673469<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.381830050505119<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.279705391489277<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.129484966168870<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Eight&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.101228536290376<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.222381034453374<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.313706645877887<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.362683783378362<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.362683783378362<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.313706645877887<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.222381034453374<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.101228536290376<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Nine&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.081274388361574<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.180648160694857<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.260610696402935<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.312347077040003<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.330239355001260<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.312347077040003<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.260610696402935<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.180648160694857<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.081274388361574<span class="id" title="notation">;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Ten&nbsp;points&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.066671344308688<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.149451349150581<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.219086362515982<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.269266719309996<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.295524224714753<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.295524224714753<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.269266719309996<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.219086362515982<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.149451349150581<span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.066671344308688<br/>
+&nbsp;&nbsp;<span class="id" title="notation">]</span>%<span class="id" title="var">F64</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This separation logic predicate describes an array containing those gauss_weights values,
+   located at the C program's extern variable named gauss_wts. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="gauss_wts_pred" class="idref" href="#gauss_wts_pred"><span class="id" title="definition">gauss_wts_pred</span></a> (<a id="gv:2" class="idref" href="#gv:2"><span class="id" title="binder">gv</span></a>: <span class="id" title="definition">globals</span>) : <span class="id" title="definition">mpred</span> :=<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="definition">data_at</span> <span class="id" title="definition">Ers</span> (<span class="id" title="definition">tarray</span> <span class="id" title="definition">tdouble</span> (<span class="id" title="definition">Zlength</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_list"><span class="id" title="definition">gauss_wts_list</span></a>)) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Lists.ListDef.html#map"><span class="id" title="definition">map</span></a> <span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_list"><span class="id" title="definition">gauss_wts_list</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="CFEM.C.spec_quadrules.html#gv:2"><span class="id" title="variable">gv</span></a> <a class="idref" href="CFEM.C.quadrules.html#_gauss_wts"><span class="id" title="definition">_gauss_wts</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab4"></a><h2 class="section">Low-level specs</h2>
+ The C program's gauss_point function just returns an element from the array.
+  This low-level spec says just that.  Below, the high-level spec will say that
+   the floating-point value is actually appropriate. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="gauss_point_spec_lowlevel" class="idref" href="#gauss_point_spec_lowlevel"><span class="id" title="definition">gauss_point_spec_lowlevel</span></a> : <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_gauss_point"><span class="id" title="definition">_gauss_point</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="npts:3" class="idref" href="#npts:3"><span class="id" title="binder"><span id="npts:6" class="id">npts</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Numbers.BinNums.html#Z"><span class="id" title="inductive">Z</span></a><span class="id" title="notation">,</span> <a id="i:4" class="idref" href="#i:4"><span class="id" title="binder"><span id="i:7" class="id">i</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Numbers.BinNums.html#Z"><span class="id" title="inductive">Z</span></a><span class="id" title="notation">,</span> <a id="gv:5" class="idref" href="#gv:5"><span class="id" title="binder"><span id="gv:8" class="id">gv</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">globals</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tint</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span>(0 <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.spec_quadrules.html#i:4"><span class="id" title="variable">i</span></a> <span class="id" title="notation">&lt;</span> <a class="idref" href="CFEM.C.spec_quadrules.html#npts:3"><span class="id" title="variable">npts</span></a>)%<span class="id" title="var">Z</span><span class="id" title="notation">;</span> (1 <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.spec_quadrules.html#npts:3"><span class="id" title="variable">npts</span></a> <span class="id" title="notation">≤</span> 10)%<span class="id" title="var">Z</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.spec_quadrules.html#i:4"><span class="id" title="variable">i</span></a>)<span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.spec_quadrules.html#npts:3"><span class="id" title="variable">npts</span></a>)<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">GLOBALS</span> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#gv:5"><span class="id" title="variable">gv</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:5"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tdouble</span><span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">(</span><span class="id" title="constructor">Vfloat</span> (<span class="id" title="definition">Znth</span> (<a class="idref" href="CFEM.C.spec_quadrules.html#npts:6"><span class="id" title="variable">npts</span></a><span class="id" title="notation">*(</span><a class="idref" href="CFEM.C.spec_quadrules.html#npts:6"><span class="id" title="variable">npts</span></a><span class="id" title="notation">-</span>1<span class="id" title="notation">)</span><span class="id" title="notation">/</span>2<span class="id" title="notation">+</span><a class="idref" href="CFEM.C.spec_quadrules.html#i:7"><span class="id" title="variable">i</span></a>) <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_list"><span class="id" title="definition">gauss_pts_list</span></a>)<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:8"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The C program's gauss_weight function just returns an element from the array.
+  This low-level spec says just that.  Below, the high-level spec will say that
+   the floating-point value is actually appropriate. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="gauss_weight_spec_lowlevel" class="idref" href="#gauss_weight_spec_lowlevel"><span class="id" title="definition">gauss_weight_spec_lowlevel</span></a> : <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_gauss_weight"><span class="id" title="definition">_gauss_weight</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="npts:9" class="idref" href="#npts:9"><span class="id" title="binder"><span id="npts:12" class="id">npts</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Numbers.BinNums.html#Z"><span class="id" title="inductive">Z</span></a><span class="id" title="notation">,</span> <a id="i:10" class="idref" href="#i:10"><span class="id" title="binder"><span id="i:13" class="id">i</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Numbers.BinNums.html#Z"><span class="id" title="inductive">Z</span></a><span class="id" title="notation">,</span> <a id="gv:11" class="idref" href="#gv:11"><span class="id" title="binder"><span id="gv:14" class="id">gv</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">globals</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tint</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span>(0 <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.spec_quadrules.html#i:10"><span class="id" title="variable">i</span></a> <span class="id" title="notation">&lt;</span> <a class="idref" href="CFEM.C.spec_quadrules.html#npts:9"><span class="id" title="variable">npts</span></a>)%<span class="id" title="var">Z</span><span class="id" title="notation">;</span> (1 <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.spec_quadrules.html#npts:9"><span class="id" title="variable">npts</span></a> <span class="id" title="notation">≤</span> 10)%<span class="id" title="var">Z</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.spec_quadrules.html#i:10"><span class="id" title="variable">i</span></a>)<span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.spec_quadrules.html#npts:9"><span class="id" title="variable">npts</span></a>)<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">GLOBALS</span> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#gv:11"><span class="id" title="variable">gv</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_pred"><span class="id" title="definition">gauss_wts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:11"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tdouble</span><span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">(</span><span class="id" title="constructor">Vfloat</span> (<span class="id" title="definition">Znth</span> (<a class="idref" href="CFEM.C.spec_quadrules.html#npts:12"><span class="id" title="variable">npts</span></a><span class="id" title="notation">*(</span><a class="idref" href="CFEM.C.spec_quadrules.html#npts:12"><span class="id" title="variable">npts</span></a><span class="id" title="notation">-</span>1<span class="id" title="notation">)</span><span class="id" title="notation">/</span>2<span class="id" title="notation">+</span><a class="idref" href="CFEM.C.spec_quadrules.html#i:13"><span class="id" title="variable">i</span></a>) <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_list"><span class="id" title="definition">gauss_wts_list</span></a>)<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_pred"><span class="id" title="definition">gauss_wts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:14"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This function computes integer square roots by case analysis. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="gauss2d_npoint1d_spec" class="idref" href="#gauss2d_npoint1d_spec"><span class="id" title="definition">gauss2d_npoint1d_spec</span></a> : <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_gauss2d_npoint1d"><span class="id" title="definition">_gauss2d_npoint1d</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="s:15" class="idref" href="#s:15"><span class="id" title="binder"><span id="s:16" class="id">s</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Numbers.BinNums.html#Z"><span class="id" title="inductive">Z</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span>1 <span class="id" title="notation">≤</span> <a class="idref" href="CFEM.C.spec_quadrules.html#s:15"><span class="id" title="variable">s</span></a> <span class="id" title="notation">≤</span> 5<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<a class="idref" href="CFEM.C.spec_quadrules.html#s:15"><span class="id" title="variable">s</span></a><span class="id" title="notation">×</span><a class="idref" href="CFEM.C.spec_quadrules.html#s:15"><span class="id" title="variable">s</span></a>))<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">(</span><span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> <a class="idref" href="CFEM.C.spec_quadrules.html#s:16"><span class="id" title="variable">s</span></a>)<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <span class="id" title="notation">)</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab5"></a><h2 class="section">High-level specs</h2>
+
+<div class="paragraph"> </div>
+
+ The high-level specifications of gauss_points() and gauss_weights()
+  are based on the theory of Gauss-Legendre quadrature, and then
+  we need to prove that certain floating point numbers are accurate
+  approximations of the real-valued Gauss points and weights, so 
+  we import all the appropriate stuff now. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.quadrature.html#"><span class="id" title="library">CFEM.quadrature</span></a>. <span class="id" title="keyword">Import</span> <a class="idref" href="CFEM.quadrature.html#Legendre"><span class="id" title="module">Legendre</span></a>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Interval.Tactic</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">mathcomp</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Rstruct</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Reals</span>.<br/>
+<span class="id" title="keyword">Instance</span> <a id="InhR" class="idref" href="#InhR"><span class="id" title="instance">InhR</span></a> : <span class="id" title="class">Inhabitant</span> <span class="id" title="axiom">R</span> := 0%<span class="id" title="var">R</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+float x is near real r when it's no more than half an ulp away 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="half_an_ulp" class="idref" href="#half_an_ulp"><span class="id" title="definition">half_an_ulp</span></a> : <span class="id" title="axiom">R</span> := <span class="id" title="definition">FPCore.default_rel</span> (<span class="id" title="definition">coretype_of_type</span> <span class="id" title="definition">Tdouble</span>).<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="float_near" class="idref" href="#float_near"><span class="id" title="definition">float_near</span></a> (<a id="r:17" class="idref" href="#r:17"><span class="id" title="binder">r</span></a>: <span class="id" title="axiom">R</span>) (<a id="x:18" class="idref" href="#x:18"><span class="id" title="binder">x</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span>) :=<br/>
+&nbsp;&nbsp;(<span class="id" title="definition">Rabs</span> (<span class="id" title="definition">FT2R</span> <a class="idref" href="CFEM.C.spec_quadrules.html#x:18"><span class="id" title="variable">x</span></a> <span class="id" title="notation">-</span> <a class="idref" href="CFEM.C.spec_quadrules.html#r:17"><span class="id" title="variable">r</span></a>) <span class="id" title="notation">≤</span> <span class="id" title="definition">Rabs</span> (<span class="id" title="definition">FT2R</span> <a class="idref" href="CFEM.C.spec_quadrules.html#x:18"><span class="id" title="variable">x</span></a>) <span class="id" title="notation">×</span> <a class="idref" href="CFEM.C.spec_quadrules.html#half_an_ulp"><span class="id" title="definition">half_an_ulp</span></a>)%<span class="id" title="var">R</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The ith Gauss point of Legendre polyomial n 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="ith_gauss_point" class="idref" href="#ith_gauss_point"><span class="id" title="definition">ith_gauss_point</span></a>(<a id="n:19" class="idref" href="#n:19"><span class="id" title="binder">n</span></a>: <span class="id" title="notation">'</span><span class="id" title="notation">I_5</span>) (<a id="i:20" class="idref" href="#i:20"><span class="id" title="binder">i</span></a>: <span class="id" title="notation">'</span><span class="id" title="notation">I_n</span>) : <span class="id" title="axiom">R</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="definition">tuple.tnth</span> (<a class="idref" href="CFEM.quadrature.html#ROOTS_vals"><span class="id" title="projection">ROOTS_vals</span></a>  <a class="idref" href="CFEM.quadrature.html#Legendre.lo"><span class="id" title="definition">Legendre.lo</span></a> <a class="idref" href="CFEM.quadrature.html#Legendre.hi"><span class="id" title="definition">Legendre.hi</span></a> <a class="idref" href="CFEM.quadrature.html#Legendre.w"><span class="id" title="definition">Legendre.w</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#n:19"><span class="id" title="variable">n</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="CFEM.quadrature.html#Legendre.LR_roots"><span class="id" title="projection">LR_roots</span></a> <span class="id" title="var">_</span> (<a class="idref" href="CFEM.quadrature.html#Legendre.nth_iseq"><span class="id" title="definition">nth_iseq</span></a> <a class="idref" href="CFEM.quadrature.html#Legendre.some_legendre_roots"><span class="id" title="definition">some_legendre_roots</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#n:19"><span class="id" title="variable">n</span></a>))) <a class="idref" href="CFEM.C.spec_quadrules.html#i:20"><span class="id" title="variable">i</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The ith Gauss weight of Legendre polyomial n 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="ith_gauss_weight" class="idref" href="#ith_gauss_weight"><span class="id" title="definition">ith_gauss_weight</span></a> (<a id="n:21" class="idref" href="#n:21"><span class="id" title="binder">n</span></a>: <span class="id" title="notation">'</span><span class="id" title="notation">I_5</span>) (<a id="i:22" class="idref" href="#i:22"><span class="id" title="binder">i</span></a>: <span class="id" title="notation">'</span><span class="id" title="notation">I_n</span>) : <span class="id" title="axiom">R</span> :=<br/>
+&nbsp;<span class="id" title="definition">tuple.tnth</span> (<a class="idref" href="CFEM.quadrature.html#Legendre.GW_vals"><span class="id" title="projection">GW_vals</span></a> <span class="id" title="var">_</span> (<a class="idref" href="CFEM.quadrature.html#Legendre.nth_iseq"><span class="id" title="definition">nth_iseq</span></a> <a class="idref" href="CFEM.quadrature.html#Legendre.some_gauss_weights"><span class="id" title="definition">some_gauss_weights</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#n:21"><span class="id" title="variable">n</span></a>)) <a class="idref" href="CFEM.C.spec_quadrules.html#i:22"><span class="id" title="variable">i</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The high-level spec of the gauss_point function says that it returns
+  a floating-point value that's as close as possible to the ith Gauss point
+   of the nth Legendre polynomial, provided that n&lt;5.  Note that the low-level
+   spec is willing to return a number for n≤10, but the high-level spec
+   has nothing to say beyond degree 4. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="gauss_point_spec" class="idref" href="#gauss_point_spec"><span class="id" title="definition">gauss_point_spec</span></a> : <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_gauss_point"><span class="id" title="definition">_gauss_point</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="X:24" class="idref" href="#X:24"><span class="id" title="binder"><span id="X:27" class="id">X</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">{</span></a> <a id="n:23" class="idref" href="#n:23"><span class="id" title="binder">n</span></a><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">:</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_5</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">&amp;</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">}</span></a><span class="id" title="notation">,</span> <a id="gv:25" class="idref" href="#gv:25"><span class="id" title="binder"><span id="gv:28" class="id">gv</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">globals</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tint</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span> <span class="id" title="keyword">let</span> '(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n</span> <span class="id" title="var">i</span>) := <a class="idref" href="CFEM.C.spec_quadrules.html#X:24"><span class="id" title="variable">X</span></a> <span class="id" title="tactic">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">()</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">i</span>))<span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">n</span>))<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">GLOBALS</span> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#gv:25"><span class="id" title="variable">gv</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:25"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tdouble</span><span class="id" title="notation">]</span> <span class="id" title="keyword">let</span> '(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n</span> <span class="id" title="var">i</span>) := <a class="idref" href="CFEM.C.spec_quadrules.html#X:27"><span class="id" title="variable">X</span></a> <span class="id" title="tactic">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">EX</span> <a id="x:30" class="idref" href="#x:30"><span class="id" title="binder">x</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#float_near"><span class="id" title="definition">float_near</span></a> (<a class="idref" href="CFEM.C.spec_quadrules.html#ith_gauss_point"><span class="id" title="definition">ith_gauss_point</span></a> <span class="id" title="var">n</span> <span class="id" title="var">i</span>) <a class="idref" href="CFEM.C.spec_quadrules.html#x:30"><span class="id" title="variable">x</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">(</span><span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#x:30"><span class="id" title="variable">x</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:28"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Proof that the low-level spec implies the high-level spec 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="sub_gauss_point" class="idref" href="#sub_gauss_point"><span class="id" title="lemma">sub_gauss_point</span></a>: <span class="id" title="definition">funspec_sub</span> (<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_point_spec_lowlevel"><span class="id" title="definition">gauss_point_spec_lowlevel</span></a>) (<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_point_spec"><span class="id" title="definition">gauss_point_spec</span></a>).<br/>
+</div>
+<details><summary>Proof. ... Qed. </summary><div class="code">
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">NDsubsume_subsume</span>.<br/>
+<span class="id" title="tactic">split</span>; <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a>.<br/>
+<span class="id" title="tactic">hnf</span>; <span class="id" title="tactic">intros</span>.<br/>
+<span class="id" title="tactic">split</span>; <span class="id" title="tactic">auto</span>. <span class="id" title="tactic">intros</span> [[<span class="id" title="var">n</span> [<span class="id" title="var">i</span> <span class="id" title="var">Hi</span>]] <span class="id" title="var">gv</span>] [? ?]. <span class="id" title="var">Exists</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">i</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="var">gv</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> <span class="id" title="method">emp</span>.<br/>
+<span class="id" title="var">normalize</span>.<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">x</span> := <span class="id" title="definition">Znth</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_list"><span class="id" title="definition">gauss_pts_list</span></a>).<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">n</span> <span class="id" title="var">Hn</span>].<br/>
+<span class="id" title="tactic">simpl</span> <span class="id" title="definition">nat_of_ord</span>.<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">n</span> 5). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H0</span>.<br/>
+<span class="id" title="var">inv</span> <span class="id" title="var">H0</span>.<br/>
+<span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hi</span>.<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">i</span> <span class="id" title="var">n</span>). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hi</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H0</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H0</span>.<br/>
+<span class="id" title="var">unfold_for_go_lower</span>; <span class="id" title="var">normalize</span>. <span class="id" title="tactic">simpl</span>; <span class="id" title="var">entailer</span>!; <span class="id" title="tactic">intros</span>.<br/>
+<span class="id" title="tactic">split</span>; [ | <span class="id" title="tactic">repeat</span> <span class="id" title="tactic">split</span>; <span class="id" title="tactic">auto</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>].<br/>
+<span class="id" title="var">entailer</span>!.<br/>
+<span class="id" title="tactic">rewrite</span> &lt;- <span class="id" title="var">H4</span>. <span class="id" title="tactic">clear</span> <span class="id" title="var">rho'</span> <span class="id" title="var">H3</span> <span class="id" title="var">H4</span>.<br/>
+<span class="id" title="var">Exists</span> <span class="id" title="var">x</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span> <span class="id" title="keyword">as</span> [ | [ | [ | [ | [ |] ]]]]; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>;<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">i</span> <span class="id" title="keyword">as</span> [ | [ | [ | [ | [ |] ]]]]; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>;<br/>
+<span class="id" title="tactic">red</span>;<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">d</span> := <a class="idref" href="CFEM.C.spec_quadrules.html#half_an_ulp"><span class="id" title="definition">half_an_ulp</span></a>); <span class="id" title="tactic">hnf</span> <span class="id" title="tactic">in</span> <span class="id" title="var">d</span>; <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">d</span>; <span class="id" title="tactic">subst</span> <span class="id" title="var">d</span>;<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.C.spec_quadrules.html#ith_gauss_point"><span class="id" title="definition">ith_gauss_point</span></a>, <span class="id" title="definition">tuple.tnth</span>; <span class="id" title="tactic">simpl</span>;<br/>
+<span class="id" title="tactic">try</span> <span class="id" title="tactic">change</span> <span class="id" title="definition">nmodule.Algebra.zero</span> <span class="id" title="keyword">with</span> 0%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">ssralg.GRing.mul</span> ?<span class="id" title="var">A</span> ?<span class="id" title="var">B</span>) <span class="id" title="keyword">with</span> (<span class="id" title="var">A</span><span class="id" title="notation">×</span><span class="id" title="var">B</span>)%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">nmodule.Algebra.opp</span> ?<span class="id" title="var">A</span>) <span class="id" title="keyword">with</span> (<span class="id" title="notation">-</span> <span class="id" title="var">A</span>)%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">nmodule.Algebra.add</span> ?<span class="id" title="var">A</span> ?<span class="id" title="var">B</span>) <span class="id" title="keyword">with</span> (<span class="id" title="var">A</span> <span class="id" title="notation">+</span> <span class="id" title="var">B</span>)%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">try</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">ssralg.GRing.one</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> 1%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">ssralg.GRing.inv</span> ?<span class="id" title="var">A</span>) <span class="id" title="keyword">with</span> (<span class="id" title="notation">/</span><span class="id" title="var">A</span>)%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">rewrite</span> &lt;- ?<span class="id" title="lemma">Rstruct.RsqrtE</span>, &lt;- ?<span class="id" title="lemma">Rstruct.INRE</span>, ?<span class="id" title="lemma">Rminus_diag</span>;<br/>
+<span class="id" title="tactic">first</span> [<span class="id" title="tactic">rewrite</span> ?<span class="id" title="lemma">Rabs_R0</span>; <span class="id" title="var">Lra.lra</span> | <span class="id" title="var">interval</span> <span class="id" title="keyword">with</span> (<span class="id" title="constructor">i_prec</span>(110%<span class="id" title="var">positive</span>))].<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</details><div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The high-level spec of the gauss_weight function says that it returns
+  a floating-point value that's as close as possible to the ith Gauss weight
+   of the nth Legendre polynomial, provided that n&lt;5.  
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="gauss_weight_spec" class="idref" href="#gauss_weight_spec"><span class="id" title="definition">gauss_weight_spec</span></a> : <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_gauss_weight"><span class="id" title="definition">_gauss_weight</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="X:32" class="idref" href="#X:32"><span class="id" title="binder"><span id="X:35" class="id">X</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">{</span></a> <a id="n:31" class="idref" href="#n:31"><span class="id" title="binder">n</span></a><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">:</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_5</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">&amp;</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">}</span></a><span class="id" title="notation">,</span> <a id="gv:33" class="idref" href="#gv:33"><span class="id" title="binder"><span id="gv:36" class="id">gv</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">globals</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tint</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span> <span class="id" title="keyword">let</span> '(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n</span> <span class="id" title="var">i</span>) := <a class="idref" href="CFEM.C.spec_quadrules.html#X:32"><span class="id" title="variable">X</span></a> <span class="id" title="tactic">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">()</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">i</span>))<span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">n</span>))<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">GLOBALS</span> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#gv:33"><span class="id" title="variable">gv</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_pred"><span class="id" title="definition">gauss_wts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:33"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tdouble</span><span class="id" title="notation">]</span> <span class="id" title="keyword">let</span> '(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n</span> <span class="id" title="var">i</span>) := <a class="idref" href="CFEM.C.spec_quadrules.html#X:35"><span class="id" title="variable">X</span></a> <span class="id" title="tactic">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">EX</span> <a id="x:38" class="idref" href="#x:38"><span class="id" title="binder">x</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#float_near"><span class="id" title="definition">float_near</span></a> (<a class="idref" href="CFEM.C.spec_quadrules.html#ith_gauss_weight"><span class="id" title="definition">ith_gauss_weight</span></a> <span class="id" title="var">n</span> <span class="id" title="var">i</span>) <a class="idref" href="CFEM.C.spec_quadrules.html#x:38"><span class="id" title="variable">x</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">(</span><span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#x:38"><span class="id" title="variable">x</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_pred"><span class="id" title="definition">gauss_wts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:36"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Proof that the low-level spec implies the high-level spec 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="sub_gauss_weight" class="idref" href="#sub_gauss_weight"><span class="id" title="lemma">sub_gauss_weight</span></a>: <span class="id" title="definition">funspec_sub</span> (<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_weight_spec_lowlevel"><span class="id" title="definition">gauss_weight_spec_lowlevel</span></a>) (<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_weight_spec"><span class="id" title="definition">gauss_weight_spec</span></a>).<br/>
+</div>
+<details><summary>Proof. ... Qed. </summary><div class="code">
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="tactic">apply</span> <span class="id" title="lemma">NDsubsume_subsume</span>.<br/>
+<span class="id" title="tactic">split</span>; <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a>.<br/>
+<span class="id" title="tactic">hnf</span>; <span class="id" title="tactic">intros</span>.<br/>
+<span class="id" title="tactic">split</span>; <span class="id" title="tactic">auto</span>. <span class="id" title="tactic">intros</span> [[<span class="id" title="var">n</span> [<span class="id" title="var">i</span> <span class="id" title="var">Hi</span>]] <span class="id" title="var">gv</span>] [? ?]. <span class="id" title="var">Exists</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="definition">Z.of_nat</span> <span class="id" title="var">i</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="var">gv</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> <span class="id" title="method">emp</span>.<br/>
+<span class="id" title="var">normalize</span>.<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">x</span> := <span class="id" title="definition">Znth</span> <span class="id" title="var">_</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_list"><span class="id" title="definition">gauss_wts_list</span></a>).<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">n</span> <span class="id" title="var">Hn</span>].<br/>
+<span class="id" title="tactic">simpl</span> <span class="id" title="definition">nat_of_ord</span>.<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">n</span> 5). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hn</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H0</span>.<br/>
+<span class="id" title="var">inv</span> <span class="id" title="var">H0</span>.<br/>
+<span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hi</span>.<br/>
+<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> (@<span class="id" title="lemma">ssrnat.ltP</span> <span class="id" title="var">i</span> <span class="id" title="var">n</span>). <span class="id" title="tactic">rewrite</span> <span class="id" title="var">Hi</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H0</span>. <span class="id" title="var">inv</span> <span class="id" title="var">H0</span>.<br/>
+<span class="id" title="var">unfold_for_go_lower</span>; <span class="id" title="var">normalize</span>. <span class="id" title="tactic">simpl</span>; <span class="id" title="var">entailer</span>!; <span class="id" title="tactic">intros</span>.<br/>
+<span class="id" title="tactic">split</span>; [ | <span class="id" title="tactic">repeat</span> <span class="id" title="tactic">split</span>; <span class="id" title="tactic">auto</span>; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>].<br/>
+<span class="id" title="var">entailer</span>!.<br/>
+<span class="id" title="tactic">rewrite</span> &lt;- <span class="id" title="var">H4</span>. <span class="id" title="tactic">clear</span> <span class="id" title="var">rho'</span> <span class="id" title="var">H3</span> <span class="id" title="var">H4</span>.<br/>
+<span class="id" title="var">Exists</span> <span class="id" title="var">x</span>.<br/>
+<span class="id" title="var">entailer</span>!!.<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span> <span class="id" title="keyword">as</span> [ | [ | [ | [ | [ |] ]]]]; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>;<br/>
+<span class="id" title="tactic">destruct</span> <span class="id" title="var">i</span> <span class="id" title="keyword">as</span> [ | [ | [ | [ | [ |] ]]]]; <span class="id" title="tactic">try</span> <span class="id" title="var">lia</span>;<br/>
+<span class="id" title="tactic">red</span>;<br/>
+<span class="id" title="tactic">set</span> (<span class="id" title="var">d</span> := <a class="idref" href="CFEM.C.spec_quadrules.html#half_an_ulp"><span class="id" title="definition">half_an_ulp</span></a>); <span class="id" title="tactic">hnf</span> <span class="id" title="tactic">in</span> <span class="id" title="var">d</span>; <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">d</span>; <span class="id" title="tactic">subst</span> <span class="id" title="var">d</span>;<br/>
+<span class="id" title="tactic">unfold</span> <a class="idref" href="CFEM.C.spec_quadrules.html#ith_gauss_weight"><span class="id" title="definition">ith_gauss_weight</span></a>, <span class="id" title="definition">tuple.tnth</span>; <span class="id" title="tactic">simpl</span>;<br/>
+<span class="id" title="tactic">try</span> <span class="id" title="tactic">change</span> <span class="id" title="definition">nmodule.Algebra.zero</span> <span class="id" title="keyword">with</span> 0%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">ssralg.GRing.mul</span> ?<span class="id" title="var">A</span> ?<span class="id" title="var">B</span>) <span class="id" title="keyword">with</span> (<span class="id" title="var">A</span><span class="id" title="notation">×</span><span class="id" title="var">B</span>)%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">nmodule.Algebra.opp</span> ?<span class="id" title="var">A</span>) <span class="id" title="keyword">with</span> (<span class="id" title="notation">-</span> <span class="id" title="var">A</span>)%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">nmodule.Algebra.add</span> ?<span class="id" title="var">A</span> ?<span class="id" title="var">B</span>) <span class="id" title="keyword">with</span> (<span class="id" title="var">A</span> <span class="id" title="notation">+</span> <span class="id" title="var">B</span>)%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">try</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">ssralg.GRing.one</span> <span class="id" title="var">_</span>) <span class="id" title="keyword">with</span> 1%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">repeat</span> <span class="id" title="tactic">change</span> (<span class="id" title="definition">ssralg.GRing.inv</span> ?<span class="id" title="var">A</span>) <span class="id" title="keyword">with</span> (<span class="id" title="notation">/</span><span class="id" title="var">A</span>)%<span class="id" title="var">R</span>;<br/>
+<span class="id" title="tactic">rewrite</span> &lt;- ?<span class="id" title="lemma">Rstruct.RsqrtE</span>, &lt;- ?<span class="id" title="lemma">Rstruct.INRE</span>, ?<span class="id" title="lemma">Rminus_diag</span>;<br/>
+<span class="id" title="tactic">first</span> [<span class="id" title="tactic">rewrite</span> ?<span class="id" title="lemma">Rabs_R0</span>; <span class="id" title="var">Lra.lra</span> | <span class="id" title="var">interval</span> <span class="id" title="keyword">with</span> (<span class="id" title="constructor">i_prec</span>(110%<span class="id" title="var">positive</span>))].<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</details><div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab6"></a><h3 class="section">2-dimensional gauss points and weights</h3>
+
+</div>
+<div class="code">
+&nbsp;<span class="id" title="keyword">Definition</span> <a id="gauss2d_point_spec" class="idref" href="#gauss2d_point_spec"><span class="id" title="definition">gauss2d_point_spec</span></a> : <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_gauss2d_point"><span class="id" title="definition">_gauss2d_point</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="sh:40" class="idref" href="#sh:40"><span class="id" title="binder"><span id="sh:45" class="id">sh</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">share</span><span class="id" title="notation">,</span> <a id="p:41" class="idref" href="#p:41"><span class="id" title="binder"><span id="p:46" class="id">p</span></span></a><span class="id" title="notation">:</span> <span class="id" title="inductive">val</span><span class="id" title="notation">,</span> <a id="X:42" class="idref" href="#X:42"><span class="id" title="binder"><span id="X:47" class="id">X</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">{</span></a><a id="n:39" class="idref" href="#n:39"><span class="id" title="binder">n</span></a><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">:</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_5</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">&amp;</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_n</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">}</span></a><span class="id" title="notation">,</span> <a id="gv:43" class="idref" href="#gv:43"><span class="id" title="binder"><span id="gv:48" class="id">gv</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">globals</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tptr</span> <span class="id" title="definition">tdouble</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span>  <span class="id" title="keyword">let</span> '(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">x</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a><span class="id" title="var">y</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>) := <a class="idref" href="CFEM.C.spec_quadrules.html#X:42"><span class="id" title="variable">X</span></a> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><span class="id" title="definition">writable_share</span> <a class="idref" href="CFEM.C.spec_quadrules.html#sh:40"><span class="id" title="variable">sh</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#p:41"><span class="id" title="variable">p</span></a><span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> (<span class="id" title="var">y</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">×</span></a><span class="id" title="var">n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a><span class="id" title="var">x</span>)%<span class="id" title="var">nat</span>))<span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> (<span class="id" title="var">n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">×</span></a><span class="id" title="var">n</span>)%<span class="id" title="var">nat</span>))<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">GLOBALS</span> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#gv:43"><span class="id" title="variable">gv</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span><span class="id" title="definition">data_at_</span> <a class="idref" href="CFEM.C.spec_quadrules.html#sh:40"><span class="id" title="variable">sh</span></a> (<span class="id" title="definition">tarray</span> <span class="id" title="definition">tdouble</span> 2) <a class="idref" href="CFEM.C.spec_quadrules.html#p:41"><span class="id" title="variable">p</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:43"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tvoid</span> <span class="id" title="notation">]</span>  <span class="id" title="keyword">let</span> '(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">x</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a><span class="id" title="var">y</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>) := <a class="idref" href="CFEM.C.spec_quadrules.html#X:47"><span class="id" title="variable">X</span></a> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">EX</span> <a id="rx:50" class="idref" href="#rx:50"><span class="id" title="binder">rx</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span> <span class="id" title="notation">EX</span> <a id="ry:51" class="idref" href="#ry:51"><span class="id" title="binder">ry</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#float_near"><span class="id" title="definition">float_near</span></a> (<a class="idref" href="CFEM.C.spec_quadrules.html#ith_gauss_point"><span class="id" title="definition">ith_gauss_point</span></a> <span class="id" title="var">n</span> <span class="id" title="var">x</span>) <a class="idref" href="CFEM.C.spec_quadrules.html#rx:50"><span class="id" title="variable">rx</span></a><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_quadrules.html#float_near"><span class="id" title="definition">float_near</span></a> (<a class="idref" href="CFEM.C.spec_quadrules.html#ith_gauss_point"><span class="id" title="definition">ith_gauss_point</span></a> <span class="id" title="var">n</span> <span class="id" title="var">y</span>) <a class="idref" href="CFEM.C.spec_quadrules.html#ry:51"><span class="id" title="variable">ry</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">()</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span><span class="id" title="definition">data_at</span> <a class="idref" href="CFEM.C.spec_quadrules.html#sh:45"><span class="id" title="variable">sh</span></a> (<span class="id" title="definition">tarray</span> <span class="id" title="definition">tdouble</span> 2) <span class="id" title="notation">[</span><span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#rx:50"><span class="id" title="variable">rx</span></a><span class="id" title="notation">;</span> <span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#ry:51"><span class="id" title="variable">ry</span></a><span class="id" title="notation">]</span> <a class="idref" href="CFEM.C.spec_quadrules.html#p:46"><span class="id" title="variable">p</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_pts_pred"><span class="id" title="definition">gauss_pts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:48"><span class="id" title="variable">gv</span></a><span class="id" title="notation">)</span>.<br/>
+
+<br/>
+&nbsp;<span class="id" title="keyword">Definition</span> <a id="gauss2d_weight_spec" class="idref" href="#gauss2d_weight_spec"><span class="id" title="definition">gauss2d_weight_spec</span></a> : <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_gauss2d_weight"><span class="id" title="definition">_gauss2d_weight</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="sh:53" class="idref" href="#sh:53"><span class="id" title="binder"><span id="sh:57" class="id">sh</span></span></a><span class="id" title="notation">:</span><span class="id" title="definition">share</span><span class="id" title="notation">,</span> <a id="X:54" class="idref" href="#X:54"><span class="id" title="binder"><span id="X:58" class="id">X</span></span></a><span class="id" title="notation">:</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">{</span></a><a id="n:52" class="idref" href="#n:52"><span class="id" title="binder">n</span></a><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">:</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_5</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">&amp;</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_n</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="notation">'</span><span class="id" title="notation">I_n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">}</span></a><span class="id" title="notation">,</span> <a id="gv:55" class="idref" href="#gv:55"><span class="id" title="binder"><span id="gv:59" class="id">gv</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">globals</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tint</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span>  <span class="id" title="keyword">let</span> '(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">x</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a><span class="id" title="var">y</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>) := <a class="idref" href="CFEM.C.spec_quadrules.html#X:54"><span class="id" title="variable">X</span></a> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><span class="id" title="definition">writable_share</span> <a class="idref" href="CFEM.C.spec_quadrules.html#sh:53"><span class="id" title="variable">sh</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span><span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> (<span class="id" title="var">y</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">×</span></a><span class="id" title="var">n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a><span class="id" title="var">x</span>)%<span class="id" title="var">nat</span>))<span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> (<span class="id" title="var">n</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">×</span></a><span class="id" title="var">n</span>)%<span class="id" title="var">nat</span>))<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">GLOBALS</span> <span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#gv:55"><span class="id" title="variable">gv</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_pred"><span class="id" title="definition">gauss_wts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:55"><span class="id" title="variable">gv</span></a> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tdouble</span> <span class="id" title="notation">]</span>  <span class="id" title="keyword">let</span> '(<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">n</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">x</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a><span class="id" title="var">y</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>) := <a class="idref" href="CFEM.C.spec_quadrules.html#X:58"><span class="id" title="variable">X</span></a> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">EX</span> <a id="x':61" class="idref" href="#x':61"><span class="id" title="binder">x'</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span> <span class="id" title="notation">EX</span> <a id="y':62" class="idref" href="#y':62"><span class="id" title="binder">y'</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#float_near"><span class="id" title="definition">float_near</span></a> (<a class="idref" href="CFEM.C.spec_quadrules.html#ith_gauss_weight"><span class="id" title="definition">ith_gauss_weight</span></a> <span class="id" title="var">n</span> <span class="id" title="var">x</span>) <a class="idref" href="CFEM.C.spec_quadrules.html#x':61"><span class="id" title="variable">x'</span></a><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_quadrules.html#float_near"><span class="id" title="definition">float_near</span></a> (<a class="idref" href="CFEM.C.spec_quadrules.html#ith_gauss_weight"><span class="id" title="definition">ith_gauss_weight</span></a> <span class="id" title="var">n</span> <span class="id" title="var">y</span>) <a class="idref" href="CFEM.C.spec_quadrules.html#y':62"><span class="id" title="variable">y'</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">(</span> <span class="id" title="constructor">Vfloat</span> (<a class="idref" href="CFEM.C.spec_quadrules.html#x':61"><span class="id" title="variable">x'</span></a> <span class="id" title="notation">×</span> <a class="idref" href="CFEM.C.spec_quadrules.html#y':62"><span class="id" title="variable">y'</span></a>)%<span class="id" title="var">F64</span><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#gauss_wts_pred"><span class="id" title="definition">gauss_wts_pred</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#gv:59"><span class="id" title="variable">gv</span></a><span class="id" title="notation">)</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab7"></a><h3 class="section">The triangle: Hughes quadrature points and weights, low-level specs only</h3>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="hughes_points" class="idref" href="#hughes_points"><span class="id" title="definition">hughes_points</span></a>: <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> (<span class="id" title="axiom">R</span><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a><span class="id" title="axiom">R</span>) := <span class="id" title="notation">[</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a>1<span class="id" title="notation">/</span>2<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> 0<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a><span class="id" title="notation">;</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a>1<span class="id" title="notation">/</span>2<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> 1<span class="id" title="notation">/</span>2<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a><span class="id" title="notation">;</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a>0<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> 1<span class="id" title="notation">/</span>2<a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> <span class="id" title="notation">]</span>%<span class="id" title="var">R</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="hughes_point_spec" class="idref" href="#hughes_point_spec"><span class="id" title="definition">hughes_point_spec</span></a>: <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_hughes_point"><span class="id" title="definition">_hughes_point</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="sh:63" class="idref" href="#sh:63"><span class="id" title="binder"><span id="sh:66" class="id">sh</span></span></a><span class="id" title="notation">:</span> <span class="id" title="definition">share</span><span class="id" title="notation">,</span> <a id="p:64" class="idref" href="#p:64"><span class="id" title="binder"><span id="p:67" class="id">p</span></span></a><span class="id" title="notation">:</span> <span class="id" title="inductive">val</span><span class="id" title="notation">,</span> <a id="i:65" class="idref" href="#i:65"><span class="id" title="binder"><span id="i:68" class="id">i</span></span></a><span class="id" title="notation">:</span> <span class="id" title="notation">'</span><span class="id" title="notation">I_3</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tptr</span> <span class="id" title="definition">tdouble</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><span class="id" title="definition">writable_share</span> <a class="idref" href="CFEM.C.spec_quadrules.html#sh:63"><span class="id" title="variable">sh</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#p:64"><span class="id" title="variable">p</span></a><span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#i:65"><span class="id" title="variable">i</span></a>))<span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> 3)<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span><span class="id" title="definition">data_at_</span> <a class="idref" href="CFEM.C.spec_quadrules.html#sh:63"><span class="id" title="variable">sh</span></a> (<span class="id" title="definition">tarray</span> <span class="id" title="definition">tdouble</span> 2) <a class="idref" href="CFEM.C.spec_quadrules.html#p:64"><span class="id" title="variable">p</span></a> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tvoid</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">EX</span> <a id="x:69" class="idref" href="#x:69"><span class="id" title="binder">x</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span> <span class="id" title="notation">EX</span> <a id="y:70" class="idref" href="#y:70"><span class="id" title="binder">y</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><span class="id" title="definition">Znth</span> (<span class="id" title="definition">Z.of_nat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#i:68"><span class="id" title="variable">i</span></a>) <a class="idref" href="CFEM.C.spec_quadrules.html#hughes_points"><span class="id" title="definition">hughes_points</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="definition">FT2R</span> <a class="idref" href="CFEM.C.spec_quadrules.html#x:69"><span class="id" title="variable">x</span></a><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <span class="id" title="definition">FT2R</span> <a class="idref" href="CFEM.C.spec_quadrules.html#y:70"><span class="id" title="variable">y</span></a><a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">()</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">(</span><span class="id" title="definition">data_at</span> <a class="idref" href="CFEM.C.spec_quadrules.html#sh:66"><span class="id" title="variable">sh</span></a> (<span class="id" title="definition">tarray</span> <span class="id" title="definition">tdouble</span> 2) <span class="id" title="notation">[</span><span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#x:69"><span class="id" title="variable">x</span></a><span class="id" title="notation">;</span> <span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#y:70"><span class="id" title="variable">y</span></a><span class="id" title="notation">]</span> <a class="idref" href="CFEM.C.spec_quadrules.html#p:67"><span class="id" title="variable">p</span></a><span class="id" title="notation">)</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="hughes_weight" class="idref" href="#hughes_weight"><span class="id" title="definition">hughes_weight</span></a>: <span class="id" title="axiom">R</span> := 1<span class="id" title="notation">/</span>6.<br/>
+
+<br/>
+&nbsp;<span class="id" title="keyword">Definition</span> <a id="hughes_weight_spec" class="idref" href="#hughes_weight_spec"><span class="id" title="definition">hughes_weight_spec</span></a> : <span class="id" title="definition">ident</span> <a class="idref" href="http://rocq-prover.org/doc/V9.1.1/stdlib//Corelib.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <span class="id" title="inductive">funspec</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="notation">DECLARE</span> <a class="idref" href="CFEM.C.quadrules.html#_gauss2d_weight"><span class="id" title="definition">_gauss2d_weight</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">WITH</span> <a id="i:71" class="idref" href="#i:71"><span class="id" title="binder"><span id="i:72" class="id">i</span></span></a><span class="id" title="notation">:</span> <span class="id" title="notation">'</span><span class="id" title="notation">I_3</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">PRE</span> <span class="id" title="notation">[</span> <span class="id" title="definition">tint</span><span class="id" title="notation">,</span> <span class="id" title="definition">tint</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">()</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PARAMS</span><span class="id" title="notation">(</span><span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> (<span class="id" title="definition">Z.of_nat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#i:71"><span class="id" title="variable">i</span></a>))<span class="id" title="notation">;</span> <span class="id" title="constructor">Vint</span> (<span class="id" title="definition">Int.repr</span> 3)<span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">()</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">POST</span><span class="id" title="notation">[</span> <span class="id" title="definition">tdouble</span> <span class="id" title="notation">]</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">EX</span> <a id="w:73" class="idref" href="#w:73"><span class="id" title="binder">w</span></a>: <span class="id" title="definition">ftype</span> <span class="id" title="definition">Tdouble</span><span class="id" title="notation">,</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">PROP</span><span class="id" title="notation">(</span><a class="idref" href="CFEM.C.spec_quadrules.html#float_near"><span class="id" title="definition">float_near</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#hughes_weight"><span class="id" title="definition">hughes_weight</span></a> <a class="idref" href="CFEM.C.spec_quadrules.html#w:73"><span class="id" title="variable">w</span></a><span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">RETURN</span> <span class="id" title="notation">(</span> <span class="id" title="constructor">Vfloat</span> <a class="idref" href="CFEM.C.spec_quadrules.html#w:73"><span class="id" title="variable">w</span></a> <span class="id" title="notation">)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="notation">SEP</span><span class="id" title="notation">()</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Finally we build an Abstract Specification Interface (ASI) containing all the instantiated specs 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="quadrules_ASI" class="idref" href="#quadrules_ASI"><span class="id" title="definition">quadrules_ASI</span></a>: <span class="id" title="definition">funspecs</span> :=<br/>
+&nbsp;<span class="id" title="notation">[</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss2d_npoint1d_spec"><span class="id" title="definition">gauss2d_npoint1d_spec</span></a><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_quadrules.html#gauss_point_spec"><span class="id" title="definition">gauss_point_spec</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss_weight_spec"><span class="id" title="definition">gauss_weight_spec</span></a><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_quadrules.html#gauss2d_point_spec"><span class="id" title="definition">gauss2d_point_spec</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_quadrules.html#gauss2d_weight_spec"><span class="id" title="definition">gauss2d_weight_spec</span></a><span class="id" title="notation">;</span><br/>
+&nbsp;&nbsp;&nbsp;<a class="idref" href="CFEM.C.spec_quadrules.html#hughes_point_spec"><span class="id" title="definition">hughes_point_spec</span></a><span class="id" title="notation">;</span> <a class="idref" href="CFEM.C.spec_quadrules.html#hughes_weight_spec"><span class="id" title="definition">hughes_weight_spec</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="notation">]</span>.<br/>
+
+<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="genindex.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

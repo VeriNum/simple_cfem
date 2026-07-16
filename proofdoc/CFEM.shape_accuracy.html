@@ -70,8 +70,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </details><div class="code">
 
 <br/>
-
-<br/>
 </div>
 
 <div class="doc">
@@ -84,7 +82,7 @@ Not-a-number propagation rules:  Use the same ones that CompCert uses (on this t
 </div>
 
 <div class="doc">
-<a id="lab28"></a><h1 class="section">The Shape Accuracy Property</h1>
+<a id="lab33"></a><h1 class="section">The Shape Accuracy Property</h1>
 
 <div class="paragraph"> </div>
 
@@ -132,7 +130,7 @@ Not-a-number propagation rules:  Use the same ones that CompCert uses (on this t
 </div>
 
 <div class="doc">
-<a id="lab29"></a><h3 class="section">bounds_enclose:</h3>
+<a id="lab34"></a><h3 class="section">bounds_enclose:</h3>
 
    A given boundsmap (cuboid bounding box) really does contain
    all the vertices of a shape. 
@@ -151,14 +149,14 @@ Not-a-number propagation rules:  Use the same ones that CompCert uses (on this t
 </div>
 
 <div class="doc">
-<a id="lab30"></a><h3 class="section">roundoff_bound_lemma: The accuracy proof of a set of shape functions <a href=RBL></h3>
+<a id="lab35"></a><h3 class="section">roundoff_bound_lemma: The accuracy proof of a set of shape functions <a href=RBL></h3>
 
 <div class="paragraph"> </div>
 
  Given <span class="inlinecode"><span class="id" title="var">s</span></span> that is a set of real-valued shape functions (and derivatives, and vertices),
-   and given <span class="inlinecode"><a class="idref" href="CFEM.C.verif_shapes_base.html#F"><span class="id" title="module">F</span></a></span> that is a set of float-valued shape functions (and bounding box), then
+   and given <span class="inlinecode"><a class="idref" href="CFEM.C.spec_quadrules.html#F"><span class="id" title="module">F</span></a></span> that is a set of float-valued shape functions (and bounding box), then
 <ul class="doclist">
-<li> The bounding box of <span class="inlinecode"><a class="idref" href="CFEM.C.verif_shapes_base.html#F"><span class="id" title="module">F</span></a></span> encloses the vertices of <span class="inlinecode"><span class="id" title="var">s</span></span>
+<li> The bounding box of <span class="inlinecode"><a class="idref" href="CFEM.C.spec_quadrules.html#F"><span class="id" title="module">F</span></a></span> encloses the vertices of <span class="inlinecode"><span class="id" title="var">s</span></span>
 
 </li>
 <li> The float-valued shape functions approximate the real-valued shape functions within <span class="inlinecode"><span class="id" title="var">acc</span></span>.
@@ -194,7 +192,7 @@ In the remainder of this file, we develop the lemmas and tactics useful in provi
   of our elements, and then prove it for each element. 
 <div class="paragraph"> </div>
 
-<a id="lab31"></a><h2 class="section">Utility tactics and lemmas</h2>
+<a id="lab36"></a><h2 class="section">Utility tactics and lemmas</h2>
 
 </div>
 <div class="code">
@@ -403,15 +401,15 @@ In the remainder of this file, we develop the lemmas and tactics useful in provi
 </div>
 
 <div class="doc">
-<a id="lab32"></a><h1 class="section">Instances: accuracy proofs for all the elements</h1>
+<a id="lab37"></a><h1 class="section">Instances: accuracy proofs for all the elements</h1>
 
 <div class="paragraph"> </div>
 
-<a id="lab33"></a><h2 class="section">1dP1: 1-dimensional, degree 1</h2>
+<a id="lab38"></a><h2 class="section">1dP1: 1-dimensional, degree 1</h2>
 
 <div class="paragraph"> </div>
 
-<a id="lab34"></a><h3 class="section">Extracting the floating-point shape functions into "ordinary" floating-point operations</h3>
+<a id="lab39"></a><h3 class="section">Extracting the floating-point shape functions into "ordinary" floating-point operations</h3>
  The VCFloat tool can prove roundoff-error bounds for functions from \(R^n \rightarrow R\),
    or rather, for floating-point functions that are intended to approximate those real-valued functions.
    Since our shape functions are from \(F^d \rightarrow F^{nsh}\), we must first extract each
@@ -465,14 +463,14 @@ Test that this really worked:
 </div>
 
 <div class="doc">
-<a id="lab35"></a><h3 class="section">Calculating the error bound</h3>
+<a id="lab40"></a><h3 class="section">Calculating the error bound</h3>
 
 <div class="paragraph"> </div>
 
  VCFloat's basic theorem is 
-  <span class="inlinecode"></span> <span class="inlinecode"><span class="id" title="keyword">∀</span></span> <span class="inlinecode"><span class="id" title="var">vmap</span>,</span>  <span class="inlinecode"><span class="id" title="definition">prove_roundoff_bound</span></span> <span class="inlinecode"><a class="idref" href="CFEM.shapefloat.html#Bounds.boundsmap"><span class="id" title="definition">boundsmap</span></a></span> <span class="inlinecode"><span class="id" title="var">vmap</span></span> <span class="inlinecode"><a class="idref" href="CFEM.C.verif_shapes_base.html#F"><span class="id" title="module">F</span></a></span>  <span class="inlinecode"><span class="id" title="var">acc</span></span>, where
+  <span class="inlinecode"></span> <span class="inlinecode"><span class="id" title="keyword">∀</span></span> <span class="inlinecode"><span class="id" title="var">vmap</span>,</span>  <span class="inlinecode"><span class="id" title="definition">prove_roundoff_bound</span></span> <span class="inlinecode"><a class="idref" href="CFEM.shapefloat.html#Bounds.boundsmap"><span class="id" title="definition">boundsmap</span></a></span> <span class="inlinecode"><span class="id" title="var">vmap</span></span> <span class="inlinecode"><a class="idref" href="CFEM.C.spec_quadrules.html#F"><span class="id" title="module">F</span></a></span>  <span class="inlinecode"><span class="id" title="var">acc</span></span>, where
 <ul class="doclist">
-<li> <span class="inlinecode"><a class="idref" href="CFEM.C.verif_shapes_base.html#F"><span class="id" title="module">F</span></a></span> is the syntax tree describing a floating-point function of n variables,
+<li> <span class="inlinecode"><a class="idref" href="CFEM.C.spec_quadrules.html#F"><span class="id" title="module">F</span></a></span> is the syntax tree describing a floating-point function of n variables,
 
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">vmap</span></span> is basically a vector of n variables,
@@ -486,7 +484,7 @@ Test that this really worked:
 </li>
 </ul>
  The theorem states that for any input <span class="inlinecode"><span class="id" title="var">vmap</span></span> within the range <span class="inlinecode"><a class="idref" href="CFEM.shapefloat.html#Bounds.boundsmap"><span class="id" title="definition">boundsmap</span></a></span>, the difference between
- <span class="inlinecode"><a class="idref" href="CFEM.C.verif_shapes_base.html#F"><span class="id" title="module">F</span></a>(<span class="id" title="var">vmap</span>)</span> interpreted as a floating-point function, and <span class="inlinecode"><a class="idref" href="CFEM.C.verif_shapes_base.html#F"><span class="id" title="module">F</span></a>(<span class="id" title="var">vmap</span>)</span> interpreted as a real function,
+ <span class="inlinecode"><a class="idref" href="CFEM.C.spec_quadrules.html#F"><span class="id" title="module">F</span></a>(<span class="id" title="var">vmap</span>)</span> interpreted as a floating-point function, and <span class="inlinecode"><a class="idref" href="CFEM.C.spec_quadrules.html#F"><span class="id" title="module">F</span></a>(<span class="id" title="var">vmap</span>)</span> interpreted as a real function,
   is less than or equal to <span class="inlinecode"><span class="id" title="var">acc</span></span>.
 
 <div class="paragraph"> </div>
@@ -537,7 +535,7 @@ So, the bound is just under 1.2 * 10^-16.  We'll use 12/(10^17) as the value.
 </div>
 
 <div class="doc">
-<a id="lab36"></a><h3 class="section">first shape function</h3>
+<a id="lab41"></a><h3 class="section">first shape function</h3>
 
 <div class="paragraph"> </div>
 
@@ -561,7 +559,7 @@ So, the bound is just under 1.2 * 10^-16.  We'll use 12/(10^17) as the value.
 </div>
 
 <div class="doc">
-<a id="lab37"></a><h3 class="section">second shape function</h3>
+<a id="lab42"></a><h3 class="section">second shape function</h3>
 
 </div>
 <div class="code">
@@ -586,7 +584,7 @@ So, the bound is just under 1.2 * 10^-16.  We'll use 12/(10^17) as the value.
 </div>
 
 <div class="doc">
-<a id="lab38"></a><h3 class="section">derivative function accuracy bounds</h3>
+<a id="lab43"></a><h3 class="section">derivative function accuracy bounds</h3>
 
 </div>
 <div class="code">
@@ -634,7 +632,7 @@ So, the bound is just under 1.2 * 10^-16.  We'll use 12/(10^17) as the value.
 </div>
 
 <div class="doc">
-<a id="lab39"></a><h3 class="section">1dP1 main result</h3>
+<a id="lab44"></a><h3 class="section">1dP1 main result</h3>
  Bundle together all the accuracy proofs for 1dP1 into a single theorem 
 </div>
 <div class="code">
@@ -664,11 +662,11 @@ So, the bound is just under 1.2 * 10^-16.  We'll use 12/(10^17) as the value.
 </div>
 
 <div class="doc">
-<a id="lab40"></a><h2 class="section">1dP2: 1-dimensional, degree 2</h2>
+<a id="lab45"></a><h2 class="section">1dP2: 1-dimensional, degree 2</h2>
 
 <div class="paragraph"> </div>
 
-<a id="lab41"></a><h3 class="section">Extracting the floating-point shape functions into "ordinary" floating-point operations</h3>
+<a id="lab46"></a><h3 class="section">Extracting the floating-point shape functions into "ordinary" floating-point operations</h3>
 
 </div>
 <div class="code">
@@ -725,7 +723,7 @@ calculate what the 1dP2 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab42"></a><h3 class="section">first shape function</h3>
+<a id="lab47"></a><h3 class="section">first shape function</h3>
 
 </div>
 <div class="code">
@@ -750,7 +748,7 @@ calculate what the 1dP2 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab43"></a><h3 class="section">second shape function</h3>
+<a id="lab48"></a><h3 class="section">second shape function</h3>
 
 </div>
 <div class="code">
@@ -771,7 +769,7 @@ calculate what the 1dP2 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab44"></a><h3 class="section">third shape function</h3>
+<a id="lab49"></a><h3 class="section">third shape function</h3>
 
 </div>
 <div class="code">
@@ -792,7 +790,7 @@ calculate what the 1dP2 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab45"></a><h3 class="section">shape derivative functions</h3>
+<a id="lab50"></a><h3 class="section">shape derivative functions</h3>
 
 </div>
 <div class="code">
@@ -861,7 +859,7 @@ calculate what the 1dP2 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab46"></a><h3 class="section">1dP2 main result</h3>
+<a id="lab51"></a><h3 class="section">1dP2 main result</h3>
  Bundle together all the accuracy proofs for 1dP2 into a single theorem 
 </div>
 <div class="code">
@@ -897,11 +895,11 @@ calculate what the 1dP2 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab47"></a><h2 class="section">2dP1: 2-dimensional, degree 1</h2>
+<a id="lab52"></a><h2 class="section">2dP1: 2-dimensional, degree 1</h2>
 
 <div class="paragraph"> </div>
 
-<a id="lab48"></a><h3 class="section">Extracting the floating-point shape functions into "ordinary" floating-point operations</h3>
+<a id="lab53"></a><h3 class="section">Extracting the floating-point shape functions into "ordinary" floating-point operations</h3>
 
 </div>
 <div class="code">
@@ -959,7 +957,7 @@ calculate what the 2dP1 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab49"></a><h3 class="section">four shape functions</h3>
+<a id="lab54"></a><h3 class="section">four shape functions</h3>
 
 </div>
 <div class="code">
@@ -1022,7 +1020,7 @@ calculate what the 2dP1 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab50"></a><h3 class="section">shape derivative functions</h3>
+<a id="lab55"></a><h3 class="section">shape derivative functions</h3>
 
 </div>
 <div class="code">
@@ -1201,7 +1199,7 @@ calculate what the 2dP1 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab51"></a><h3 class="section">2dP1 main result <a id=2dP1></h3>
+<a id="lab56"></a><h3 class="section">2dP1 main result <a id=2dP1></h3>
  Bundle together all the accuracy proofs for 2dP1 into a single theorem 
 </div>
 <div class="code">
@@ -1243,12 +1241,12 @@ calculate what the 2dP1 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab52"></a><h3 class="section">2dT1 main result</h3>
-<a id="lab53"></a><h2 class="section">2dT1: 2-dimensional triangle, degree 1</h2>
+<a id="lab57"></a><h3 class="section">2dT1 main result</h3>
+<a id="lab58"></a><h2 class="section">2dT1: 2-dimensional triangle, degree 1</h2>
 
 <div class="paragraph"> </div>
 
-<a id="lab54"></a><h3 class="section">Extracting the floating-point shape functions into "ordinary" floating-point operations</h3>
+<a id="lab59"></a><h3 class="section">Extracting the floating-point shape functions into "ordinary" floating-point operations</h3>
 
 </div>
 <div class="code">
@@ -1301,7 +1299,7 @@ calculate what the 2dP1 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab55"></a><h3 class="section">three shape functions</h3>
+<a id="lab60"></a><h3 class="section">three shape functions</h3>
 
 </div>
 <div class="code">
@@ -1352,7 +1350,7 @@ calculate what the 2dP1 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab56"></a><h3 class="section">shape derivative functions</h3>
+<a id="lab61"></a><h3 class="section">shape derivative functions</h3>
 
 </div>
 <div class="code">
@@ -1470,7 +1468,7 @@ calculate what the 2dP1 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab57"></a><h3 class="section">2dT1 main result</h3>
+<a id="lab62"></a><h3 class="section">2dT1 main result</h3>
  Bundle together all the accuracy proofs for 2dT1 into a single theorem 
 </div>
 <div class="code">
@@ -1509,11 +1507,11 @@ calculate what the 2dP1 bound should be (also prove it, but we'll throw away thi
 </div>
 
 <div class="doc">
-<a id="lab58"></a><h2 class="section">2dP2: 2-dimensional, degree 2</h2>
+<a id="lab63"></a><h2 class="section">2dP2: 2-dimensional, degree 2</h2>
 
 <div class="paragraph"> </div>
 
- Not yet done <a id="lab59"></a><h2 class="section">2dS2: 2-dimensional, degree 2, Serendipity</h2>
+ Not yet done <a id="lab64"></a><h2 class="section">2dS2: 2-dimensional, degree 2, Serendipity</h2>
 
 <div class="paragraph"> </div>
 
