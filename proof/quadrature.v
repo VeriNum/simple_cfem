@@ -2133,10 +2133,13 @@ Qed.
 
 (** *** Specialization of quadrature error to our instances for degrees up to 4 *)
 
+ Definition Gauss_Legendre_quadrature (n: 'I_5):  (R -> R) -> R :=
+  compute_G (nth_iseq some_gauss_weights n).
+
   Lemma legendre_quadrature_error': forall (n: 'I_5) (f: R->R),
    let GW := nth_iseq some_gauss_weights n in
-      exists ξ:R, lo <= ξ <= hi /\
-       ∫ f - compute_G GW f =  
+      exists ξ:R, -1 <= ξ <= 1 /\
+       ∫ f - Gauss_Legendre_quadrature n f =  
        derive1n (2*n+2) f ξ / 
         (factorial(2*n+2))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
   Proof.
@@ -2146,6 +2149,214 @@ Qed.
 End R.
 
 End Legendre.
+
+Module Test_Legendre.
+Import Legendre.
+Require Import Interval.Tactic.
+From mathcomp Require Import Rstruct.
+From Stdlib Require Import Reals.
+
+Definition shape (n: 'I_3) (i: 'I_n.+1) : R -> R.
+destruct n as[n Hn].
+destruct n as [ | [| ]]; try discriminate.
+- (* 0th-order *)
+   exact (fun x => 1).
+- (* 1st-order Lagrange shape functions *)
+destruct i as [ [ | [ | ]]  ]; simpl in *; try Lia.lia.
++ (* n=1, i=0 *) exact (fun x => (1/2)*(1-x)).
++ (* n=1, i=1 *) exact (fun x => (1/2)*(1+x)).
+- (* 2nd-order Lagrange shape functions *)
+destruct i as [ [ | [ | [|] ]]  ]; simpl in *; try Lia.lia. 
++ (* n=2, i=0 *) exact (fun x => -(1/2)*(1-x)*x).
++ (* n=2, i=1 *) exact (fun x => (1-x)*(1+x)).
++ (* n=2, i=1 *) exact (fun x => (1/2)*x*(1+x)).
+Defined.
+
+Definition testfun (n: 'I_3) (i: 'I_n.+1) : R -> R := fun x => shape n i x * cos x.
+
+ Notation "∫" := intgal.
+
+Lemma derive1M {R : numFieldType} (f g: R -> R) (x: R) :
+  derive.derivable f x 1 ->
+  derive.derivable g x 1 ->
+  (fun x => f x * g x)^`()%classic x = f x * g^`()%classic x + f^`()%classic x * g x.
+Admitted.
+
+
+Lemma derive1M_ {R : numFieldType} (f g: R -> R) :
+  (forall x, derive.derivable f x 1) ->
+  (forall x, derive.derivable g x 1) ->
+  (mul_fun f g)^`()%classic = add_fun (mul_fun f (g^`()%classic)) (mul_fun (f^`()%classic) g).
+Proof.
+intros.
+extensionality x.
+apply derive1M; auto.
+Qed.
+
+Notation d1 := (@derive1 R (Real_sort__canonical__normed_module_NormedModule RbaseSymbolsImpl_R__canonical__reals_Real)).
+
+Notation dable := (
+@derive.derivable (reals_Real__to__Num_NumField RbaseSymbolsImpl_R__canonical__reals_Real)
+  (numFieldNormedType.NumField_sort__canonical__normed_module_NormedModule
+     (reals_Real__to__Num_NumField RbaseSymbolsImpl_R__canonical__reals_Real))
+  (numFieldNormedType.NumField_sort__canonical__normed_module_NormedModule
+     (reals_Real__to__Num_NumField RbaseSymbolsImpl_R__canonical__reals_Real))).
+
+Lemma derive1_cos: d1 cos = opp_fun sin.
+Admitted.
+
+Lemma derive1_sin: d1 sin = cos.
+Admitted.
+
+Lemma derive1_add: forall f g : R -> R, d1 (f \+ g) = d1 f \+ d1 g.
+Admitted.
+
+Lemma derive1_opp: forall f : R -> R, d1 (\- f) = \- (d1 f).
+Admitted.
+
+Lemma opp_funK: forall f: R -> R, opp_fun (opp_fun f) = f.
+Admitted.
+
+Lemma derivable_cos: forall x, dable cos x 1.
+Admitted.
+Lemma derivable_sin: forall x, dable sin x 1.
+Admitted.
+
+Lemma range_Rabs: forall x, is_true (-1 <= x <= 1) -> Rle (Rabs x) 1.
+Admitted.
+
+
+Lemma error_1_0_1:
+ (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
+ let f := fun x => (1/2)*(1-x)*cos(x) in 
+ Rabs ( ∫ f - Gauss_Legendre_quadrature 1 f ) < (2 / 100)%R.
+Proof.
+set rhs := (_ / 100)%R.
+cbv zeta.
+set f := fun x :R => _.
+replace 1 with (@Ordinal 5 1 isT); [ | apply ord_inj ; auto].
+destruct (legendre_quadrature_error' (@Ordinal 5 1 isT) f) as [ξ [H H0]].
+set j := Gauss_Legendre_quadrature _ _ in H0|-*.
+clearbody j.
+set k := ∫ f - j in H0|-*.
+change (Rminus _ _) with k.
+rewrite {}H0. clear k j.
+with_strategy opaque [derive1n] simpl.
+change (addn _ _) with 4%nat.
+change (exprz ?A 2) with (mul A A).
+rewrite Legendre_poly_2.
+set j := fun x => _.
+replace j with  (fun x : R => horner ('X * ('X * ('X * 'X))) x + (-2/3)*(horner ('X * 'X)) x + horner (polyC (1/9)) x).
+2: extensionality x; subst j; simpl; rewrite ?hornerE /=; nra.
+clear j.
+rewrite ?intgal_linear2 ?intgal_linear1.
+rewrite intgal_X4 intgal_X2 intgal_C.
+set e := _ + _. simpl in e.
+replace f with  (mul_fun (horner ((polyC(-1/2))*'X + polyC (1/2)))  cos).
+2:{
+extensionality x.
+rewrite /f /testfun /shape /=.
+f_equal.
+rewrite hornerE.
+rewrite ?hornerC.
+rewrite hornerE.
+rewrite hornerX.
+nra.
+}
+simpl.
+rewrite derive1M_; [ | apply derivable_horner |  apply derivable_cos].
+rewrite derive1_cos.
+rewrite -derivE.
+rewrite derivMXaddC.
+rewrite ?derivC.
+rewrite ?Rewriting.r_ring.
+rewrite ?derive1_add.
+
+rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_sin].
+rewrite derive1_opp derive1_sin.
+rewrite -derivE.
+rewrite derivMXaddC.
+rewrite ?derivC.
+rewrite ?Rewriting.r_ring.
+rewrite ?derive1_add.
+
+rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_cos].
+rewrite derive1_opp derive1_cos.
+rewrite opp_funK.
+rewrite -derivE.
+rewrite derivMXaddC.
+rewrite ?derivC.
+rewrite ?Rewriting.r_ring.
+rewrite ?derive1_add.
+
+rewrite derive1M_; [ | apply derivable_horner | apply derivable_sin].
+rewrite derive1_sin.
+rewrite -derivE.
+rewrite derivMXaddC.
+rewrite ?derivC.
+rewrite ?Rewriting.r_ring.
+
+rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_cos].
+rewrite derive1_opp derive1_cos.
+rewrite opp_funK.
+rewrite -derivE.
+rewrite ?derivC.
+rewrite horner0_ext.
+rewrite mul_fun0r add_funr0.
+
+rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_sin].
+rewrite derive1_opp derive1_sin.
+rewrite -derivE.
+rewrite ?derivC.
+rewrite horner0_ext.
+rewrite mul_fun0r add_funr0.
+
+rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_cos].
+rewrite derive1_opp derive1_cos.
+rewrite opp_funK.
+rewrite -derivE.
+rewrite ?derivC.
+rewrite horner0_ext.
+rewrite mul_fun0r add_funr0.
+
+rewrite derive1M_; [ | apply derivable_horner |  apply derivable_cos].
+rewrite derive1_cos.
+rewrite -derivE.
+rewrite ?derivC.
+rewrite horner0_ext.
+rewrite mul_fun0r add_funr0.
+
+rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_sin].
+rewrite derive1_opp derive1_sin.
+rewrite -derivE.
+rewrite ?derivC.
+rewrite horner0_ext.
+rewrite mul_fun0r add_funr0.
+
+rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_cos].
+rewrite derive1_opp derive1_cos.
+rewrite opp_funK.
+rewrite -derivE.
+rewrite ?derivC.
+rewrite horner0_ext.
+rewrite mul_fun0r add_funr0.
+
+simpl.
+rewrite ?hornerE.
+subst e.
+unfold lo, hi in H.
+clear f.
+simpl in *.
+rewrite /factorial.
+unfold mul, add, inv, opp, GRing.one, muln; simpl.
+rewrite -?INRE.
+apply /RltbP.
+apply range_Rabs in H.
+subst rhs.
+interval.
+Qed.
+
+End Test_Legendre.
 
 (** ** The remainder of Stewart's Chapter 23. *)
 (** 22.  If we take [[a,b]]=[[0,∞]] and w(x)=e^{-x}, we get a formula to approximate
