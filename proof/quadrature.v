@@ -1093,8 +1093,8 @@ Definition intgal_linear := (intgal_linear1'', intgal_linear1', intgal_linear1, 
 *)
 
 Record legendre_roots (n: nat) := {
-   LR_poly: R -> R;
-   LR_poly_eq: horner (legendre n) = LR_poly;
+   LR_poly: {poly R};
+   LR_poly_eq: legendre n = LR_poly;
    LR_roots: roots_of_ortho_p lo hi w n
 }.
 Arguments LR_poly [n].
@@ -1284,9 +1284,14 @@ rewrite ?mulrD -?mulrA ?(pull_left u) ?r_intgal ?r_ring; subst g; cbv beta; rewr
 (** First, prove that the 0-th Legendre polynomial, as constructed by the [ortho_p]
     recurrence, is the constant function 1.  This is rather trivial, but when we get to n=3
     and n=4 it won't be so easy. *)
-Lemma Legendre_poly_0: horner (legendre 0) = fun x: R => 1.
+Lemma Legendre_poly_0: legendre 0 = 1%:P.
 Proof.
-rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_horner ?r_ring //.
+rewrite /legendre /ortho_p /= ?scale_polyE ?r_intgal ?r_ring //.
+Qed.
+
+Lemma Legendre_poly_0': horner (legendre 0) = fun x: R => 1.
+Proof.
+rewrite Legendre_poly_0 ?r_horner //.
 Qed.
 
 (** Second, package up the [legendre_roots] structure for degree 0 *)
@@ -1300,10 +1305,15 @@ Defined.
 
 (** *** The degree-1 Legendre polynomial *)
 
-Lemma Legendre_poly_1: horner (legendre 1) =  fun x:R => x.
+Lemma Legendre_poly_1: legendre 1 = 'X.
 Proof.
 rewrite /legendre /ortho_p /= hornerX_i -?hornerM' ?mulr1 ?mul1r ?mulr0 ?mul0r -/intgal ?r_intgal ?scale_polyE.
-f_equal; ring.
+ring.
+Qed.
+
+Lemma Legendre_poly_1': horner (legendre 1) =  fun x:R => x.
+Proof.
+rewrite Legendre_poly_1 ?r_horner //.
 Qed.
 
 Definition legendre_roots_1: legendre_roots 1.
@@ -1313,6 +1323,7 @@ Definition legendre_roots_1: legendre_roots 1.
 simpl; red; rewrite ?Bool.andb_true_iff; repeat split;
 rewrite /root -/(legendre _).
 rewrite Legendre_poly_1.
+rewrite hornerE.
 apply eq_refl.
 -
 reflexivity.
@@ -1322,15 +1333,20 @@ Defined.
 
 
 (** *** The degree-2 Legendre polynomial *)
-
-Lemma Legendre_poly_2: horner (legendre 2) =   fun x :R => x*x - 1/3.
+Lemma Legendre_poly_2:  legendre 2 =   'X*'X - (1/3)%:P.
 Proof.
 rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
 rewrite -/intgal ?r_intgal ?r_ring ?scale_0poly ?scale_1poly ?r_ring.
 rewrite ?r_intgal ?r_ring scale_0poly ?r_ring scale_polyE mulr1.
-extensionality x.
-rewrite ?hornerE.
+f_equal.
+f_equal.
+f_equal. 
 field; auto.
+Qed.
+
+Lemma Legendre_poly_2': horner (legendre 2) =   fun x :R => x*x - 1/3.
+Proof.
+rewrite Legendre_poly_2 ?r_horner //.
 Qed.
 
 (** Now we start to need square roots.  It could be worse: above degree 4, the roots
@@ -1359,11 +1375,12 @@ Definition legendre_roots_2: legendre_roots 2.
 -
 simpl; red;
 rewrite /root -/(legendre _);
- rewrite Legendre_poly_2.
+ rewrite Legendre_poly_2 ?hornerE /=.
  rewrite ?Bool.andb_true_iff; repeat split; apply eq_opI.
- + rewrite ?mulN1r ?mulrNN -?invrM; [ | apply sqrt_exists; lra .. ].
+ + rewrite ?mulN1r ?mulrNN ?mulr1 -invrM; [ | apply sqrt_exists; lra .. ].
     rewrite sqr_sqrt; lra.
- + rewrite mulf_div mulr1 sqr_sqrt; lra.
+ + rewrite mulr1 -invrM; [ | apply sqrt_exists; lra .. ].
+    rewrite sqr_sqrt; lra.
 -
   simpl; red; rewrite ?Bool.andb_true_iff; repeat split.
   assert (0 <  1 / sqrt 3)
@@ -1376,15 +1393,49 @@ rewrite /root -/(legendre _);
   simpl; red; rewrite ?Bool.andb_true_iff; repeat split; rewrite /lo /hi; lra.
 Defined.
 
+Lemma mul_polyC_polyC: forall {R} (x y: NzSemiRing.sort R), 
+  polyC x * polyC y = polyC (x*y).
+Proof.
+intros.
+rewrite -(mulr1 (polyC y)).
+rewrite -(mulr1 (polyC (mul x y))).
+rewrite ?mul_polyC.
+rewrite scalerA //.
+Qed.
+
+Lemma add_polyC_polyC: forall {R} (x y: NzSemiRing.sort R), 
+  polyC x + polyC y = polyC (x+y).
+Proof.
+intros.
+rewrite -polyP.
+intro i.
+rewrite coefC.
+change (add (polyC x) (polyC y)) with (add_poly (polyC x) (polyC y)).
+rewrite coef_add_poly ?coefC.
+destruct (eq_op _ _); auto.
+rewrite addr0 //.
+Qed.
 
 (** *** The degree-3 Legendre polynomial *)
-
-Lemma Legendre_poly_3: horner (legendre 3) =  fun x :R => x*x*x - (3/5)*x.
+Lemma Legendre_poly_3: legendre 3 =  'X*'X*'X - (3/5)%:P*'X.
 Proof.
-rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring -/intgal ?norm_poly ?mulrD ?norm_poly.
-extensionality x.
-rewrite /= ?hornerE /=.
+rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
+rewrite -/intgal ?norm_poly ?mulrD ?norm_poly.
+rewrite scale_polyE.
+rewrite -addrA.
+f_equal.
+rewrite opp_sub.
+f_equal.
+rewrite -?mulrDl.
+f_equal.
+rewrite add_polyC_polyC.
+f_equal.
 field; auto.
+Qed.
+
+Lemma Legendre_poly_3': horner (legendre 3) =  fun x :R => x*x*x - (3/5)*x.
+Proof.
+rewrite Legendre_poly_3 ?r_horner //.
 Qed.
 
 (** The roots of the degree-2 Legendre polynomial are  -sqrt(3/5), 0, and +sqrt(3/5).  *)
@@ -1394,7 +1445,7 @@ Definition legendre_roots_3: legendre_roots 3.
 -
 simpl; red;
 rewrite /root -/(legendre _);
- rewrite Legendre_poly_3.
+ rewrite Legendre_poly_3 ?hornerE.
  rewrite ?Bool.andb_true_iff; repeat split; apply eq_opI;
   rewrite /tnth /= ?mulrNN ?sqr_sqrt; lra.
 -
@@ -1408,8 +1459,7 @@ Defined.
 
 (** *** The degree-4 Legendre polynomial *)
 
-
-Lemma Legendre_poly_4: horner (legendre 4) =  fun x :R => x*x*x*x - (30/35)*(x*x) + (3/35).
+Lemma Legendre_poly_4:  legendre 4 =  'X*'X*'X*'X - (30/35)%:P*('X*'X) + (3/35)%:P.
 (* These proofs are getting longer and longer! *)
 Proof.
 rewrite /legendre /ortho_p /= -?hornerX' -?hornerM' ?r_ring.
@@ -1427,11 +1477,33 @@ set b := inv _ * _.
 set c := inv _ * _.
 rewrite ?norm_poly.
 rewrite ?mulrD ?norm_poly.
-extensionality x.
-rewrite ?hornerE /=.
-subst u a b c  RHS.
-simpl.
+subst RHS.
+rewrite -?addrA.
+f_equal.
+ring.
+rewrite mul_polyC_polyC.
+set u1 := polyC _.
+set u2 := polyC _.
+set u3 := polyC _.
+set u4 := polyC _.
+set u5 := polyC _.
+rewrite -opp_sub opprK.
+rewrite ?addrA.
+f_equal.
+rewrite ?opp_sub.
+f_equal.
+rewrite -?mulrDl.
+f_equal.
+subst u1 u2 u3 u5.
+rewrite ?add_polyC_polyC.
+f_equal.
 field; auto.
+subst u4; f_equal; field; auto.
+Qed.
+
+Lemma Legendre_poly_4': horner (legendre 4) =  fun x :R => x*x*x*x - (30/35)*(x*x) + (3/35).
+Proof.
+rewrite Legendre_poly_4 ?r_horner //.
 Qed.
 
 Definition legendre_roots_val := 
@@ -1454,7 +1526,7 @@ assert (H3: is_true (0 <= (3 - 2 * sqrt (6 / 5)) / 7)). {
 assert (H4: 0 < sqrt (6/5)) by (rewrite sqrtr_gt0; lra).
 simpl; red;
 rewrite /root -/(legendre _);
- rewrite Legendre_poly_4.
+ rewrite Legendre_poly_4'.
  rewrite ?Bool.andb_true_iff; repeat split; apply eq_opI.
 +
 rewrite ?mulrNN.
@@ -2149,391 +2221,6 @@ Qed.
 End R.
 
 End Legendre.
-
-Module Test_Legendre.
-Import Legendre.
-Require Import Interval.Tactic.
-From mathcomp Require Import Rstruct.
-From Stdlib Require Import Reals.
-
-Definition shape (n: 'I_3) (i: 'I_n.+1) : R -> R.
-destruct n as[n Hn].
-destruct n as [ | [| ]]; try discriminate.
-- (* 0th-order *)
-   exact (fun x => 1).
-- (* 1st-order Lagrange shape functions *)
-destruct i as [ [ | [ | ]]  ]; simpl in *; try Lia.lia.
-+ (* n=1, i=0 *) exact (fun x => (1/2)*(1-x)).
-+ (* n=1, i=1 *) exact (fun x => (1/2)*(1+x)).
-- (* 2nd-order Lagrange shape functions *)
-destruct i as [ [ | [ | [|] ]]  ]; simpl in *; try Lia.lia. 
-+ (* n=2, i=0 *) exact (fun x => -(1/2)*(1-x)*x).
-+ (* n=2, i=1 *) exact (fun x => (1-x)*(1+x)).
-+ (* n=2, i=1 *) exact (fun x => (1/2)*x*(1+x)).
-Defined.
-
-Definition testfun (n: 'I_3) (i: 'I_n.+1) : R -> R := fun x => shape n i x * cos x.
-
- Notation "∫" := intgal.
-
-Lemma derive1M {R : numFieldType} (f g: R -> R) (x: R) :
-  derive.derivable f x 1 ->
-  derive.derivable g x 1 ->
-  (fun x => f x * g x)^`()%classic x = f x * g^`()%classic x + f^`()%classic x * g x.
-Admitted.
-
-
-Lemma derive1M_ {R : numFieldType} (f g: R -> R) :
-  (forall x, derive.derivable f x 1) ->
-  (forall x, derive.derivable g x 1) ->
-  (mul_fun f g)^`()%classic = add_fun (mul_fun f (g^`()%classic)) (mul_fun (f^`()%classic) g).
-Proof.
-intros.
-extensionality x.
-apply derive1M; auto.
-Qed.
-
-Notation d1 := (@derive1 R (Real_sort__canonical__normed_module_NormedModule RbaseSymbolsImpl_R__canonical__reals_Real)).
-
-Notation dable := (
-@derive.derivable (reals_Real__to__Num_NumField RbaseSymbolsImpl_R__canonical__reals_Real)
-  (numFieldNormedType.NumField_sort__canonical__normed_module_NormedModule
-     (reals_Real__to__Num_NumField RbaseSymbolsImpl_R__canonical__reals_Real))
-  (numFieldNormedType.NumField_sort__canonical__normed_module_NormedModule
-     (reals_Real__to__Num_NumField RbaseSymbolsImpl_R__canonical__reals_Real))).
-
-Lemma derive1_cos: d1 cos = opp_fun sin.
-Admitted.
-
-Lemma derive1_sin: d1 sin = cos.
-Admitted.
-
-Lemma derive1_add: forall f g : R -> R, d1 (f \+ g) = d1 f \+ d1 g.
-Admitted.
-
-Lemma derive1_opp: forall f : R -> R, d1 (\- f) = \- (d1 f).
-Admitted.
-
-Lemma opp_funK: forall f: R -> R, opp_fun (opp_fun f) = f.
-Admitted.
-
-Lemma derivable_cos: forall x, dable cos x 1.
-Admitted.
-Lemma derivable_sin: forall x, dable sin x 1.
-Admitted.
-
-Lemma range_Rabs: forall x, is_true (-1 <= x <= 1) -> Rle (Rabs x) 1.
-Admitted.
-
-
-Lemma error_1_0_1:
- (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
- let f := fun x => (1/2)*(1-x)*cos(x) in 
- Rabs ( ∫ f - Gauss_Legendre_quadrature 1 f ) < (2 / 100)%R.
-Proof.
-set rhs := (_ / 100)%R.
-cbv zeta.
-set f := fun x :R => _.
-replace 1 with (@Ordinal 5 1 isT); [ | apply ord_inj ; auto].
-destruct (legendre_quadrature_error' (@Ordinal 5 1 isT) f) as [ξ [H H0]].
-set j := Gauss_Legendre_quadrature _ _ in H0|-*.
-clearbody j.
-set k := ∫ f - j in H0|-*.
-change (Rminus _ _) with k.
-rewrite {}H0. clear k j.
-with_strategy opaque [derive1n] simpl.
-change (addn _ _) with 4%nat.
-change (exprz ?A 2) with (mul A A).
-rewrite Legendre_poly_2.
-set j := fun x => _.
-replace j with  (fun x : R => horner ('X * ('X * ('X * 'X))) x + (-2/3)*(horner ('X * 'X)) x + horner (polyC (1/9)) x).
-2: extensionality x; subst j; simpl; rewrite ?hornerE /=; nra.
-clear j.
-rewrite ?intgal_linear2 ?intgal_linear1.
-rewrite intgal_X4 intgal_X2 intgal_C.
-set e := _ + _. simpl in e.
-replace f with  (mul_fun (horner ((polyC(-1/2))*'X + polyC (1/2)))  cos).
-2:{
-extensionality x.
-rewrite /f /testfun /shape /=.
-f_equal.
-rewrite hornerE.
-rewrite ?hornerC.
-rewrite hornerE.
-rewrite hornerX.
-nra.
-}
-simpl.
-rewrite derive1M_; [ | apply derivable_horner |  apply derivable_cos].
-rewrite derive1_cos.
-rewrite -derivE.
-rewrite derivMXaddC.
-rewrite ?derivC.
-rewrite ?Rewriting.r_ring.
-rewrite ?derive1_add.
-
-rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_sin].
-rewrite derive1_opp derive1_sin.
-rewrite -derivE.
-rewrite derivMXaddC.
-rewrite ?derivC.
-rewrite ?Rewriting.r_ring.
-rewrite ?derive1_add.
-
-rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_cos].
-rewrite derive1_opp derive1_cos.
-rewrite opp_funK.
-rewrite -derivE.
-rewrite derivMXaddC.
-rewrite ?derivC.
-rewrite ?Rewriting.r_ring.
-rewrite ?derive1_add.
-
-rewrite derive1M_; [ | apply derivable_horner | apply derivable_sin].
-rewrite derive1_sin.
-rewrite -derivE.
-rewrite derivMXaddC.
-rewrite ?derivC.
-rewrite ?Rewriting.r_ring.
-
-rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_cos].
-rewrite derive1_opp derive1_cos.
-rewrite opp_funK.
-rewrite -derivE.
-rewrite ?derivC.
-rewrite horner0_ext.
-rewrite mul_fun0r add_funr0.
-
-rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_sin].
-rewrite derive1_opp derive1_sin.
-rewrite -derivE.
-rewrite ?derivC.
-rewrite horner0_ext.
-rewrite mul_fun0r add_funr0.
-
-rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_cos].
-rewrite derive1_opp derive1_cos.
-rewrite opp_funK.
-rewrite -derivE.
-rewrite ?derivC.
-rewrite horner0_ext.
-rewrite mul_fun0r add_funr0.
-
-rewrite derive1M_; [ | apply derivable_horner |  apply derivable_cos].
-rewrite derive1_cos.
-rewrite -derivE.
-rewrite ?derivC.
-rewrite horner0_ext.
-rewrite mul_fun0r add_funr0.
-
-rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_sin].
-rewrite derive1_opp derive1_sin.
-rewrite -derivE.
-rewrite ?derivC.
-rewrite horner0_ext.
-rewrite mul_fun0r add_funr0.
-
-rewrite derive1M_; [ | apply derivable_horner | intro; apply derivableN; apply derivable_cos].
-rewrite derive1_opp derive1_cos.
-rewrite opp_funK.
-rewrite -derivE.
-rewrite ?derivC.
-rewrite horner0_ext.
-rewrite mul_fun0r add_funr0.
-
-simpl.
-rewrite ?hornerE.
-subst e.
-unfold lo, hi in H.
-clear f.
-simpl in *.
-rewrite /factorial.
-unfold mul, add, inv, opp, GRing.one, muln; simpl.
-rewrite -?INRE.
-apply /RltbP.
-apply range_Rabs in H.
-subst rhs.
-interval.
-Qed.
-
-End Test_Legendre.
-
-(** ** The remainder of Stewart's Chapter 23. *)
-(** 22.  If we take [[a,b]]=[[0,∞]] and w(x)=e^{-x}, we get a formula to approximate
-
-      [ ∫_0^∞ f(x) e^{-x} dx ].
-
-   This is Gauss-Laguerre quadrature. *)
-
-(** 23. If we take [[a,b]]=[[-∞,∞]] and w(x)=e^{-x^2}, we get a formula to approximate,
-
-       [ ∫_{-∞}^∞ f(x) e^{-x^2} dx ].
-
-   This is Gauss-Hermite quadrature. *)
-
-(** 24.  There are many other Gauss formulas suitable for special purposes.  Most
-     mathematical handbooks have tables of abscissas and coefficients.  The
-     automatic generation of Gauss formulas is an interesting subject in its own right. *)
-
-(* begin details: some scribblings that should be discarded *)
-(** The following experiment should probably be abandoned; perhaps there is
-   something in the CoqEAL library that's useful instead. *)
-Module ComputableIntegral.
-
-Section R.
-Context {R : realType}.
-
-
-
-Fixpoint integ_rec {F: Num.NumDomain.type} (al: list F) (n: nat) :=
- match al with
- | nil => nil
- | a :: al' => a / natmul 1 (S n) :: integ_rec al' (S n)
- end.
-
-Lemma integ_last_nonnil: forall {F: Num.NumDomain.type} (al: list F) (n: nat),
-  nilp al = false ->
-  is_true (last 1 al != 0) -> is_true (last 1 (Algebra.zero :: integ_rec al n) != 0).
-intros.
-destruct al. discriminate.
-simpl in H0. clear H.
-simpl.
-assert (H1: is_true (last s (integ_rec al n.+1) != 0)).
-2:{
-clear - H1.
-destruct al; auto.
-simpl in *.
-revert H1; apply contraNN.
-rewrite mulIr_eq0 //.
-apply /rregP.
-apply invr_neq0.
-set (a := 0).
-replace a
-   with (natmul (@GRing.one F) O); auto; clear a.
-rewrite eqr_nat. auto.
-}
-revert n s H0; induction al; simpl; intros; auto.
-apply IHal.
-rename H0 into H1.
-clear - H1.
-destruct al; auto.
-simpl in *.
-revert H1; apply contraNN.
-rewrite mulIr_eq0 //.
-apply /rregP.
-apply invr_neq0.
-set (b := 0).
-replace b
-   with (natmul (@GRing.one F) O); auto; clear b.
-rewrite eqr_nat. auto.
-Qed.
-
-Definition polylast {F: nzSemiRingType} (p: {poly F}) : last 1 (polyseq p) != 0 :=
-  match p with @Polynomial _ _ H => H end.
-
-Definition integ {F: Num.NumDomain.type} (p: {poly F}) : {poly F} :=
- (if nilp (polyseq p) as b return (nilp (polyseq p) = b ->  {poly Num_NumDomain__to__GRing_NzSemiRing F})
-  then fun=> p
-  else fun H : nilp (polyseq p)=false => Polynomial (integ_last_nonnil (polyseq p) 0 H (polylast p))) erefl.
-
-Lemma integ_eq: forall (* {F: Num.NumDomain.type}*) (p: {poly R}),
-  integ p = cons_poly 0 (\poly_(i < (size p)) (p`_i / ((S i)%:R))).
-Proof.
-destruct p as [al H].
-simpl.
-destruct al eqn:H0; simpl.
-subst .
-rewrite Rewriting.poly0 cons_poly_def mul0r add0r polyC0 /integ /=.
-apply poly_inj.
-rewrite polyseq0 //.
-simpl in *.
-subst al.
-apply poly_inj. simpl.
-rewrite invr1 mulr1.
-set z:=0. rewrite {3}/z. clearbody z. simpl in z.
-rewrite polyseq_cons.
-rewrite nil_poly.
-set p := poly _ _.
-assert (p != 0) by admit.
-rewrite H0.
-f_equal.
-change ((size l).+1) with (size (s::l)) in p.
-change (is_true (last 1 (s::l) != 0)) in H.
-replace (s :: integ_rec l 1) with (integ_rec (s::l) O)
-  by  rewrite /= invr1 mulr1 //.
-subst p.
-rewrite polyseq_poly; [ | admit].
-set al := s::l. clearbody al. clear H0 H s l z.
-Admitted.
-
-Fixpoint add_poly' {R: nzSemiRingType} (al bl: seq R) :=
- match al, bl with
- | a :: al', b :: bl' =>  add a b :: add_poly' al' bl'
- | [::], _ => bl
- | _, [::] => al
- end.
-
-Lemma add_poly'_nil: forall {R: nzSemiRingType}  (al: seq R), add_poly' al [::] = al.
-Proof.
-induction al; simpl; intros; auto.
-Qed.
-
-Fixpoint mul_poly'aux {R: nzSemiRingType} (al bl: seq R) :=
- match al with
- | [::] => [::] 
- | a :: al' => add_poly' (map (mul a) bl) (0 :: mul_poly'aux al' bl)
- end.
-
-Definition mul_poly' {R: nzSemiRingType} (al bl: seq R) :=
- match bl with
- | [::] => [::] 
- | _ => mul_poly'aux al bl
- end.
-
-Lemma lastr_neq0: forall [R : nzSemiRingType] (s : seq (NzSemiRing.sort R)) (x : NzSemiRing.sort R),
- is_true (last x s != 0) -> is_true (last 1 s != 0).
-Proof.
-induction s; simpl; intros; auto.
-apply oner_neq0.
-Qed.
-
-
-Lemma mul_poly_eq_aux'{F: idomainType}: forall al bl: seq F,
-     last 0 (mul_poly'aux  al bl) = last 0 al * last 0 bl.
-Proof.
-induction al => bl.
-- rewrite mul0r //.
--
-simpl.
-Admitted.
-
-
-Lemma mul_poly_eq_aux{F: idomainType}: forall (A B: {poly F}),
-     last 1(mul_poly' (polyseq A) (polyseq B)) != 0.
-Proof.
-destruct A as [al Ha]. destruct B as [bl Hb].
-destruct al as [ | a al]; destruct bl as [ | b bl]; try apply oner_neq0.
-rewrite /polyseq.
-change (last 1 (a::al)) with (last 0 (a::al)) in Ha.
-change (last 1 (b::bl)) with (last 0 (b::bl)) in Hb.
-pose proof (mul_poly_eq_aux' (a::al) (b::bl)).
-assert (last 1 (mul_poly' (a::al) (b::bl)) = last 0 (mul_poly' (a::al) (b::bl)))
- by (simpl; auto).
-rewrite H0.
-rewrite H.
-clear - Ha Hb. simpl in *.
-rewrite mulIr_eq0; auto.
-apply /rregP; auto.
-Qed.
-
-Lemma mul_poly_eq {F: idomainType}: forall (A B: {poly F}),
-  mul_poly A B = 
- @Polynomial F (mul_poly' (polyseq A) (polyseq B)) (mul_poly_eq_aux _ _).
-Admitted.
-
-End R.
-End ComputableIntegral.
-(* end details *)
 
 
 
