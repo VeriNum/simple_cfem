@@ -265,7 +265,7 @@ red.
 change Float.div with (@BDIV _ Tdouble).
 with_strategy transparent [Float.of_bits] unfold Float.of_bits.
 rewrite !Int64.unsigned_repr by rep_lia.
-set (d := FPCore.default_rel _); hnf in d; simpl in d; subst d.
+set (d := half_an_ulp); hnf in d; simpl in d; subst d.
 set (x := (_ / _)%F64).
 unfold Bits.b64_of_bits, Bits.binary_float_of_bits, Binary.FF2B in x.
 simpl in x.

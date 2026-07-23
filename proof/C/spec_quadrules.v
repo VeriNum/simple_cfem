@@ -1,5 +1,4 @@
-(** * CFEM.C.spec_quadrature:  VST function specification for quadrules *)
-
+(** * CFEM.C.spec_quadrules:  VST function specification for quadrules *)
 
 (* begin details : Require Imports and Open Scope, etc. *)
 Require Import VST.floyd.proofauto.
@@ -32,6 +31,7 @@ Open Scope logic.
 
 (* end details *)
 
+(** The C program has a local static array containing all these values in this order: *)
 
 Definition gauss_pts_list : list (ftype Tdouble) :=
   [      (* One point *)
@@ -110,12 +110,14 @@ Definition gauss_pts_list : list (ftype Tdouble) :=
         0.973906528517172
   ]%F64.
 
+(** This separation logic predicate describes an array containing those gauss_points values,
+   located at the C program's extern variable named gauss_pts. *)
 Definition gauss_pts_pred (gv: globals) : mpred :=
    data_at Ers (tarray tdouble (Zlength gauss_pts_list)) 
           (map Vfloat gauss_pts_list)
          (gv _gauss_pts).
 
-
+(** The C program has a local static array containing all these values in this order: *)
 Definition gauss_wts_list : list (ftype Tdouble) := [
         (* One point *)
         2.0;
@@ -193,12 +195,18 @@ Definition gauss_wts_list : list (ftype Tdouble) := [
         0.066671344308688
   ]%F64.
 
+(** This separation logic predicate describes an array containing those gauss_weights values,
+   located at the C program's extern variable named gauss_wts. *)
 
 Definition gauss_wts_pred (gv: globals) : mpred :=
    data_at Ers (tarray tdouble (Zlength gauss_wts_list)) 
           (map Vfloat gauss_wts_list)
          (gv _gauss_wts).
 
+(** ** Low-level specs *)
+(** The C program's gauss_point function just returns an element from the array.
+  This low-level spec says just that.  Below, the high-level spec will say that
+   the floating-point value is actually appropriate. *)
 Definition gauss_point_spec_lowlevel : ident * funspec :=
   DECLARE _gauss_point
   WITH npts: Z, i: Z, gv: globals
@@ -212,6 +220,9 @@ Definition gauss_point_spec_lowlevel : ident * funspec :=
     RETURN (Vfloat (Znth (npts*(npts-1)/2+i) gauss_pts_list))
     SEP( gauss_pts_pred gv ).
 
+(** The C program's gauss_weight function just returns an element from the array.
+  This low-level spec says just that.  Below, the high-level spec will say that
+   the floating-point value is actually appropriate. *)
 Definition gauss_weight_spec_lowlevel : ident * funspec :=
   DECLARE _gauss_weight
   WITH npts: Z, i: Z, gv: globals
@@ -224,7 +235,8 @@ Definition gauss_weight_spec_lowlevel : ident * funspec :=
     PROP( )
     RETURN (Vfloat (Znth (npts*(npts-1)/2+i) gauss_wts_list))
     SEP( gauss_wts_pred gv ).
- 
+
+(** This function computes integer square roots by case analysis. *) 
 Definition gauss2d_npoint1d_spec : ident * funspec :=
   DECLARE _gauss2d_npoint1d
   WITH s: Z
@@ -237,41 +249,41 @@ Definition gauss2d_npoint1d_spec : ident * funspec :=
     RETURN (Vint (Int.repr s))
     SEP( ).
 
-Require Import CFEM.quadrature.
+(** ** High-level specs *)
 
+(** The high-level specifications of gauss_points() and gauss_weights()
+  are based on the theory of Gauss-Legendre quadrature, and then
+  we need to prove that certain floating point numbers are accurate
+  approximations of the real-valued Gauss points and weights, so 
+  we import all the appropriate stuff now. *)
+
+Require Import CFEM.quadrature.  Import Legendre.
 Require Import Interval.Tactic.
-
-(* TODO: move this to quadrature.v *)
-Lemma legendre_roots_unique: forall {R} [n] (r r': @Legendre.legendre_roots R n),
-    r=r'.
-Proof.
-intros.
-destruct r as [f1 Hf1 roots1].
-destruct r' as [f2 Hf2 roots2].
-subst f1 f2.
-f_equal.
-apply roots_of_ortho_p_unique.
-apply Legendre.lo_lt_hi.
-apply Legendre.w_positive.
-Qed.
-
 From mathcomp Require Import Rstruct.
 From Stdlib Require Import Reals.
-
 Instance InhR : Inhabitant R := 0%R.
 
-Import Legendre.
+
+(** float x is near real r when it's no more than half an ulp away *)
+Definition half_an_ulp : R := FPCore.default_rel (coretype_of_type Tdouble).
 
 Definition float_near (r: R) (x: ftype Tdouble) :=
-  (Rabs (FT2R x - r) <= Rabs (FT2R x) * FPCore.default_rel (coretype_of_type Tdouble))%R.
+  (Rabs (FT2R x - r) <= Rabs (FT2R x) * half_an_ulp)%R.
 
-Definition ith_gauss_point(n: 'I_5) (i: 'I_n) :=
-    (tuple.tnth (@ROOTS_vals Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real  Legendre.lo Legendre.hi Legendre.w n (LR_roots _ (nth_iseq some_legendre_roots n))) i).
+(** The ith Gauss point of Legendre polyomial n *)
+Definition ith_gauss_point(n: 'I_5) (i: 'I_n) : R :=
+    (tuple.tnth (ROOTS_vals  Legendre.lo Legendre.hi Legendre.w n
+                              (LR_roots _ (nth_iseq some_legendre_roots n))) i).
 
+(** The ith Gauss weight of Legendre polyomial n *)
+Definition ith_gauss_weight (n: 'I_5) (i: 'I_n) : R :=
+ tuple.tnth (GW_vals _ (nth_iseq some_gauss_weights n)) i.
 
-Definition ith_gauss_weight (n: 'I_5) (i: 'I_n) :=
- tuple.tnth (GW_vals _ (nth_iseq (@some_gauss_weights Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real) n)) i.
-
+(** The high-level spec of the gauss_point function says that it returns
+  a floating-point value that's as close as possible to the ith Gauss point
+   of the nth Legendre polynomial, provided that n<5.  Note that the low-level
+   spec is willing to return a number for n≤10, but the high-level spec
+   has nothing to say beyond degree 4. *) 
 Definition gauss_point_spec : ident * funspec :=
   DECLARE _gauss_point
   WITH X: { n: 'I_5 & 'I_n}, gv: globals
@@ -286,7 +298,9 @@ Definition gauss_point_spec : ident * funspec :=
     RETURN (Vfloat x)
     SEP( gauss_pts_pred gv ).
 
+(** Proof that the low-level spec implies the high-level spec *)
 Lemma sub_gauss_point: funspec_sub (snd gauss_point_spec_lowlevel) (snd gauss_point_spec).
+(* begin details: Proof. ... Qed. *)
 Proof.
 apply NDsubsume_subsume.
 split; auto.
@@ -310,7 +324,7 @@ entailer!!.
 destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
 destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
 red;
-set (d := FPCore.default_rel _); hnf in d; simpl in d; subst d;
+set (d := half_an_ulp); hnf in d; simpl in d; subst d;
 unfold ith_gauss_point, tuple.tnth; simpl;
 try change nmodule.Algebra.zero with 0%R;
 repeat change (ssralg.GRing.mul ?A ?B) with (A*B)%R;
@@ -321,7 +335,11 @@ repeat change (ssralg.GRing.inv ?A) with (/A)%R;
 rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE, ?Rminus_diag;
 first [rewrite ?Rabs_R0; Lra.lra | interval with (i_prec(110%positive))].
 Qed.
+(* end details *)
 
+(** The high-level spec of the gauss_weight function says that it returns
+  a floating-point value that's as close as possible to the ith Gauss weight
+   of the nth Legendre polynomial, provided that n<5.  *) 
 Definition gauss_weight_spec : ident * funspec :=
   DECLARE _gauss_weight
   WITH X: { n: 'I_5 & 'I_n}, gv: globals
@@ -336,7 +354,9 @@ Definition gauss_weight_spec : ident * funspec :=
     RETURN (Vfloat x)
     SEP( gauss_wts_pred gv ).
 
+(** Proof that the low-level spec implies the high-level spec *)
 Lemma sub_gauss_weight: funspec_sub (snd gauss_weight_spec_lowlevel) (snd gauss_weight_spec).
+(* begin details: Proof. ... Qed. *)
 Proof.
 apply NDsubsume_subsume.
 split; auto.
@@ -360,7 +380,7 @@ entailer!!.
 destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
 destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
 red;
-set (d := FPCore.default_rel _); hnf in d; simpl in d; subst d;
+set (d := half_an_ulp); hnf in d; simpl in d; subst d;
 unfold ith_gauss_weight, tuple.tnth; simpl;
 try change nmodule.Algebra.zero with 0%R;
 repeat change (ssralg.GRing.mul ?A ?B) with (A*B)%R;
@@ -371,7 +391,9 @@ repeat change (ssralg.GRing.inv ?A) with (/A)%R;
 rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE, ?Rminus_diag;
 first [rewrite ?Rabs_R0; Lra.lra | interval with (i_prec(110%positive))].
 Qed.
+(* end details *)
 
+(** *** 2-dimensional gauss points and weights *)
  Definition gauss2d_point_spec : ident * funspec :=
   DECLARE _gauss2d_point
   WITH sh: share, p: val, X: {n: 'I_5 & 'I_n * 'I_n}, gv: globals
@@ -403,6 +425,7 @@ Qed.
     SEP(gauss_wts_pred gv).
 
 
+(** *** The triangle: Hughes quadrature points and weights, low-level specs only*)
 Definition hughes_points: list (R*R) := [ (1/2, 0); (1/2, 1/2); (0, 1/2) ]%R.
 
 Definition hughes_point_spec: ident * funspec :=
