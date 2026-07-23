@@ -21,7 +21,11 @@ Local Open Scope ring_scope.
 Import Legendre.
 Require Import Interval.Tactic.
 From mathcomp Require Import Rstruct.
-From Stdlib Require Import Reals.
+Import trigo.
+
+Notation R := (RbaseSymbolsImpl_R__canonical__reals_Real).
+
+(* From Stdlib Require Import Reals.*)
 
 Definition shape (n: 'I_3) (i: 'I_n.+1) : R -> R.
 destruct n as[n Hn].
@@ -43,56 +47,120 @@ Definition testfun (n: 'I_3) (i: 'I_n.+1) : R -> R := fun x => shape n i x * cos
 
  Notation "∫" := intgal.
 
-Lemma derive1M {R : numFieldType} (f g: R -> R) (x: R) :
-  derive.derivable f x 1 ->
-  derive.derivable g x 1 ->
-  (fun x => f x * g x)^`()%classic x = f x * g^`()%classic x + f^`()%classic x * g x.
-Admitted.
+(* Because [derivable] is not locked, many simple kinds of proofs will tend to blow up.
+  See this: https://rocq-prover.zulipchat.com/#narrow/channel/237666-math-comp-analysis/topic/very.20slow.20unification.20failure.2C.20derivable_sin.2C.20derivable_cos/with/612359969
+  So at (* this line *) below, we must explicitly [apply H] instead of doing [assumption] or [auto].
+  And also, Hint Resolve databases won't work.
+*)
 
-Definition everywhere_derivable {R : numFieldType}  (f: R -> R) := forall x, derive.derivable f x 1.
 
-Lemma derive1M_ {R : numFieldType} (f g: R -> R) :
+Lemma derive1M (f g: R -> R) (x: R) :
+  derivable f x 1 ->
+  derivable g x 1 ->
+  (f  \* g)^`()%classic x = f x * g^`()%classic x + f^`()%classic x * g x.
+Proof.
+intros.
+progress simpl.
+rewrite ?derive1E.
+rewrite deriveM.
+-
+f_equal.
+rewrite mulrC.
+rewrite /scale //.
+-
+apply H.
+-
+apply H0.
+Qed.
+
+Definition everywhere_derivable (f: R -> R) := forall x, derivable f x 1.
+
+Lemma derive1M_ (f g: R -> R) :
   everywhere_derivable f ->
   everywhere_derivable g ->
   (mul_fun f g)^`()%classic = add_fun (mul_fun f (g^`()%classic)) (mul_fun (f^`()%classic) g).
 Proof.
 intros.
 extensionality x.
-apply derive1M; auto.
+rewrite derive1M; auto.
 Qed.
 
 Notation d1 := (@derive1 R (Real_sort__canonical__normed_module_NormedModule RbaseSymbolsImpl_R__canonical__reals_Real)).
 
-Lemma derive1_cst': forall {R : numFieldType} [V : normedModType R] (k : V) (t : R), 
+Lemma derive1_cst': forall [V : normedModType R] (k : V) (t : R), 
    (fun=> k)^`()%classic t = 0.
 Proof. intros; apply derive1_cst. Qed.
 
-
 Lemma derive1_cos: d1 cos = opp_fun sin.
-Admitted.
+Proof.
+extensionality x.
+rewrite derive1E.
+destruct (mathcomp.analysis.trigo.is_derive_cos x).
+auto.
+Qed.
 
 Lemma derive1_sin: d1 sin = cos.
-Admitted.
+Proof.
+extensionality x.
+rewrite derive1E.
+destruct (mathcomp.analysis.trigo.is_derive_sin x).
+auto.
+Qed.
 
-Lemma derive1_add: forall f g : R -> R, d1 (f \+ g) = d1 f \+ d1 g.
-Admitted.
+Lemma derive1_add: forall (f g : R -> R), 
+  everywhere_derivable f ->
+  everywhere_derivable g ->
+  d1 (f \+ g) = (d1 f \+ d1 g).
+Proof.
+intros.
+extensionality x.
+rewrite /= ?derive1E.
+rewrite deriveD.
+auto.
+apply H.
+apply H0.
+Qed.
 
-Lemma derive1_opp: forall f : R -> R, d1 (\- f) = \- (d1 f).
-Admitted.
+Lemma derive1_opp: forall (f : R -> R), 
+  everywhere_derivable f->
+  d1 (\- f) = \- (d1 f).
+Proof.
+intros.
+extensionality x.
+rewrite /= ?derive1E.
+rewrite deriveN //.
+Qed.
 
 Lemma opp_funK: forall f: R -> R, opp_fun (opp_fun f) = f.
-Admitted.
+Proof.
+intros.
+extensionality x.
+simpl.
+rewrite opprK //.
+Qed.
 
 Lemma ev_deriv_cos: everywhere_derivable cos.
-Admitted.
-Lemma ev_deriv_sin:  everywhere_derivable sin.
-Admitted.
+Proof.
+intro.
+apply derivable_cos.
+Qed.
 
-Lemma range_Rabs: forall x, is_true (-1 <= x <= 1) -> Rle (Rabs x) 1.
-Admitted.
+Lemma ev_deriv_sin:  everywhere_derivable sin.
+Proof.
+intro.
+apply derivable_sin.
+Qed.
+
+Lemma range_Rabs: forall x, is_true (-1 <= x <= 1) -> Rdefinitions.Rle (Rbasic_fun.Rabs x) 1.
+Proof.
+intros.
+apply Stdlib.Rabs_def1_le; apply /RleP.
+lra.
+change (is_true (- 1 <= x)). lra.
+Qed.
 
 Lemma derivE_rev :
-forall [R : realFieldType] (p : {poly Num_RealField__to__GRing_NzSemiRing R}),
+forall (p : {poly Num_RealField__to__GRing_NzSemiRing R}),
  (horner p)^`()%classic = horner p^`().
 Proof. intros. symmetry. apply derivE. Qed.
 
@@ -101,53 +169,79 @@ Proof.
 intros. intro. apply derivable_horner.
 Qed.
 
-Lemma ev_derivD: forall {R : numFieldType}   (f g: R -> R),
+Lemma ev_derivD: forall  (f g: R -> R),
     everywhere_derivable f -> everywhere_derivable g -> everywhere_derivable (f \+ g).
 Proof.
-intros. intro. apply derivableD; auto.
+intros. intro. apply (@derivableD _ _ _ f g); auto.
 Qed.
 
-Lemma ev_derivB: forall {R : numFieldType}   (f g: R -> R),
+Lemma ev_derivB: forall  (f g: R -> R),
     everywhere_derivable f -> everywhere_derivable g -> everywhere_derivable (f \- g).
 Proof.
-intros. intro. apply derivableB; auto.
+intros. intro. apply (@derivableB _ _ _ f g); auto.
 Qed.
 
-Lemma ev_derivN: forall {R : numFieldType}   (f : R -> R),
+Lemma ev_derivN: forall (f : R -> R),
     everywhere_derivable f -> everywhere_derivable (\- f).
 Proof.
 intros. intro. apply derivableN; auto.
 Qed.
 
-Lemma ev_derivM: forall {R : numFieldType}   (f g: R -> R),
+Lemma ev_derivM: forall (f g: R -> R),
     everywhere_derivable f -> everywhere_derivable g -> everywhere_derivable (f \* g).
 Proof.
 intros. intro. apply derivableM; auto.
 Qed.
 
-Lemma ev_deriv_cst: forall {R : numFieldType}   (c: R),
+Lemma ev_deriv_cst: forall (c: R),
     everywhere_derivable (functions.cst c).
 Proof.
 intros. intro. apply derivable_cst.
 Qed.
 
-Create HintDb derivable.
+Ltac derivable := 
+  with_strategy opaque [derive.derivable]  
+  solve [repeat first
+    [ simple apply ev_deriv_cos
+    | simple apply ev_deriv_sin
+    | simple apply ev_deriv_horner
+    | simple apply ev_derivD
+    | simple apply ev_derivB
+    | simple apply ev_derivN 
+    | simple apply ev_derivM 
+    | simple apply ev_deriv_cst 
+   ]].
 
-Hint Resolve @ev_deriv_cos @ev_deriv_sin @ev_deriv_horner @ev_derivD @ev_derivB @ev_derivN @ev_derivM @ev_deriv_cst : derivable.
 
 Definition r_deriv := (@deriv0, @derivMn, @derivZ, @derivMz, @deriv_mulC, @derivXn, @derivX, @derivC, @derivXsubC, @derivMXaddC, @derivMNn, @derivM, @derivD, @derivB, @derivN, @deriv_exp).
 
-Definition r_derive1 := (derive1_cos, derive1_sin, derivE_rev, derivMXaddC, derivC, derive1_add, derive1_opp, 
-    @derive1_cst' R (Real_sort__canonical__normed_module_NormedModule RbaseSymbolsImpl_R__canonical__reals_Real), 
-   @derive1_cst R (Real_sort__canonical__normed_module_NormedModule RbaseSymbolsImpl_R__canonical__reals_Real),
-         horner0_ext).
+Definition r_derive1 := (derive1_cos, derive1_sin, derivE_rev, derivMXaddC, derivC,
+         @horner0_ext R).
 
 Import Rewriting. 
 
+Ltac rewrite_derive1_bottom_up := 
+ match goal with
+  |  |- context [derive1 (mul_fun ?f ?g)] => 
+         lazymatch f with context [derive1] => fail | _ => idtac end;
+         lazymatch g with context [derive1] => fail | _ => idtac end;
+         rewrite (derive1M_ f g); [ | derivable ..]
+  |  |- context [derive1 (add_fun ?f ?g)] => 
+         lazymatch f with context [derive1] => fail | _ => idtac end;
+         lazymatch g with context [derive1] => fail | _ => idtac end;
+         rewrite (derive1_add f g); [ | derivable ..]
+  |  |- context [derive1 (opp_fun ?f)] => 
+         lazymatch f with context [derive1] => fail | _ => idtac end;
+         rewrite (derive1_opp f); [ | derivable ..]
+ end.
+
 Ltac rewrite_derive := 
- repeat time "rewrite_derive iteration" (
-  rewrite /= ?(r_derive1, r_ring, r_lift, opp_funK);
-  try (rewrite derive1M_; [ | solve [auto with derivable ] .. ])).
+  time "rewrite_derive"
+  repeat (
+  simpl;
+  first [rewrite !(r_derive1, r_ring, r_lift, opp_funK)
+         | rewrite_derive1_bottom_up
+         ]).
 
 Lemma true_andb_e1: forall [A B],
  is_true (andb A B) -> is_true A.
@@ -172,14 +266,21 @@ repeat match goal with
    apply conj'; clear H; move => H
 end.
 
+Lemma trigo_cos_e: (@cos.body RbaseSymbolsImpl_R__canonical__reals_Real) = Rtrigo_def.cos.
+Admitted.
+
+Lemma trigo_sin_e: (@sin.body RbaseSymbolsImpl_R__canonical__reals_Real) = Rtrigo_def.sin.
+Admitted.
+
 Ltac prepare_for_interval := 
-try change nmodule.Algebra.zero with 0%R in *;
-repeat change (ssralg.GRing.mul ?A ?B) with (A*B)%R in *;
-repeat change (nmodule.Algebra.opp ?A) with (- A)%R in *;
-repeat change (nmodule.Algebra.add ?A ?B) with (A + B)%R in *;
-try change (ssralg.GRing.one _) with 1%R in *;
-repeat change (ssralg.GRing.inv ?A) with (/A)%R in * ;
-rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE, ?Rminus_diag in *;
+rewrite ?trigo_cos_e ?trigo_sin_e; 
+try change nmodule.Algebra.zero with (Rdefinitions.IZR 0) in *;
+repeat change (ssralg.GRing.mul ?A ?B) with (Rdefinitions.Rmult A B) in *;
+repeat change (nmodule.Algebra.opp ?A) with (Rdefinitions.Ropp A) in *;
+repeat change (nmodule.Algebra.add ?A ?B) with (Rdefinitions.Rplus A  B) in *;
+repeat change (GRing.one _) with (Raxioms.INR 1%nat) in *;
+repeat change (GRing.inv ?A) with (Rdefinitions.Rinv A)%R in * ;
+rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE, ?RIneq.Rminus_diag in *;
 lazymatch goal with
  |  |- is_true (@Order.lt _ RbaseSymbolsImpl_R__canonical__Order_Preorder _ _) => apply /RltbP
  |  |- is_true (@Order.le _ RbaseSymbolsImpl_R__canonical__Order_Preorder _ _) => apply /RlebP
@@ -196,7 +297,9 @@ cbv zeta;
 let H := fresh in let H0 := fresh in let ξ := fresh "ξ" in 
 match goal with |- context [Gauss_Legendre_quadrature ?n ?f] => 
 destruct (legendre_quadrature_error' n f) as [ξ [H H0]];
- change (add ?A (opp ?B) = ?C) with (Rminus A B = C) in H0; rewrite {}H0
+ (*
+ change (add ?A (opp ?B) = ?C) with (Rdefinitions.Rminus A B = C) in H0; 
+ *)rewrite {}H0
 end;
 (* Step three: some specific computations and simplifications *)
 match goal with |- context [factorial ?k] => let j := eval compute in k in change k with j end;
@@ -213,7 +316,7 @@ replace (fun x => mul (horner _ _)  _) with  j;
      rewrite -hornerM (LR_poly_eq _ (nth_iseq some_legendre_roots (@Ordinal 5 n isT))) /= ?mulrD /j;
      reflexivity];
 (* Step five: focus on the k'th derivative of the function *)
-match goal with |-  is_true (Order.le (Rabs (mul (?D / _) _ ))  _) => pattern D end;
+match goal with |-  is_true (Order.le (Rbasic_fun.Rabs (mul (?D / _) _ ))  _) => pattern D end;
 let G := fresh "G" in 
 match goal with |- ?g _ => set G := g end;
 (* Step six: now derive the k'th derivative *)
@@ -234,22 +337,23 @@ prepare_for_interval;
 (* Solve the goal using the Interval package *)
 interval.
 
+Import BinInt.
+Notation IZR := (Rdefinitions.IZR).
+
 Lemma error_1_0_1:
  (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
  let f :=horner ((1/2)%:P *(1-'X)) \* cos in 
- Rabs ( ∫ f - Gauss_Legendre_quadrature 1 f ) <= (2 / 100)%R.
+ Rbasic_fun.Rabs ( ∫ f - Gauss_Legendre_quadrature 1 f ) <= IZR 2 / IZR 100.
 Proof.
-time "error_1_0_1" gauss_legendre_error_bounder.
-(* that took 49.847 or 52.862 seconds overall *)
+time "error_1_0_1" gauss_legendre_error_bounder.  (* 3.411 seconds *)
 Qed.
 
 Lemma error_1_0_2:
  (* test function (1/2)*(1-x)*cos(x), degree-2 quadrature *)
  let f :=horner ((1/2)%:P *(1-'X)) \* cos in 
- Rabs ( ∫ f - Gauss_Legendre_quadrature 2 f ) <= (223 / 100000)%R.
+ Rbasic_fun.Rabs ( ∫ f - Gauss_Legendre_quadrature 2 f ) <=  IZR 223 / IZR 100000.
 Proof.
-time "error_1_0_2" gauss_legendre_error_bounder.
-(* 150.098 or 152.842 seconds overall *)
+time "error_1_0_2" gauss_legendre_error_bounder.  (* 31.7 seconds *)
 Qed.
 
 
