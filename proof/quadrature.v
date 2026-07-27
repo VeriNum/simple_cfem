@@ -3,7 +3,6 @@ From mathcomp Require Import all_boot ssralg ssrnum archimedean finfun order.
 From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory GRing.
 From mathcomp.algebra_tactics Require Import ring lra.
-Locate Ltac lra.
 Import classical_sets.
 Import numFieldNormedType.Exports.
 From Stdlib Require Import FunctionalExtensionality.
@@ -374,7 +373,104 @@ rewrite /Rintegral (@continuous_FTC2 R (horner P) (horner (integ P)) lo hi lo_lt
 rewrite -derivE. rewrite deriv_integ //.
 Qed.
 
+Lemma continuous_bounded: forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
+    {in `[a, b], continuous f}%classic ->
+    [bounded f x | x in `[a,b]].
+Proof.
+intros.
+Admitted.
+
+Lemma continuousM' : forall (a b: Real.sort R) (f g: Real.sort R -> Real.sort R),
+ {in `[a, b]%classic, continuous f} ->
+ {in `[a, b]%classic, continuous g} ->
+  {in `[a, b]%classic, continuous (GRing.mul_fun f  g)}.
+Admitted.
+
+Lemma in_within_continuous: forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
+   {in `[a, b]%classic, continuous f } ->
+  {within `[a, b], continuous f}%classic.
+Proof.
+intros.
+pose proof  @continuous_subspace_itv R `[a,b]  f.
+unfold from_subspace.
+apply H0.
+clear - H.
+replace (mem (mkset _)) with (mem (Interval (BSide true a) (BSide false b))) in H; auto.
+unfold mem; simpl. f_equal.
+extensionality x.
+unfold in_mem. simpl.
+unfold in_set, mkset.
+rewrite boolp.asboolb //.
+Qed.
+
+Lemma within_continuous_measurable_fun:
+ forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
+   is_true (a < b) ->
+   {within `[a, b], continuous f}%classic ->
+   measurable_fun `[a, b] f.
+Proof.
+intros * Hab H.
+rewrite continuous_within_itvP in H; auto.
+destruct H.
+eapply measurable_fun_itv_cc with (b0:=false) (b1:=true).
+apply open_continuous_measurable_fun; auto.
+clear - H.
+simpl in *.
+replace (mem (mkset _)) with (mem (Interval (BSide false a) (BSide true b))); auto.
+unfold mem; simpl. f_equal.
+extensionality x.
+unfold in_mem. simpl.
+unfold in_set, mkset.
+rewrite boolp.asboolb //.
+Qed.
+
+Lemma in_continuous_measurable_fun:
+ forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
+   is_true (a < b) ->
+   {in `[a, b], continuous f}%classic ->
+   measurable_fun `[a, b] f.
+Proof.
+intros * Hab H.
+apply within_continuous_measurable_fun; auto.
+apply in_within_continuous; auto.
+Qed.
+
+
+Lemma in_continuous_cst: forall  (a b: Real.sort R) (c: R),
+   {in `[a,b]%classic, continuous (fun _:  R =>c)}.
+Admitted.
+
+Lemma in_continuousN: forall  (a b: Real.sort R) (f: R -> R),
+   {in `[a,b]%classic, continuous f} ->
+   {in `[a,b]%classic, continuous (\- f)}.
+Admitted.
+
+Lemma in_continuousB: forall  (a b: Real.sort R) (f g: R -> R),
+   {in `[a,b]%classic, continuous f} ->
+   {in `[a,b]%classic, continuous g} ->
+   {in `[a,b]%classic, continuous (f \- g)}.
+Admitted.
+
+Lemma in_continuousD: forall  (a b: Real.sort R) (f g: R -> R),
+   {in `[a,b]%classic, continuous f} ->
+   {in `[a,b]%classic, continuous g} ->
+   {in `[a,b]%classic, continuous (f \+ g)}.
+Admitted.
+
+Lemma in_continuousM: forall  (a b: Real.sort R) (f g: R -> R),
+   {in `[a,b]%classic, continuous f} ->
+   {in `[a,b]%classic, continuous g} ->
+   {in `[a,b]%classic, continuous (f \* g)}.
+Admitted.
+
+Lemma in_continuous_horner: forall  (a b: Real.sort R)  (f: {poly R}),   {in `[a,b]%classic, continuous (horner f)}.
+Proof.
+intros * ? ? ?. apply continuous_horner.
+Qed.
+
 End R.
+
+Hint Resolve in_continuous_cst in_continuous_horner in_continuousN in_continuousB in_continuousD in_continuousM : continuous.
 
 End Rewriting.
 
@@ -520,21 +616,86 @@ Section Integral.
  Variable Hab: a<b.
  Variable w: R -> R.
  Variable wpos: forall x, a <= x <= b -> w x > 0.
+ Variable wcontinuous:     {in `[a, b], continuous w}%classic.
  Definition  intgal (f: R -> R) := 
             \int[lebesgue_measure]_(x in `[a,b]%classic) (f x * w x).
  Notation "∫" := intgal.
  
+ Hint Resolve wcontinuous: continuous.
+ Lemma wmeasurable: measurable_fun `[a, b] w.
+Proof. apply in_continuous_measurable_fun; auto with continuous. Qed.
+
+(*
+ Definition bounded (f: R -> R) := exists M: R,  forall x, a <= x <= b -> Num.norm (f x) <= M.
+*)
+
 (** 3.  Regarded as an operator on functions, ∫  is linear.  That is, 
 
          ∫ α f = α ∫  f and ∫ (f + g) = ∫ f + ∫ g.  
 
      We will make extensive use of linearity in what follows. *)
 
- Lemma intgal_linear1: forall (α: R) (f:  R->R), ∫ (α \*: f) = α * ∫ f.
- Admitted.
+ Lemma intgal_linear1: forall (α: R) (f:  R->R),
+      {in `[a, b], continuous f}%classic ->
+      ∫ (α \*: f) = α * ∫ f.
+Proof.
+intros * CONT.
+unfold intgal.
+match goal with |- eq (@Rintegral ?d ?T R ?c ?s _) _ => 
+   pose proof @RintegralZl d T R c s (fun x => f x * w x) α end.
+set g := fun x => mul _ _.
+set h := fun x => mul α _ in H.
+replace g with h.
+2:{ clear H. subst g h. extensionality x. rewrite /scale_fun /scale mulrA //. }
+apply H; clear g h H.
+-
+apply measurable_itv.
+-
+apply measurable_bounded_integrable.
++
+apply measurable_itv.
++
+rewrite /= lebesgue_measure_itv /=  (_: Order.lt (EFin a) (EFin b) = (a<b)) // Hab. 
+rewrite /GRing.add /= /adde /Order.lt /= /has_quality /= /in_mem /=. lra.
++
+simpl.
+apply measurable_funM; [ | apply wmeasurable].
+apply in_continuous_measurable_fun; auto.
++
+apply continuous_bounded; auto.
+apply continuousM'; auto.
+Qed.
 
- Lemma intgal_linear2: forall (f g: R -> R), ∫ (f \+ g) = ∫ f + ∫ g.
- Admitted.
+ Lemma intgal_linear2: forall (f g: R -> R), 
+      {in `[a, b], continuous f}%classic ->
+      {in `[a, b], continuous g}%classic ->
+      ∫ (f \+ g) = ∫ f + ∫ g.
+Proof.
+intros * Hf Hg.
+unfold intgal.
+match goal with |- eq (@Rintegral ?d ?T R ?c ?s _) _ => 
+   pose  proof @RintegralD d T R c s (mul_fun f w) (mul_fun g w)
+end.
+set u := fun x => mul _ _.
+set v := fun x => add _ _ in H.
+replace u with v.
+2: extensionality y; subst u v; rewrite /= mulrDl //.
+apply H; clear H u v.
++
+apply measurable_itv.
++
+rewrite /=.
+apply continuous_compact_integrable.
+apply segment_compact.
+pose proof continuousM' a b _ _  Hf wcontinuous.
+apply in_within_continuous; auto.
++
+rewrite /=.
+apply continuous_compact_integrable.
+apply segment_compact.
+pose proof continuousM' a b _ _  Hg wcontinuous.
+apply in_within_continuous; auto.
+Qed.
 
 (** ** Orthogonal polynomials *)
 
@@ -1009,7 +1170,11 @@ Module Legendre.
  Definition w (x: R) : R := 1.
  Lemma w_positive: forall x, is_true (lo <= x <= hi) -> is_true (0 < w x).
  Proof. intros. rewrite /w. lra. Qed.
+ Lemma wcontinuous:     {in `[lo, hi], continuous w}%classic.
+ Proof. rewrite /w. intros ? ?. apply (@cst_continuous R R 1 x). Qed.
  
+ Hint Resolve wcontinuous: continuous.
+
  Definition legendre (n: nat) : {poly R} :=  ortho_p lo hi w n.
 
  (** Presto! the Legendre polynomials have been defined.  But we want to put
@@ -1032,49 +1197,57 @@ Module Legendre.
 
 (* begin details: A whole bunch of useful rewriting lemmas, to be used automatically in the rewrite tactic *)
 
-Lemma intgal_linear1 : forall (α : R) (f : R -> R), ∫ (α \*: f) =  α * ∫ f.
+Lemma intgal_linear1 : forall (α : R) (f : R -> R),
+  {in `[lo, hi], continuous f}%classic ->
+   ∫ (α \*: f) =  α * ∫ f.
 Proof.
-intros. rewrite /intgal intgal_linear1 -/intgal //. apply lo_lt_hi. 
+intros. rewrite /intgal intgal_linear1 -/intgal //. apply lo_lt_hi. apply wcontinuous.
 Qed.
 
 Lemma intgal_linear1' : forall (α : R) (f : {poly R}), ∫ (horner (polyC α * f)) =  α * ∫ (horner f).
 Proof.
 intros.
-rewrite -intgal_linear1.
+rewrite -intgal_linear1; auto with continuous.
 f_equal. extensionality x. rewrite hornerE //.
 Qed.
 
 Lemma intgal_linear1'' : forall (α : R) (f : {poly R}), ∫ (horner ((- polyC α) * f)) =  (-α) * ∫ (horner f).
 Proof.
 intros.
-rewrite -intgal_linear1.
+rewrite -intgal_linear1; auto with continuous.
 f_equal. extensionality x. rewrite ?hornerE //.
 Qed.
 
-Lemma intgal_linearN : forall (f : R -> R), ∫ (opp_fun f) =  - ∫ f.
+Lemma intgal_linearN : forall (f : R -> R), 
+  {in `[lo, hi], continuous f}%classic ->
+  ∫ (opp_fun f) =  - ∫ f.
 Proof.
 intros.
 transitivity ( ∫ ((fun=> -1)  \* f)).
 f_equal; extensionality x; simpl; lra.
-rewrite intgal_linear1; lra.
+rewrite intgal_linear1; auto.
+lra.
 Qed.
 
 Lemma intgal_linearN' : forall (f : {poly R}), ∫ (horner (-f)) =  - ∫ (horner f).
 Proof.
 intros.
-rewrite -intgal_linearN.
+rewrite -intgal_linearN; auto with continuous.
 f_equal. extensionality x. rewrite hornerE //.
 Qed.
 
-Lemma intgal_linear2: forall  f g : R -> R,  ∫ (f \+ g) =  ∫ f +  ∫ g.
+Lemma intgal_linear2: forall  f g : R -> R, 
+  {in `[lo, hi], continuous f}%classic ->
+  {in `[lo, hi], continuous g}%classic ->
+   ∫ (f \+ g) =  ∫ f +  ∫ g.
 Proof.
-intros. rewrite /intgal intgal_linear2 -/intgal //. apply lo_lt_hi. 
+intros. rewrite /intgal intgal_linear2 -/intgal; auto with continuous. 
 Qed.
 
 Lemma intgal_linear2': forall  f g : {poly R},  ∫ (horner (f + g)) =  ∫ (horner f) +  ∫ (horner g).
 Proof.
 intros.
-rewrite -intgal_linear2.
+rewrite -intgal_linear2; auto with continuous.
 f_equal. extensionality x. rewrite hornerE //.
 Qed.
 
@@ -1141,7 +1314,7 @@ Qed.
 Proof.
 intros.
 rewrite compute_G_eq /intgal.
-apply quadrature_error. apply lo_lt_hi. apply w_positive.
+apply quadrature_error; auto; auto with continuous. apply lo_lt_hi.
 Qed.
 
 (* begin details:  A bunch of useful rewriting rules *)
@@ -1670,7 +1843,7 @@ assert (0 < s3); rewrite ?sqrtr_gt0; lra.
 -
 transitivity ( ∫ (horner (-(s3/2))%:P \* (horner 'X) \+ horner (1/2)%:P)).
 f_equal; extensionality x; rewrite ?hornerE /= ?hornerE;  lra.
-rewrite -hornerM' ?r_intgal ?r_ring.
+rewrite -hornerM' ?r_intgal ?r_ring; auto with continuous.
 lra.
 Qed.
 
@@ -2197,9 +2370,8 @@ destruct r as [f1 Hf1 roots1].
 destruct r' as [f2 Hf2 roots2].
 subst f1 f2.
 f_equal.
-apply roots_of_ortho_p_unique.
+apply roots_of_ortho_p_unique; auto with continuous.
 apply lo_lt_hi.
-apply w_positive.
 Qed.
 (* end details *)
 

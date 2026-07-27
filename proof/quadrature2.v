@@ -25,26 +25,6 @@ Import trigo.
 
 Notation R := (RbaseSymbolsImpl_R__canonical__reals_Real).
 
-(* From Stdlib Require Import Reals.*)
-
-Definition shape (n: 'I_3) (i: 'I_n.+1) : R -> R.
-destruct n as[n Hn].
-destruct n as [ | [| ]]; try discriminate.
-- (* 0th-order *)
-   exact (fun x => 1).
-- (* 1st-order Lagrange shape functions *)
-destruct i as [ [ | [ | ]]  ]; simpl in *; try Lia.lia.
-+ (* n=1, i=0 *) exact (fun x => (1/2)*(1-x)).
-+ (* n=1, i=1 *) exact (fun x => (1/2)*(1+x)).
-- (* 2nd-order Lagrange shape functions *)
-destruct i as [ [ | [ | [|] ]]  ]; simpl in *; try Lia.lia. 
-+ (* n=2, i=0 *) exact (fun x => -(1/2)*(1-x)*x).
-+ (* n=2, i=1 *) exact (fun x => (1-x)*(1+x)).
-+ (* n=2, i=1 *) exact (fun x => (1/2)*x*(1+x)).
-Defined.
-
-Definition testfun (n: 'I_3) (i: 'I_n.+1) : R -> R := fun x => shape n i x * cos x.
-
  Notation "∫" := intgal.
 
 (* Because [derivable] is not locked, many simple kinds of proofs will tend to blow up.
@@ -68,7 +48,7 @@ f_equal.
 rewrite mulrC.
 rewrite /scale //.
 -
-apply H.
+apply H.  (* this line *)   (* see comment above *)
 -
 apply H0.
 Qed.
@@ -267,9 +247,11 @@ repeat match goal with
 end.
 
 Lemma trigo_cos_e: (@cos.body RbaseSymbolsImpl_R__canonical__reals_Real) = Rtrigo_def.cos.
+(* See: https://rocq-prover.zulipchat.com/#narrow/channel/237666-math-comp-analysis/topic/relating.20trigo.2Ecos.20to.20Rtrigo_def.2Ecos.2C.20etc.2E/with/612420101 *)
 Admitted.
 
 Lemma trigo_sin_e: (@sin.body RbaseSymbolsImpl_R__canonical__reals_Real) = Rtrigo_def.sin.
+(* See: https://rocq-prover.zulipchat.com/#narrow/channel/237666-math-comp-analysis/topic/relating.20trigo.2Ecos.20to.20Rtrigo_def.2Ecos.2C.20etc.2E/with/612420101 *)
 Admitted.
 
 Ltac prepare_for_interval := 
@@ -290,6 +272,22 @@ massage_constraints.
 
 Definition r_intgal_C := (@intgal_linearN, @r_intgal, @intgal_C, @hornerC').
 
+Ltac gauss_legendre_error_bounder_part2 := 
+(* Now focus on the integral *)
+let e := fresh "e" in 
+match goal with |- _ ?E => set e := E end; cbv beta;
+(* Step seven: calculate the integral *)
+rewrite ?mul_polyC_polyC -?mulrA;
+repeat match goal with |- context [ 'X * polyC ?a ] => rewrite ?(pull_left (polyC a)) end;
+repeat match goal with |- context [ 'X * (polyC ?a * 'X)] => rewrite ?(pull_left (polyC a)) end;
+rewrite ?hornerD' ?hornerN' ?(hornerM' (polyC _)) ?intgal_linear2 ?r_intgal_C; auto with continuous;
+subst e;
+(* Now convert from MathComp to plain-old-Rocq *)
+prepare_for_interval;
+(* Solve the goal using the Interval package *)
+interval.
+
+
 Ltac gauss_legendre_error_bounder := 
 (* Step one: expand any [let ... in ... ] *)
 cbv zeta;
@@ -297,9 +295,7 @@ cbv zeta;
 let H := fresh in let H0 := fresh in let ξ := fresh "ξ" in 
 match goal with |- context [Gauss_Legendre_quadrature ?n ?f] => 
 destruct (legendre_quadrature_error' n f) as [ξ [H H0]];
- (*
- change (add ?A (opp ?B) = ?C) with (Rdefinitions.Rminus A B = C) in H0; 
- *)rewrite {}H0
+rewrite {}H0
 end;
 (* Step three: some specific computations and simplifications *)
 match goal with |- context [factorial ?k] => let j := eval compute in k in change k with j end;
@@ -322,30 +318,23 @@ match goal with |- ?g _ => set G := g end;
 (* Step six: now derive the k'th derivative *)
 rewrite_derive; (* This takes many seconds *)
 rewrite ?r_deriv ?r_ring ?hornerE /= ?r_ring;
-lazymatch goal with |- context [@derive1] => idtac "Warning: Did not eliminate all derivatives" | _ => idtac end;
-(* Now focus on the integral *)
-let e := fresh "e" in 
-match goal with |- G ?E => set e := E end; subst G; cbv beta;
-(* Step seven: calculate the integral *)
-rewrite ?mul_polyC_polyC -?mulrA;
-repeat match goal with |- context [ 'X * polyC ?a ] => rewrite ?(pull_left (polyC a)) end;
-repeat match goal with |- context [ 'X * (polyC ?a * 'X)] => rewrite ?(pull_left (polyC a)) end;
-rewrite ?hornerD' ?hornerN' ?(hornerM' (polyC _)) ?intgal_linear2 ?r_intgal_C;
-subst e;
-(* Now convert from MathComp to plain-old-Rocq *)
-prepare_for_interval;
-(* Solve the goal using the Interval package *)
-interval.
+cbv delta [G]; clear G;
+lazymatch goal with
+ | |- context [@derive1] => idtac "Warning: Did not eliminate all derivatives"
+ | _ => gauss_legendre_error_bounder_part2 end.
 
 Import BinInt.
 Notation IZR := (Rdefinitions.IZR).
+
+(* Our test case is the product of a Lagrange shape function (1/2)*(1-x) with some 
+  spatial transformation, in this case cosine. *)
 
 Lemma error_1_0_1:
  (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
  let f :=horner ((1/2)%:P *(1-'X)) \* cos in 
  Rbasic_fun.Rabs ( ∫ f - Gauss_Legendre_quadrature 1 f ) <= IZR 2 / IZR 100.
 Proof.
-time "error_1_0_1" gauss_legendre_error_bounder.  (* 3.411 seconds *)
+time "error_1_0_1" gauss_legendre_error_bounder.  (* 3.444 seconds *)
 Qed.
 
 Lemma error_1_0_2:
