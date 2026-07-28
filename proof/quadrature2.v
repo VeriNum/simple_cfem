@@ -3,7 +3,6 @@ From mathcomp Require Import all_boot ssralg ssrnum archimedean finfun order.
 From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory GRing.
 From mathcomp.algebra_tactics Require Import ring lra.
-Locate Ltac lra.
 Import classical_sets.
 Import numFieldNormedType.Exports.
 From Stdlib Require Import FunctionalExtensionality.
@@ -216,7 +215,6 @@ Ltac rewrite_derive1_bottom_up :=
  end.
 
 Ltac rewrite_derive := 
-  time "rewrite_derive"
   repeat (
   simpl;
   first [rewrite !(r_derive1, r_ring, r_lift, opp_funK)

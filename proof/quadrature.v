@@ -373,18 +373,38 @@ rewrite /Rintegral (@continuous_FTC2 R (horner P) (horner (integ P)) lo hi lo_lt
 rewrite -derivE. rewrite deriv_integ //.
 Qed.
 
-Lemma continuous_bounded: forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
-    {in `[a, b], continuous f}%classic ->
-    [bounded f x | x in `[a,b]].
+Lemma bounded_range (T : Type) (K : realFieldType) (V : pseudoMetricNormedZmodType K) (f : T -> V) (A : set T) : 
+   [bounded f x | x in A] <-> bounded_set (f @` A)%classic.
 Proof.
-intros.
-Admitted.
+split; intro.
+-
+simpl.
+destruct H.
+exists x. destruct H; split; auto.
+intros. simpl in *. intros.
+destruct H2.
+subst x1.
+apply H0; auto.
+-
+simpl in *.
+destruct H.
+exists x.
+destruct H; split; auto.
+intros. simpl in *; intros.
+eapply H0 in H1.
+apply H1.
+eexists; eauto.
+Qed.
 
-Lemma continuousM' : forall (a b: Real.sort R) (f g: Real.sort R -> Real.sort R),
- {in `[a, b]%classic, continuous f} ->
- {in `[a, b]%classic, continuous g} ->
-  {in `[a, b]%classic, continuous (GRing.mul_fun f  g)}.
-Admitted.
+Lemma within_compact_continuous_bounded (T : topologicalType) (V : normedModType R) (A : set T) (f : T -> V) :
+  compact A -> {within A, continuous f}%classic -> [bounded f x | x in A].
+Proof.
+  move=> cA cf.
+  apply/bounded_range.
+  apply: compact_bounded.
+  by apply: continuous_compact.
+Qed.
+
 
 Lemma in_within_continuous: forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
    {in `[a, b]%classic, continuous f } ->
@@ -401,6 +421,30 @@ extensionality x.
 unfold in_mem. simpl.
 unfold in_set, mkset.
 rewrite boolp.asboolb //.
+Qed.
+
+Lemma continuous_bounded: forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
+    {in `[a, b], continuous f}%classic ->
+    [bounded f x | x in `[a,b]].
+Proof.
+intros.
+set i := `[a,b]%classic.
+apply  (within_compact_continuous_bounded _ _ i f).
+apply segment_compact.
+apply in_within_continuous; auto.
+Qed.
+
+Lemma continuousM' : forall (a b: Real.sort R) (f g: Real.sort R -> Real.sort R),
+ {in `[a, b]%classic, continuous f} ->
+ {in `[a, b]%classic, continuous g} ->
+  {in `[a, b]%classic, continuous (GRing.mul_fun f  g)}.
+Proof.
+intros.
+hnf in H, H0.
+hnf; intros.
+pose proof @continuousM R _ f g x.
+rewrite !forE in H2.
+apply H2; auto.
 Qed.
 
 Lemma within_continuous_measurable_fun:
@@ -438,30 +482,48 @@ Qed.
 
 Lemma in_continuous_cst: forall  (a b: Real.sort R) (c: R),
    {in `[a,b]%classic, continuous (fun _:  R =>c)}.
-Admitted.
+Proof.
+intros.
+hnf; intros.
+apply @cst_continuous.
+Qed.
 
 Lemma in_continuousN: forall  (a b: Real.sort R) (f: R -> R),
    {in `[a,b]%classic, continuous f} ->
    {in `[a,b]%classic, continuous (\- f)}.
-Admitted.
+Proof.
+intros.
+hnf; intros.
+eapply @continuousN.
+rewrite forE. apply H; auto.
+Qed.
 
 Lemma in_continuousB: forall  (a b: Real.sort R) (f g: R -> R),
    {in `[a,b]%classic, continuous f} ->
    {in `[a,b]%classic, continuous g} ->
    {in `[a,b]%classic, continuous (f \- g)}.
-Admitted.
+Proof.
+intros; hnf; intros.
+eapply @continuousB; rewrite forE; auto.
+Qed.
 
 Lemma in_continuousD: forall  (a b: Real.sort R) (f g: R -> R),
    {in `[a,b]%classic, continuous f} ->
    {in `[a,b]%classic, continuous g} ->
    {in `[a,b]%classic, continuous (f \+ g)}.
-Admitted.
+Proof.
+intros; hnf; intros.
+eapply @continuousD; rewrite forE; auto.
+Qed.
 
 Lemma in_continuousM: forall  (a b: Real.sort R) (f g: R -> R),
    {in `[a,b]%classic, continuous f} ->
    {in `[a,b]%classic, continuous g} ->
    {in `[a,b]%classic, continuous (f \* g)}.
-Admitted.
+Proof.
+intros; hnf; intros.
+eapply @continuousM; rewrite forE; auto.
+Qed.
 
 Lemma in_continuous_horner: forall  (a b: Real.sort R)  (f: {poly R}),   {in `[a,b]%classic, continuous (horner f)}.
 Proof.
