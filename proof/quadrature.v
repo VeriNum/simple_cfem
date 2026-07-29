@@ -480,52 +480,52 @@ apply in_within_continuous; auto.
 Qed.
 
 
-Lemma in_continuous_cst: forall  (a b: Real.sort R) (c: R),
-   {in `[a,b]%classic, continuous (fun _:  R =>c)}.
+Lemma in_continuous_cst: forall (i: set (Order.POrder.sort (reals_Real__to__Order_POrder R))) (c: R),
+   {in i, continuous (fun _:  R =>c)}.
 Proof.
 intros.
 hnf; intros.
 apply @cst_continuous.
 Qed.
 
-Lemma in_continuousN: forall  (a b: Real.sort R) (f: R -> R),
-   {in `[a,b]%classic, continuous f} ->
-   {in `[a,b]%classic, continuous (\- f)}.
+Lemma in_continuousN: forall (i: set (Order.POrder.sort (reals_Real__to__Order_POrder R))) (f: R -> R),
+   {in i, continuous f} ->
+   {in i, continuous (\- f)}.
 Proof.
 intros.
 hnf; intros.
-eapply @continuousN.
+apply @continuousN.
 rewrite forE. apply H; auto.
 Qed.
 
-Lemma in_continuousB: forall  (a b: Real.sort R) (f g: R -> R),
-   {in `[a,b]%classic, continuous f} ->
-   {in `[a,b]%classic, continuous g} ->
-   {in `[a,b]%classic, continuous (f \- g)}.
+Lemma in_continuousB: forall (i: set (Order.POrder.sort (reals_Real__to__Order_POrder R)))  (f g: R -> R),
+   {in i, continuous f} ->
+   {in i, continuous g} ->
+   {in i, continuous (f \- g)}.
 Proof.
 intros; hnf; intros.
-eapply @continuousB; rewrite forE; auto.
+apply @continuousB; rewrite forE; auto.
 Qed.
 
-Lemma in_continuousD: forall  (a b: Real.sort R) (f g: R -> R),
-   {in `[a,b]%classic, continuous f} ->
-   {in `[a,b]%classic, continuous g} ->
-   {in `[a,b]%classic, continuous (f \+ g)}.
+Lemma in_continuousD: forall (i: set (Order.POrder.sort (reals_Real__to__Order_POrder R))) (f g: R -> R),
+   {in i, continuous f} ->
+   {in i, continuous g} ->
+   {in i, continuous (f \+ g)}.
 Proof.
 intros; hnf; intros.
-eapply @continuousD; rewrite forE; auto.
+apply @continuousD; rewrite forE; auto.
 Qed.
 
-Lemma in_continuousM: forall  (a b: Real.sort R) (f g: R -> R),
-   {in `[a,b]%classic, continuous f} ->
-   {in `[a,b]%classic, continuous g} ->
-   {in `[a,b]%classic, continuous (f \* g)}.
+Lemma in_continuousM: forall (i: set (Order.POrder.sort (reals_Real__to__Order_POrder R)))  (f g: R -> R),
+   {in i, continuous f} ->
+   {in i, continuous g} ->
+   {in i, continuous (f \* g)}.
 Proof.
 intros; hnf; intros.
-eapply @continuousM; rewrite forE; auto.
+apply @continuousM; rewrite forE; auto.
 Qed.
 
-Lemma in_continuous_horner: forall  (a b: Real.sort R)  (f: {poly R}),   {in `[a,b]%classic, continuous (horner f)}.
+Lemma in_continuous_horner: forall (i: set (Order.POrder.sort (reals_Real__to__Order_POrder R))) (f: {poly R}),   {in i, continuous (horner f)}.
 Proof.
 intros * ? ? ?. apply continuous_horner.
 Qed.
@@ -537,6 +537,53 @@ Hint Resolve in_continuous_cst in_continuous_horner in_continuousN in_continuous
 End Rewriting.
 
 Import Rewriting.
+
+Lemma size_polyseq_coeffs': forall {T} (p: {poly T}) (n: nat),
+  (forall i,  (n < i)%N -> (coefp i p == 0)) -> 
+     (size p <=n.+1)%N.
+Proof.
+move => T [p Hp] n H.
+simpl in *.
+revert Hp n H; induction p; simpl; intros; auto.
+assert (last 1 p != 0). {
+ clear - Hp. induction p; simpl; auto. apply oner_neq0.
+}
+specialize (IHp H0 n.-1).
+destruct n.
+-
+simpl in *.
+clear - H H0.
+rewrite (last_nth 0) in H0.
+specialize (H (size p)). simpl in H0.
+destruct (size p); auto.
+simpl in H, H0.
+specialize (H erefl).
+move :H => /eqP => H. rewrite H in H0. rewrite eq_refl in H0. discriminate.
+-
+simpl in *.
+assert (size p <= n.+1)%N; [ | Lia.lia].
+apply IHp.
+intros. apply (H (S i)). Lia.lia.
+Qed.
+
+Lemma size_polyseq_coeffs: forall {T} (p: {poly T}) (n: nat),
+  (forall i,  (n <= i)%N -> (coefp i p == 0)) -> 
+     (size p <=n)%N.
+Proof.
+intros.
+destruct n.
+-
+destruct p as [p Hp]. simpl in *.
+rewrite (last_nth 0) in Hp.
+specialize (H (size p).-1).
+simpl in *.
+destruct (size p); auto.
+simpl in *.
+specialize (H erefl).
+move :H => /eqP => H. rewrite H in Hp. rewrite eq_refl in Hp; discriminate.
+-
+apply size_polyseq_coeffs'; auto.
+Qed.
 
 (* end details *)
 
@@ -640,6 +687,38 @@ rewrite bigop.unlock index_enum_ord_enum;
  simpl nth;
  subst B; cbv beta
 end.
+
+
+Definition append1fun [n][T] (f: 'I_n -> T) (x: T) (i:  'I_(n.+1)) : T.
+rewrite -addn1 in i.
+destruct (split i) as [i' | i'].
+apply (f i').
+apply x.
+Defined.
+
+Lemma append1fun_last: forall [n][T] (f: 'I_n -> T) (x: T) (n': 'I_n.+1), nat_of_ord n' = n -> append1fun f x n' = x.
+Proof.
+intros.
+rewrite /append1fun /eq_rect /eq_rec.
+destruct n'. simpl in *.
+subst m.
+destruct (addn1 n).
+unfold split. destruct ltnP; auto.
+simpl in i0.
+Lia.lia.
+Qed.
+
+Lemma append1fun_notlast:  forall [n][T] (f: 'I_n -> T) (x: T) i j, nat_of_ord i = 
+         nat_of_ord j -> append1fun f x i = f j.
+Proof.
+intros.
+rewrite /append1fun /eq_rect /eq_rec.
+destruct (addn1 n).
+unfold split. destruct ltnP; auto. f_equal. apply ord_inj; auto.
+rewrite H in i0.
+pose proof (ltn_ord j).
+Lia.lia.
+Qed.
 
 (* end details *)
 
@@ -806,6 +885,8 @@ Print monic_pred.  (* = fun [R] (p : {poly R}) => lead_coef p == 1 *)
        q = b_n p_n + b_{n-1} p_{n-1} + ⋯ + b_0 p_0.               (23.3)
 *)
 
+ 
+
 Section P.
 
   Variable  (p: nat -> {poly R}).
@@ -814,9 +895,8 @@ Section P.
 
   Lemma exist_orthogonal_polynomials:
       forall (n: nat) (q: {poly R}), 
-        size q = (n+2)%nat ->
-        { b: 'I_n.+1 -> R | 
-          horner q = \big[add_fun/fun=>0]_(i<n.+1) (b i  \*: horner (p i))}.
+        (size q <= n.+1)%N ->
+        { b: 'I_n.+1 -> R  |  q = \sum_(i<n.+1) (polyC(b i) * p i)}.
 
 (** 7.  In establishing this result, we may assume that the polynomials [ p_i ] are monic.
   The proof is by induction.  For n=0 we have,
@@ -836,8 +916,85 @@ Section P.
 *)
 
 Proof.
-induction n.
-Admitted.
+clear w wpos wcontinuous a b Hab.
+induction n; intros.
+-
+destruct q as [q Hq].
+simpl in H.
+change (0+1)%N with 1%N in H.
+simpl in q.
+destruct q as [ | a0 [ | ] ].
++
+exists (fun _ => 0).
+expand_bigop.
+rewrite ?r_ring.
+apply poly_inj. simpl. rewrite /GRing.zero /= polyC0' //.
++
+exists (fun _ => a0).
+expand_bigop.
+move :(p_degree 0) (p_monic 0) => H0 H1.
+destruct (p 0) as [p0 Hp0].
+simpl in H0,H1.
+destruct p0; [ discriminate H0 | ].
+destruct p0; [ | discriminate H0].
+clear H.
+unfold lead_coef in H1.
+simpl in H1.
+rewrite ?r_ring.
+rewrite -?polyC'. 
+rewrite (eqP H1).
+ring.
++
+simpl in H. Lia.lia.
+-
+ pose q' : {poly R} := q - (q`_n.+1)%:P * p n.+1.
+ destruct (IHn q') as [b Hb]; clear IHn. {
+   replace (n+1)%N with n.+1 by Lia.lia.
+   apply /leq_sizeP.
+   intros.
+   subst q'.
+   rewrite coefB mul_polyC coefZ.
+   move :(p_degree n.+1) (p_monic n.+1) => /= Hd Hm.
+   destruct (j == n.+1) eqn:H1.
+   - change (is_true (j == n.+1)) in H1. 
+   move :H1 => /eqP H1. subst j.
+   move :Hm. rewrite lead_coefE Hd /= addn1.
+   move /eqP => Hm. rewrite Hm mulr1.
+   ring.
+  -   
+  rewrite (@nth_default _ _ (polyseq (p n.+1))); [ | rewrite Hd; Lia.lia].
+  rewrite mulr0 subr0.
+  rewrite nth_default //.
+  assert (j != n.+1). rewrite H1 //.
+  clear - H2 H0 H.
+  set s := size (polyseq q) in H|-*. clearbody s.
+  Lia.lia.
+ }
+ subst q'. simpl in Hb.
+ set u := _ * _ in Hb. set v := bigop.body _ _ _ in Hb. 
+ assert (q = u + v). rewrite -Hb. ring. clear Hb. subst u v.
+ exists (append1fun b (q`_n.+1)).
+ set bn := q`_n.+1 in H0|-*. clearbody bn.
+ clear H.
+ rewrite big_mknat big_nat_rev /= big_ltn //.
+ rewrite big_nat_rev /=. rewrite big_add1 /=.
+ subst q.
+ rewrite ?inordK; try Lia.lia.
+ f_equal.
+ rewrite append1fun_last // inordK; Lia.lia.
+ rewrite big_mknat.
+  rewrite ?big_nat.
+   apply eq_big; auto.
+  move => i Hi /=.
+ rewrite ?inordK; try Lia.lia.
+ f_equal.
+2: f_equal; Lia.lia.
+  set j := (0 + _ - _ )%N.
+ replace j with i by Lia.lia. clear j.
+ erewrite append1fun_notlast. reflexivity.
+ rewrite ?inordK; try Lia.lia.
+Qed.
+  
 
 (** 8.  A consequence of this result is the following.
             The polynomial [ p_{n+1} ] is orthogonal to any polynomial q of degree n or less.
@@ -852,10 +1009,57 @@ Admitted.
        _(Note: [p_{n+2}p_0] sic in original, but surely p_{n+1}p_0 is meant.)_
 *)
 
-Lemma polySn_orthogonal_n: forall (n:nat) (q: {poly R}), 
+
+Lemma horner_sum' :
+forall [R : nzSemiRingType] [I : Type] (r : seq I) (P : pred I)
+  (F : I -> {poly R}),
+ horner (\sum_(i <- r | P i) F i) = fun x => \sum_(i <- r | P i) (horner (F i) x).
+Proof.
+intros.
+extensionality x.
+apply horner_sum.
+Qed.
+
+Lemma intgal_sum: forall [T: Type] (r: seq T) (P: pred T) (F: T -> R -> R), 
+  ∫ (fun x => \sum_(i <- r | P i) F i x) = \sum_(i <- r | P i)  ∫ (F i).
+Admitted.
+
+Lemma polySn_orthogonal_n: 
+        orthogonal_polynomials p ->
+         forall (n:nat) (q: {poly R}), 
             (size q <= n.+1)%nat ->
             orthogonal (horner (p n.+1)) (horner q).
-Admitted.
+Proof.
+intros.
+destruct (exist_orthogonal_polynomials n q H0) as [d H1].
+red.
+subst.
+rewrite -hornerM'.
+transitivity (∫ (horner (\sum_(i < n.+1) (d i)%:P * (p n.+1 * p i)))).
+-
+f_equal.
+f_equal.
+rewrite mulr_sumr.
+apply eq_big; auto.
+intros i _.
+rewrite mulrC -mulrA (mulrC (p i)) //.
+-
+rewrite horner_sum'.
+rewrite intgal_sum.
+transitivity (\sum_(i<n.+1) (0:R)).
+apply eq_big; auto.
+intros i _.
+rewrite hornerM'.
+rewrite hornerC'.
+rewrite intgal_linear1.
+2: apply in_continuous_horner.
+rewrite hornerM'.
+destruct H. rewrite H1.
+ring.
+pose proof ltn_ord i; Lia.lia.
+rewrite sumr_const.
+ring.
+Qed.
 
 End P.
 
@@ -1266,7 +1470,7 @@ Proof.
 intros. rewrite /intgal intgal_linear1 -/intgal //. apply lo_lt_hi. apply wcontinuous.
 Qed.
 
-Lemma intgal_linear1' : forall (α : R) (f : {poly R}), ∫ (horner (polyC α * f)) =  α * ∫ (horner f).
+Lemma intgal_linear1' : forall (α : R) (f : {poly R}),   ∫ (horner (polyC α * f)) =  α * ∫ (horner f).
 Proof.
 intros.
 rewrite -intgal_linear1; auto with continuous.
