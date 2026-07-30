@@ -890,7 +890,7 @@ Print monic_pred.  (* = fun [R] (p : {poly R}) => lead_coef p == 1 *)
 Section P.
 
   Variable  (p: nat -> {poly R}).
-  Variable p_degree: forall i, size (p i) = (i+1)%N.
+  Variable p_degree: forall i, size (p i) = i.+1%N.
   Variable p_monic: forall i, monic_pred (p i).
 
   Lemma exist_orthogonal_polynomials:
@@ -958,7 +958,7 @@ simpl in H. Lia.lia.
    destruct (j == n.+1) eqn:H1.
    - change (is_true (j == n.+1)) in H1. 
    move :H1 => /eqP H1. subst j.
-   move :Hm. rewrite lead_coefE Hd /= addn1.
+   move :Hm. rewrite lead_coefE Hd /=.
    move /eqP => Hm. rewrite Hm mulr1.
    ring.
   -   
@@ -1020,9 +1020,39 @@ extensionality x.
 apply horner_sum.
 Qed.
 
-Lemma intgal_sum: forall [T: Type] (r: seq T) (P: pred T) (F: T -> R -> R), 
-  ∫ (fun x => \sum_(i <- r | P i) F i x) = \sum_(i <- r | P i)  ∫ (F i).
-Admitted.
+
+Lemma intgal_sum: forall [T] (r: seq T) (F: T -> R -> R), 
+ (\big[and/Logic.True]_(i <- r)  {in `[a, b]%classic, continuous (F i)}) ->
+  ∫ (fun x => \sum_(i <- r) F i x) = \sum_(i <- r)  ∫ (F i).
+Proof.
+intros.
+transitivity (intgal (foldr (fun i => add_fun (F i)) (fun=>0) r)).
+-
+f_equal.
+extensionality x.
+rewrite !bigop.unlock /reducebig /comp /applybig.
+set y := Algebra.zero. clearbody y.  revert y; clear; induction r; simpl; intros; f_equal; auto.
+-
+transitivity (foldr (fun i:T => add (intgal (F i))) Algebra.zero r); [ | rewrite !bigop.unlock //].
+set z := {1}Algebra.zero.
+set u := Algebra.zero.
+assert  (∫ (fun=> z) = u). {
+ subst u z.
+replace (fun=> _) with (0 \*: (fun _ : R => 0:R)).
+2: extensionality x; rewrite /scale_fun /scale /= mul0r //.
+rewrite intgal_linear1. ring.
+apply in_continuous_cst.
+}
+ clearbody z; clearbody u.
+revert z u H0; induction r; simpl; intros; auto.
+rewrite big_cons in H. destruct H.
+rewrite intgal_linear2; auto. f_equal; auto.
+clear - H1.
+induction r.
+apply in_continuous_cst.
+rewrite big_cons in H1. destruct H1.
+apply in_continuousD; auto.
+Qed.
 
 Lemma polySn_orthogonal_n: 
         orthogonal_polynomials p ->
@@ -1045,7 +1075,10 @@ intros i _.
 rewrite mulrC -mulrA (mulrC (p i)) //.
 -
 rewrite horner_sum'.
+simpl.
 rewrite intgal_sum.
+2:{ clear; induction (index_enum _). rewrite big_nil. auto. rewrite big_cons. split; auto. apply in_continuous_horner.
+}
 transitivity (\sum_(i<n.+1) (0:R)).
 apply eq_big; auto.
 intros i _.
@@ -1147,11 +1180,163 @@ Fixpoint three_term_recurrence (n: nat) : {poly R} * {poly R} :=
 
 Definition ortho_p n := fst (three_term_recurrence n).
 
+Lemma ortho_p_prev: forall n,  (three_term_recurrence n.+1).2 = (three_term_recurrence n).1.
+Proof.
+intros.
+simpl.
+destruct (three_term_recurrence n); auto.
+Qed.
+
+Lemma ortho_p_size: forall n,  size (ortho_p n) = n.+1.
+Proof.
+assert (forall n i, (i < n)%N -> size (ortho_p i) = i.+1); [ | intros; apply (H n.+1); auto].
+rewrite /ortho_p.
+induction n; intros. Lia.lia.
+destruct i;  rewrite /= ?size_poly1 //.
+assert (Hi := IHn i ltac:(Lia.lia)).
+destruct (three_term_recurrence i) eqn:H3; simpl in *.
+set u := _ / _. clearbody u.
+set v := _ / _. clearbody v.
+assert (Hlead: lead_coef p != 0). {
+rewrite lead_coefE.
+clear - Hi.
+destruct p as [p Hp].
+simpl in *. rewrite nth_last. destruct p; try discriminate. simpl in *. auto.
+
+}
+assert ((size (- scale_poly u p) < size ('X * p)%R)%N). {
+rewrite size_polyN scale_polyE.
+apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
+rewrite size_proper_mul.
+rewrite size_polyC size_polyX Hi.  Lia.lia.
+rewrite lead_coefX mul1r //.
+}
+rewrite ?size_polyDl //.
+rewrite size_proper_mul.
+rewrite Hi size_polyX. Lia.lia.
+rewrite lead_coefX mul1r //.
+rewrite size_polyN scale_polyE.
+apply leq_trans with ((size (polyC v) + size p0).-1.+1); [ apply size_polyMleq | ].
+rewrite size_proper_mul.
+rewrite size_polyC Hi size_polyX.
+destruct i; simpl in H3|-*. inversion H3. rewrite size_poly0. Lia.lia.
+assert (p0 = (three_term_recurrence i.+1.-1).1). {
+ simpl.
+ destruct (three_term_recurrence i). inversion H3. auto.
+}
+rewrite H1. rewrite IHn. Lia.lia. Lia.lia.
+rewrite lead_coefX mul1r //.
+Qed.
+
 Lemma ortho_p_monic: forall n, monic_pred (ortho_p n).
+Proof.
+rewrite /ortho_p.
+induction n; simpl.
+rewrite lead_coef1 //.
+destruct (three_term_recurrence n) eqn:H3.
+pose proof (ortho_p_size n). rewrite /ortho_p H3 /= in H.
+simpl in *.
+set u := _ / _. clearbody u.
+set v := _ / _. clearbody v.
+rewrite ?lead_coefDl.
+*
+rewrite lead_coefM lead_coefX mul1r //.
+*
+rewrite size_polyN scale_polyE.
+apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
+rewrite size_proper_mul ?H.
+rewrite size_polyC size_polyX.  Lia.lia.
+rewrite lead_coefX mul1r //.
+move :IHn => /eqP H0. rewrite H0. apply oner_neq0.
+*
+rewrite size_polyN scale_polyE.
+apply leq_trans with ((size (polyC v) + size p0).-1.+1); [ apply size_polyMleq | ].
+rewrite size_polyDl.
+rewrite size_proper_mul.
+rewrite size_polyC  size_polyX H.
+destruct n; simpl. inversion H3. rewrite size_poly0. Lia.lia.
+pose proof ortho_p_prev n. rewrite H3 in H0. simpl in H0.
+pose proof (ortho_p_size n). rewrite /ortho_p -H0 in H1. rewrite H1. Lia.lia.
+rewrite lead_coefX mul1r //.
+move :IHn => /eqP Hi. rewrite Hi. apply oner_neq0.
+rewrite size_polyN scale_polyE.
+apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
+rewrite ?size_proper_mul ?H.
+rewrite size_polyC size_polyX. Lia.lia.
+rewrite lead_coefX mul1r.
+move :IHn => /eqP H0. rewrite H0. apply oner_neq0.
+Qed.
+ 
+Lemma ortho_p2_positive: forall n,  ∫ (horner (ortho_p n * ortho_p n)) > 0.
+Proof.
+Admitted.
+
+Lemma ortho_p_orthogonal': 
+   forall n i j, (i < j <= n)%N -> orthogonal (horner (ortho_p i)) (horner (ortho_p j)).
+Proof.
+rewrite /ortho_p.
+induction n; intros; [ Lia.lia | ].
+destruct j; [ Lia.lia | ].
+simpl.
+destruct (three_term_recurrence j) eqn:H3.
+red.
+rewrite -hornerM'.
+rewrite mulrC.
+rewrite mulrDl.
+rewrite mulrDl.
+rewrite hornerD'.
+rewrite hornerD'.
+rewrite intgal_linear2.
+2: apply in_continuousD; apply in_continuous_horner.
+2: apply in_continuous_horner.
+rewrite intgal_linear2.
+2: apply in_continuous_horner.
+2: apply in_continuous_horner.
+rewrite -(hornerM' p p).
+rewrite -(hornerM' p0 p0).
+set u := _ / _.
+set v := _ / _.
+assert (Result6 := exist_orthogonal_polynomials ortho_p ortho_p_size ortho_p_monic).
+(*
+rewrite (_: ∫ _ = 0).
+ [rewrite {2}(_: ∫ _ = 0) | ]. [ rewrite (_: ∫ _ = 0); [ rewrite ?add0r | ] | ].
+-
+transitivity (  ∫ ((-v) \*: horner (p0 * (three_term_recurrence i).1))).
+f_equal. rewrite hornerM'. rewrite scale_polyE. rewrite hornerN'.
+extensionality x; simpl. rewrite ?hornerE. rewrite /scale /=. ring.
+rewrite intgal_linear1; [ | apply in_continuous_horner].
+rewrite (_: ∫ _ = 0); [ ring |].
+destruct j;
+[ destruct i; try discriminate;  simpl in *; inversion H3; rewrite mul0r; admit (* trivial *) | ].
+replace p0 with ((three_term_recurrence j).1); [ | rewrite -ortho_p_prev H3 //].
+clear u v H3 p p0.
+assert (i = j.+1 \/ i=j \/ i<j)%coq_nat by Lia.lia.
+destruct H0 as [? | [?|?]].
++
+subst. 
+rewrite hornerM'. apply IHn; Lia.lia.
++
+subst j.
+fold (ortho_p i).
+destruct (Result6 i (ortho_p i)) as [bn ?]; [ rewrite ortho_p_size // | ].
+rewrite {1}e. clear e.
+transitivity 
+ (∫ (horner ((\sum_(i0 < i.+1) (bn i0)%:P * ortho_p i0 * ortho_p i)))).
+*)
 Admitted.
 
 Lemma ortho_p_orthogonal: orthogonal_polynomials ortho_p.
-Admitted.
+Proof.
+split.
+intro.  rewrite addn1. apply ortho_p_size.
+intros.
+assert (i<j \/ j<i)%coq_nat by Lia.lia.
+destruct H0.
+apply (ortho_p_orthogonal' j). Lia.lia.
+red.
+rewrite mul_funC.
+apply (ortho_p_orthogonal' i). Lia.lia.
+Qed.
 
 (** ** Zeros of orthogonal polynomials *)
 
