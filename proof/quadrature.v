@@ -856,7 +856,7 @@ Qed.
 *)
 
  Definition orthogonal_polynomials (p: nat -> {poly R}) : Prop := 
-   (forall i, size (p i) = (i+1)%N) /\
+   (forall i, size (p i) = i.+1) /\
    (forall i j: nat, i<>j ->  orthogonal (horner (p i)) (horner (p j))).
 
 (** Since orthogality is not altered by multiplication by a nonzero constant, we
@@ -893,7 +893,7 @@ Section P.
   Variable p_degree: forall i, size (p i) = i.+1%N.
   Variable p_monic: forall i, monic_pred (p i).
 
-  Lemma exist_orthogonal_polynomials:
+  Lemma stewart_lemma_23_6:
       forall (n: nat) (q: {poly R}), 
         (size q <= n.+1)%N ->
         { b: 'I_n.+1 -> R  |  q = \sum_(i<n.+1) (polyC(b i) * p i)}.
@@ -1054,14 +1054,20 @@ rewrite big_cons in H1. destruct H1.
 apply in_continuousD; auto.
 Qed.
 
+
+Definition orthogonal_polynomials_upto (n: nat) (p: nat -> {poly R}) : Prop := 
+   (forall i, size (p i) = i.+1) /\
+   (forall i j: nat, (i<j<=n)%N ->  orthogonal (horner (p i)) (horner (p j))).
+
 Lemma polySn_orthogonal_n: 
-        orthogonal_polynomials p ->
-         forall (n:nat) (q: {poly R}), 
+       forall n,
+         orthogonal_polynomials_upto n.+1 p ->
+         forall (q: {poly R}), 
             (size q <= n.+1)%nat ->
             orthogonal (horner (p n.+1)) (horner q).
 Proof.
 intros.
-destruct (exist_orthogonal_polynomials n q H0) as [d H1].
+destruct (stewart_lemma_23_6 n q H0) as [d H1].
 red.
 subst.
 rewrite -hornerM'.
@@ -1087,7 +1093,9 @@ rewrite hornerC'.
 rewrite intgal_linear1.
 2: apply in_continuous_horner.
 rewrite hornerM'.
-destruct H. rewrite H1.
+destruct H.
+rewrite mul_funC.
+rewrite /orthogonal in H1. rewrite H1.
 ring.
 pose proof ltn_ord i; Lia.lia.
 rewrite sumr_const.
@@ -1170,8 +1178,9 @@ End P.
 Fixpoint three_term_recurrence (n: nat) : {poly R} * {poly R} :=
    match n with
    | 0 => (1%:P, 0%:P)
-(*   | 1 => let α1 :=  ∫ id /  ∫ (fun=>1) in ('X - α1%:P, 1%:P) *)
-            (* the 1 case seems unnecessary, as it seems a special case of the S n' case. *)
+   | 1 => let α1 :=  ∫ id /  ∫ (fun=>1) in ('X - α1%:P, 1%:P)
+            (* the 1 case is not quite subsumed by the S n' case, because
+                there would be an unfortunate division by zero in the computation of βn. *)
    | S n' => let (pn', pn'') := three_term_recurrence n'
                    in let αn :=  ∫ (id \* (horner pn' \* horner pn')) / ∫(horner pn' \* horner pn')
                    in let βn := ∫ (id \* (horner pn' \* horner pn'')) / ∫(horner pn'' \* horner pn'')
@@ -1184,7 +1193,8 @@ Lemma ortho_p_prev: forall n,  (three_term_recurrence n.+1).2 = (three_term_recu
 Proof.
 intros.
 simpl.
-destruct (three_term_recurrence n); auto.
+destruct n; auto.
+destruct (three_term_recurrence n.+1); auto.
 Qed.
 
 Lemma ortho_p_size: forall n,  size (ortho_p n) = n.+1.
@@ -1195,34 +1205,37 @@ induction n; intros. Lia.lia.
 destruct i;  rewrite /= ?size_poly1 //.
 assert (Hi := IHn i ltac:(Lia.lia)).
 destruct (three_term_recurrence i) eqn:H3; simpl in *.
+assert (Hlead: lead_coef p != 0). {
+  rewrite lead_coefE.
+  clear - Hi.
+  destruct p as [p Hp].
+  simpl in *. rewrite nth_last. destruct p; try discriminate. simpl in *. auto.
+}
+destruct i. {
+   simpl. rewrite size_polyDl. apply size_polyX. rewrite size_polyN.
+   rewrite size_polyC size_polyX. Lia.lia.
+}
 set u := _ / _. clearbody u.
 set v := _ / _. clearbody v.
-assert (Hlead: lead_coef p != 0). {
-rewrite lead_coefE.
-clear - Hi.
-destruct p as [p Hp].
-simpl in *. rewrite nth_last. destruct p; try discriminate. simpl in *. auto.
-
-}
 assert ((size (- scale_poly u p) < size ('X * p)%R)%N). {
-rewrite size_polyN scale_polyE.
-apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
-rewrite size_proper_mul.
-rewrite size_polyC size_polyX Hi.  Lia.lia.
-rewrite lead_coefX mul1r //.
+  rewrite size_polyN scale_polyE.
+  apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
+  rewrite size_proper_mul.
+  rewrite size_polyC size_polyX Hi.  Lia.lia.
+  rewrite lead_coefX mul1r //.
 }
 rewrite ?size_polyDl //.
+-
 rewrite size_proper_mul.
 rewrite Hi size_polyX. Lia.lia.
 rewrite lead_coefX mul1r //.
+-
 rewrite size_polyN scale_polyE.
 apply leq_trans with ((size (polyC v) + size p0).-1.+1); [ apply size_polyMleq | ].
 rewrite size_proper_mul.
 rewrite size_polyC Hi size_polyX.
-destruct i; simpl in H3|-*. inversion H3. rewrite size_poly0. Lia.lia.
 assert (p0 = (three_term_recurrence i.+1.-1).1). {
- simpl.
- destruct (three_term_recurrence i). inversion H3. auto.
+ rewrite -ortho_p_prev. simpl Nat.pred. rewrite H3 //.
 }
 rewrite H1. rewrite IHn. Lia.lia. Lia.lia.
 rewrite lead_coefX mul1r //.
@@ -1236,6 +1249,9 @@ rewrite lead_coef1 //.
 destruct (three_term_recurrence n) eqn:H3.
 pose proof (ortho_p_size n). rewrite /ortho_p H3 /= in H.
 simpl in *.
+destruct n. {
+  rewrite lead_coefDl. rewrite lead_coefX //. rewrite size_polyN size_polyC size_polyX; Lia.lia.
+}
 set u := _ / _. clearbody u.
 set v := _ / _. clearbody v.
 rewrite ?lead_coefDl.
@@ -1254,9 +1270,10 @@ apply leq_trans with ((size (polyC v) + size p0).-1.+1); [ apply size_polyMleq |
 rewrite size_polyDl.
 rewrite size_proper_mul.
 rewrite size_polyC  size_polyX H.
-destruct n; simpl. inversion H3. rewrite size_poly0. Lia.lia.
-pose proof ortho_p_prev n. rewrite H3 in H0. simpl in H0.
-pose proof (ortho_p_size n). rewrite /ortho_p -H0 in H1. rewrite H1. Lia.lia.
+assert (p0 = (three_term_recurrence n.+1.-1).1). {
+ rewrite -ortho_p_prev. simpl Nat.pred. rewrite H3 //.
+}
+simpl Nat.pred in H0. subst p0. rewrite ortho_p_size. Lia.lia.
 rewrite lead_coefX mul1r //.
 move :IHn => /eqP Hi. rewrite Hi. apply oner_neq0.
 rewrite size_polyN scale_polyE.
@@ -1269,34 +1286,108 @@ Qed.
  
 Lemma ortho_p2_positive: forall n,  ∫ (horner (ortho_p n * ortho_p n)) > 0.
 Proof.
+Abort.  (* It's not clear that we need this.  Stewart uses it to justify dividing by the value,
+   but Rocq's definitions of real-number division are total functions.  When using Rocq's real
+  division, one only needs to prove that the denominator is nonzero if one wants to show some
+   useful thing about the value of the result, but for the ortho_p_orthogonal' proof we don't
+   necessarily need that. *)
+
+Lemma intgal1: ∫ (fun=> 1) = b-a.
 Admitted.
 
 Lemma ortho_p_orthogonal': 
-   forall n i j, (i < j <= n)%N -> orthogonal (horner (ortho_p i)) (horner (ortho_p j)).
+   forall n i j, (i < j <= n)%N -> orthogonal (horner (ortho_p j)) (horner (ortho_p i)).
 Proof.
-rewrite /ortho_p.
 induction n; intros; [ Lia.lia | ].
 destruct j; [ Lia.lia | ].
+rewrite {1}/ortho_p.
 simpl.
 destruct (three_term_recurrence j) eqn:H3.
 red.
 rewrite -hornerM'.
-rewrite mulrC.
+assert (H7: ∫ (fun=> 1) != 0). {
+  rewrite intgal1.
+  apply (@contra_not_neq _ Logic.False); auto. intro.
+  assert (a=b) by lra. 
+ assert (Hab' := Hab). rewrite lt_def in Hab'. rewrite H1 eq_refl in Hab'. discriminate.
+}
+destruct j. {
+ destruct i; [ | Lia.lia].
+ rewrite /ortho_p /= ?r_ring hornerD'.
+rewrite intgal_linear2; auto with continuous.
+rewrite hornerN' hornerC'.
+set v :=_ / _.
+transitivity (∫ (horner 'X) +  ∫ ((-v) \*:  (fun=>1))).
+f_equal. f_equal. 
+extensionality x; simpl. rewrite ?hornerE. rewrite /scale /=. ring.
+rewrite hornerX'.
+rewrite intgal_linear1; auto with continuous.
+subst v.
+rewrite mulNr -mulrA.
+rewrite mulVf //. ring.
+}
 rewrite mulrDl.
 rewrite mulrDl.
 rewrite hornerD'.
 rewrite hornerD'.
-rewrite intgal_linear2.
-2: apply in_continuousD; apply in_continuous_horner.
-2: apply in_continuous_horner.
-rewrite intgal_linear2.
-2: apply in_continuous_horner.
-2: apply in_continuous_horner.
+rewrite intgal_linear2; auto with continuous.
+rewrite intgal_linear2; auto with continuous.
 rewrite -(hornerM' p p).
 rewrite -(hornerM' p0 p0).
 set u := _ / _.
 set v := _ / _.
-assert (Result6 := exist_orthogonal_polynomials ortho_p ortho_p_size ortho_p_monic).
+pose proof (ortho_p_size j).
+pose proof (ortho_p_size j.+1).
+pose proof (ortho_p_size i).
+Admitted.
+(*
+assert (Result8_aux:  orthogonal_polynomials_upto j.-1.+1 ortho_p). {
+ split; intros. apply ortho_p_size. red. rewrite mul_funC. simpl in H4. apply IHn; auto.
+}
+assert (Result8 := polySn_orthogonal_n ortho_p ortho_p_size ortho_p_monic _ Result8_aux). clear Result8_aux.
+replace j.-1.+1 with j in Result8 by Lia.lia.
+simpl in Result8.
+assert (p0 = ortho_p j). {
+ rewrite /ortho_p. replace j with j.+1.-1 by Lia.lia. rewrite -ortho_p_prev. simpl Nat.pred. rewrite H3 //.
+}
+subst p0.
+assert (p = ortho_p j.+1) by rewrite /ortho_p H3 //.
+subst p.
+clear H3.
+clear IHn.
+
+
+destruct i. {
+rewrite {2 4 6}/ortho_p /= ?r_ring.
+ change (ortho_p 0) 
+
+assert (Hij: (i=j.+1 \/ i=j \/ i<j)%coq_nat) by Lia.lia.
+destruct Hij as [Hij | [Hij | Hij]].
+- (* i = j.+1 *)
+
+subst i.
+
+
+rewrite /ortho_p. rewrite H3 /=.
+
+ 
+assert (j=0 \/ j>0)%coq_nat by Lia.lia.
+destruct H0. {
+   subst j. destruct i; try Lia.lia. simpl. inversion H3; clear H3; subst p p0.
+  rewrite /ortho_p /= ?r_ring.
+  rewrite 
+   subst p p0.
+  rewrite ?r_ring. clear H3.
+ rewrite r_ring in u.
+destruct (j==0) eqn:?H. {
+   fold (is_true (j==0)) in H0. assert (i==0) by Lia.lia.
+   
+
+set u := _ / _.
+set v := _ / _.
+  
+2:{ pose proof (ortho_p_prev j.-1). replace (j.-1.+1) with j in H0 by Lia.lia.
+assert (Result8 := polySn_orthogonal_n ortho_p ortho_p_size ortho_p_monic).
 (*
 rewrite (_: ∫ _ = 0).
  [rewrite {2}(_: ∫ _ = 0) | ]. [ rewrite (_: ∫ _ = 0); [ rewrite ?add0r | ] | ].
@@ -1337,6 +1428,7 @@ red.
 rewrite mul_funC.
 apply (ortho_p_orthogonal' i). Lia.lia.
 Qed.
+*)
 
 (** ** Zeros of orthogonal polynomials *)
 
