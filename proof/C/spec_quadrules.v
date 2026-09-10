@@ -103,8 +103,33 @@ Definition integrate_spec_lowlevel : ident * funspec :=
     SEP( gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p)
  POST [ tdouble ]
     PROP()
-    RETURN (Vfloat (integrate_model_f Tdouble _ n (@gauss_point_f n) (@gauss_weight_f _) f))
+    RETURN (Vfloat (integrate_model_f Tdouble _ n (gauss_point_f n) (gauss_weight_f _) f))
     SEP( gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p).
+
+
+Require VSTlib.spec_math.
+Require vcfloat.VCFloat.
+Definition cos := ltac:(Reify.apply_func (FPCore.Build_floatfunc_package _ _ _ _ spec_math.MF.cos)).
+
+Definition testfun_f (x: ftype Tdouble) := 
+   (0.5 * (1-x) * cos x)%F64.
+
+Definition testfun_spec : ident * funspec :=
+ DECLARE _testfun
+  floatfun_spec testfun_f.
+
+Definition integrate_testfun_spec_lowlevel : ident * funspec :=
+ DECLARE _integrate_testfun
+ WITH gv: globals
+ PRE [ ]
+    PROP() PARAMS() GLOBALS (gv)
+    SEP( gauss_pts_pred gv; gauss_wts_pred gv)
+ POST [ tdouble ]
+    PROP()
+    RETURN (Vfloat (integrate_model_f Tdouble _ (@Ordinal 5 2 ssrbool.isT) 
+                                     (gauss_point_f _) (gauss_weight_f _) 
+                                     testfun_f))
+    SEP( gauss_pts_pred gv; gauss_wts_pred gv).
 
 (** ** High-level specs *)
 
@@ -153,6 +178,7 @@ Definition hughes_weight: R := 1/6.
     RETURN ( Vfloat w )
     SEP().
 
+(*
 Definition realfun_spec (f: R -> R) (acc: R) : funspec :=
  WITH x: ftype Tdouble
  PRE [ tdouble ]
@@ -170,7 +196,7 @@ Definition δ := @common.default_rel Tdouble.
 Definition testfun_spec : ident * funspec := 
  DECLARE _testfun
   (realfun_spec (fun x => (1/2)*(1-x)*(cos x))%R (5*δ)).
-
+*)
 
 
 

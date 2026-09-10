@@ -194,13 +194,30 @@ apply gauss_weight_f_acc.
 apply gauss_weight_f_range.
 Qed.
 
+Definition testfun_r (x: R) := (/2 * (1-x) * Rtrigo_def.cos x)%R.
+
+Definition integrate_testfun_spec : ident * funspec :=
+ DECLARE _integrate_testfun
+ WITH gv: globals
+ PRE [ ]
+    PROP() PARAMS() GLOBALS (gv)
+    SEP( gauss_pts_pred gv; gauss_wts_pred gv)
+ POST [ tdouble ]
+    EX y: ftype Tdouble,
+    PROP(Rabs (FT2R y - ∫ testfun_r) <= @FT2R Tdouble 0.00224%F64) 
+    RETURN (Vfloat y)
+    SEP( gauss_pts_pred gv; gauss_wts_pred gv).
+
 (** Finally we build an Abstract Specification Interface (ASI) containing all the instantiated specs *)
 Definition quadrules_ASI: funspecs :=
  [ gauss2d_npoint1d_spec;
    gauss_point_spec_lowlevel; gauss_weight_spec_lowlevel;
    gauss2d_point_spec; gauss2d_weight_spec;
    hughes_point_spec; hughes_weight_spec;
-   integrate_spec_lowlevel
+   integrate_spec_lowlevel;
+   testfun_spec;
+   spec_math.cos_spec;
+   integrate_testfun_spec
   ].
 
 

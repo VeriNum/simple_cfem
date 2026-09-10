@@ -26,7 +26,7 @@ Definition float_near (r: R) (x: ftype Tdouble) :=
  Variable (f: F -> F).
 
  Definition integrate_model_f  : F :=
-    dotprodF (map gauss_wt_f (ord_enum n)) (map (comp f (gauss_pt_f)) (ord_enum n)).
+    foldl (fun s i => BPLUS s (BMULT (gauss_wt_f i) (f (gauss_pt_f i)))) pos_zero (ord_enum n).
 
 End FLOAT.
 

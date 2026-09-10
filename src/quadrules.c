@@ -244,7 +244,7 @@ double integrate (double (*f)(double), int n) {
   int i;
   double s = 0.0;
   for (i=0; i<n; i++)
-    s = gauss_weight(i,n) * f(gauss_point(i,n)) + s;
+    s += gauss_weight(i,n) * f(gauss_point(i,n));
   return s;
 }
 

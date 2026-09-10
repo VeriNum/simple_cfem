@@ -394,9 +394,41 @@ intros.
 Qed.
 
 
+Lemma feq_FT2R: forall x y: ftype t, feq x y -> FT2R x = FT2R y.
+ (* TODO: this is already in VCFloat somewhere, or should be *)
+Proof.
+intros.
+destruct x, y; try destruct s; try reflexivity; try inversion H;
+destruct H1; subst; auto.
+Qed.
+
+
+Definition integrate_model_f_alt  : F :=
+    dotprodF (map gauss_wt_f (ord_enum n)) (map (comp f (gauss_pt_f)) (ord_enum n)).
+
+Lemma integrate_model_f_alt_eq: 
+   feq integrate_model_f_alt integrate_model_f.
+Proof.
+rewrite /integrate_model_f /quadmodel.integrate_model_f /integrate_model_f_alt /dotprodF.
+set c := pos_zero. clearbody c.
+revert c; induction (ord_enum _); intros; auto.
+simpl.
+rewrite -{}IHl.
+rewrite /dotprod; simpl.
+set al := map _ _. clearbody al.
+set x := Basics.flip _ _ _.
+set y := BPLUS _ _.
+assert (feq x y). rewrite /x /y BPLUS_comm //.
+clearbody x. clearbody y.
+revert x y H; induction al; simpl; intros; auto.
+apply IHal. rewrite /Basics.flip H.
+apply BPLUS_mor; auto.
+Qed.
+
 Lemma finite_integrate_model: finite integrate_model_f.
 Proof.
-rewrite /integrate_model_f.
+rewrite /finite.
+rewrite -integrate_model_f_alt_eq.
 apply dotprodF_finite_from_bounded.
 apply Forall2_forall.
 intros.
@@ -448,15 +480,6 @@ Lemma perturb_sum: forall (a b: 'I_n ->R) (c: R) ,
   Rabs ((\sum_(i<n) a i) - (\sum_(i<n) b i)) <= (Rmult (INR n) c).
 Admitted.
 
-Lemma feq_FT2R: forall x y: ftype t, feq x y -> FT2R x = FT2R y.
- (* TODO: this is already in VCFloat somewhere, or should be *)
-Proof.
-intros.
-destruct x, y; try destruct s; try reflexivity; try inversion H;
-destruct H1; subst; auto.
-Qed.
-
-
 Lemma big_sum_const_seq I (r : seq I) x : (\sum_(i <- r) x = INR (size r) * x)%Re.
 Proof.
 elim: r=> [|e r IHr].
@@ -485,6 +508,9 @@ Lemma integrate_model_roundoff_err:
      Rabs (FT2R integrate_model_f - integrate_model_r) <= integrate_model_acc.
 Proof.
  intros.
+ assert (FT2R integrate_model_f = FT2R integrate_model_f_alt).
+    apply feq_FT2R;  rewrite -integrate_model_f_alt_eq //.
+ rewrite {}H.
   rewrite /integrate_model_f  /integrate_model_r.
   pose c := (INR n * maxwf)%Re.
   assert (

@@ -274,18 +274,17 @@ Qed.
 Import quadmodel. Import Quadmodel_F64.
 Import mv_mathcomp.
 
-Definition sum_upto (f: ftype Tdouble -> ftype Tdouble) (n: 'I_5) (i: Z) :=
-  let il := sublist 0 i (ord_enum (nat_of_ord n)) in
-  dotprod_model.dotprodF 
-     (map (gauss_weight_f n) il) 
-     (map (f oo gauss_point_f n) il).
+Definition integrate_upto (f: ftype Tdouble -> ftype Tdouble) (n: 'I_5) (i: Z) :=
+    seq.foldl (fun s i => BPLUS s (BMULT (gauss_weight_f n i) (f (gauss_point_f n i)))) common.pos_zero 
+           (sublist 0 i (ord_enum n)).
 
-Lemma sum_upto_n: forall f n,
-  sum_upto f n (Z.of_nat n) = integrate_model_f Tdouble _ n 
-       (gauss_point_f n) (gauss_weight_f n) f.
+
+Lemma integrate_upto_n: forall f n,
+  integrate_upto f n (Z.of_nat n) = 
+   integrate_model_f Tdouble _ n (gauss_point_f n) (gauss_weight_f n) f.
 Proof.
 intros.
-unfold sum_upto.
+unfold integrate_upto.
 rewrite sublist_same; try lia; auto.
 rewrite Zlength_correct. change @Datatypes.length with @seq.size.
 rewrite size_ord_enum; auto.
@@ -297,7 +296,7 @@ start_function.
 forward.
 forward_for_simple_bound (Z.of_nat n)
   (EX i: Z, PROP() 
-  LOCAL (temp _s (Vfloat (sum_upto f n i));
+  LOCAL (temp _s (Vfloat (integrate_upto f n i));
                  gvars gv; temp _f p; temp _n (Vint (Int.repr (Z.of_nat (nat_of_ord n)))))
    SEP (gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p)).
 - destruct n as [n Hn]. simpl. clear - Hn. rep_lia.
@@ -322,26 +321,80 @@ forward_for_simple_bound (Z.of_nat n)
     rewrite Zlength_correct. change @Datatypes.length with @seq.size.
    rewrite size_ord_enum; auto.
  }
-  unfold sum_upto, dotprod_model.dotprodF, dotprod_model.dotprod.
+  unfold integrate_upto.
   rewrite (sublist_split 0 i (i+1)) by lia.
   assert (Inh: Inhabitant 'I_(nat_of_ord n))
      by (apply (@Ordinal _ (Z.to_nat i)); lia).
   rewrite sublist_len_1 by lia.
-  rewrite ?map_app.
-  change @app with @seq.cat.
-  rewrite seq.zip_cat
-    by (change @seq.size with @length; rewrite ?length_map; auto).
-  rewrite ?seq.map_cat.
   simpl.
   replace (Znth i _) with i'. 
     2:{ unfold Znth. rewrite if_false by lia. rewrite <- nth_List_nth.
          replace (Z.to_nat i) with (nat_of_ord i') by (simpl; lia).
           rewrite nth_ord_enum'. auto.
-   }
+    }
  rewrite seq.foldl_cat.
  reflexivity.
 -
   forward.
- rewrite sum_upto_n.
+ rewrite integrate_upto_n.
  entailer!!.
+Qed.
+
+Import quadrature quadrature2 Legendre quadmodel_accuracy.
+
+Definition testfun_fb : R := 1.
+Lemma testfun_fbound: fbound testfun_r testfun_fb.
+Admitted.
+
+Definition testfun_d: R := 1.
+Lemma testfun_deriv_bound: deriv_bound testfun_r testfun_d.
+Admitted.
+
+Definition testfun_f_acc : R := (10 * @common.default_rel Tdouble).
+
+Lemma testfun_function_accuracy: function_accuracy Tdouble testfun_r testfun_f testfun_f_acc.
+Admitted.
+
+Definition testfun_b := IZR 223 / IZR 100000.
+
+Definition n := @Ordinal 5 2 ssrbool.isT.
+
+Lemma testfun_quadrature_error_bound: 
+  @quadrature_error_bound Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real
+      testfun_r n testfun_b.
+Proof.
+pose proof error_1_0_2.
+Admitted.
+
+Require Import Interval.Tactic.
+
+Lemma testfun_parameter_limits: parameter_limits Tdouble (@Ordinal 5 2 ssrbool.isT) testfun_fb testfun_f_acc.
+Proof.
+unfold parameter_limits, testfun_fb, testfun_f_acc, common.default_rel, common.default_abs.
+prepare_for_interval.
+simpl.
+interval.
+Qed.
+
+Lemma body_integrate_testfun: semax_body Vprog Gprog f_integrate_testfun integrate_testfun_spec.
+Proof.
+start_function.
+make_func_ptr _testfun.
+forward_call sub_integrate (testfun_f, testfun_r, testfun_fb, testfun_f_acc, testfun_d, gv _testfun, n, testfun_b, gv).
+repeat apply conj.
+apply testfun_quadrature_error_bound.
+apply testfun_fbound.
+apply testfun_deriv_bound.
+apply testfun_function_accuracy.
+apply testfun_parameter_limits.
+Intros y.
+forward.
+Exists y.
+entailer!!; [ | apply func_ptr'_emp].
+eapply RIneq.Rle_trans; [apply H | ].
+unfold integrate_model_acc, maxwf, testfun_fb, testfun_b, testfun_d, testfun_f_acc,
+  common.default_rel, common.default_abs.
+simpl.
+clear.
+interval.
 Qed.
