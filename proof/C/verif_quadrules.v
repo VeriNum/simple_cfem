@@ -352,7 +352,7 @@ Admitted.
 
 Definition testfun_f_acc : R := (10 * @common.default_rel Tdouble).
 
-Lemma testfun_function_accuracy: function_accuracy Tdouble testfun_r testfun_f testfun_f_acc.
+Lemma testfun_function_accuracy: function_accuracy testfun_r testfun_f testfun_f_acc.
 Admitted.
 
 Definition testfun_b := IZR 223 / IZR 100000.
@@ -368,7 +368,7 @@ Admitted.
 
 Require Import Interval.Tactic.
 
-Lemma testfun_parameter_limits: parameter_limits Tdouble (@Ordinal 5 2 ssrbool.isT) testfun_fb testfun_f_acc.
+Lemma testfun_parameter_limits: parameter_limits Tdouble  (@Ordinal 5 2 ssrbool.isT) testfun_fb testfun_f_acc.
 Proof.
 unfold parameter_limits, testfun_fb, testfun_f_acc, common.default_rel, common.default_abs.
 prepare_for_interval.

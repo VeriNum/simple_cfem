@@ -160,7 +160,7 @@ Definition integrate_spec : ident * funspec :=
     PROP (quadrature_error_bound g n b; 
                   fbound g fb; 
                   deriv_bound g d; 
-                  function_accuracy Tdouble g f f_acc;
+                  function_accuracy g f f_acc;
                   parameter_limits Tdouble n  fb f_acc)
     PARAMS ( p; Vint (Int.repr (Z.of_nat n)))
     GLOBALS (gv)

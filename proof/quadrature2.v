@@ -374,8 +374,21 @@ apply quadrature_error_bound_is_bound.
 time "error_1_0_2" gauss_legendre_error_bounder.  (* 31.7 seconds *)
 Qed.
 
+ Definition deriv_bound (f: R -> R) (b: R) :=
+  forall x, (-1 <= x <= 1) -> derive.derivable f x 1 /\ (`| derive.derive1 f x | <= b).
 
-Definition deriv_bound (f: R -> R) (b: R) :=
-  forall x, (-1 <= x <= 1) -> (`| derive.derive1 f x | <= b).
+Definition fbound (g: R -> R) fb := forall x : R, (lo <= x <= hi) -> ( `| g x | <= fb ).
+
+Lemma g_max_deriv:
+       forall (fb d : R) (g : R -> R),
+       fbound g fb ->
+       deriv_bound g d ->
+       forall x y : R, lo <= x <= hi -> lo <= x + y <= hi -> `| g (x + y) - g x | <= `| y | * d.
+Proof.
+move => fb d g Hfb Hd x y Hx Hy.
+Check Rintegral_cst.
+Admitted.
+
+
 
 

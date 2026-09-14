@@ -110,14 +110,21 @@ Qed.
  Variable (fb: R).
  Variable(g: R -> R).
 
-  Definition fbound g fb := forall x : R, -1 <= x <= 1 -> Rabs (g x) <= fb.
+ (* Definition fbound g fb := forall x : R, -1 <= x <= 1 -> Rabs (g x) <= fb.*)
  Variable Hg: fbound g fb.
 
  Variable (b: R) (Hb: quadrature_error_bound g n b).
  Variable (d: R) (Hd: deriv_bound g d).
 
   Lemma g_max_deriv: forall x y, -1 <= x <= 1 -> -1 <= x+y <= 1 -> Rabs (g(x+y) - g x) <= Rabs y * d.
- Admitted.
+ Proof.
+  intros.
+ rewrite ?RabsE.
+ apply /RleP.
+ apply (g_max_deriv _ _ _ Hg Hd).
+ apply /RrangeP; apply H.
+ apply /RrangeP; apply H0.
+Qed.
 
  Variable (f: F -> F)  (f_acc: R).
 
@@ -155,7 +162,9 @@ Qed.
   apply Rplus_le_le_0_compat; try lra.
  apply default_rel_ge_0.
   apply Rplus_le_le_0_compat; try lra.
-  specialize (Hg 0 ltac:(lra)). etransitivity; [ | apply Hg]. apply Rabs_pos.
+ red in Hg.
+ etransitivity ; [ |  apply /RleP; apply (Hg 0); apply /RrangeP; clear; compute; lra].
+ apply Rabs_pos.
  destruct (fun_acc (Zconst t 0)). split; auto. reflexivity. simpl. lra.
   etransitivity; [ | apply H1]. apply Rabs_pos.
 }
@@ -220,7 +229,10 @@ move => i.
 destruct (fun_acc (gauss_pt_f i)) as [FINf Hacc].
   split; [apply gauss_pts_err | apply Rabs_le_inv;  apply gauss_pt_f_range].
 assert (Hfb := gauss_pt_f_range i).
-assert (Hgb := Hg (FT2R (gauss_pt_f i)) (Rabs_le_inv _ _ Hfb)).
+ move :(Hg (FT2R (gauss_pt_f i))). rewrite -RabsE => Hgb.
+ move :(Rabs_le_inv _ _ Hfb) => /RrangeP H8.
+ specialize (Hgb H8). clear H8.
+ move :Hgb => /RleP Hgb.
 assert (Hwb := gauss_wt_f_range_ok i).
 assert (Rabs (FT2R (f (gauss_pt_f i))) <= fb + f_acc). {
   replace (FT2R (f (gauss_pt_f i))) with (g (FT2R (gauss_pt_f i)) + (FT2R (f (gauss_pt_f i)) - g (FT2R (gauss_pt_f i))))
@@ -253,9 +265,10 @@ destruct (BMULT_correct (gauss_wt_f i) (f (gauss_pt_f i))) as [FIN [e0 [e1 [_ [H
  set e4 := FT2R (gauss_pt_f i) - gauss_pt n i in H4.
  replace (FT2R (gauss_pt_f i)) with (gauss_pt n i + e4) in Hacc by (rewrite /e4; lra).
  assert (Hdpos: 0 <= d). {
-    pose proof Hd 0. set c := _ g _ in H0. change (numdomain.Num.norm ?A) with (Rabs A) in H0.
-   transitivity (Rabs c). apply Rabs_pos. apply /RleP. apply H0. apply /RrangeP. 
-   clear; prepare_for_interval; simpl; lra.
+   destruct (Hd 0 ltac:(apply /RrangeP; clear; compute; lra)) as [H0' H0].  
+   set c := _ g _ in H0. change (numdomain.Num.norm ?A) with (Rabs A) in H0.
+   simpl in c.
+   transitivity (Rabs c). apply Rabs_pos. apply /RleP. apply H0.
  }
 assert (Hderiv: Rabs (g (gauss_pt n i + e4) - g (gauss_pt n i)) <= eps * d). {
   assert ( -1 <= gauss_pt n i + e4 <= 1 ). {
@@ -271,7 +284,8 @@ replace (FT2R (f (gauss_pt_f i))) with (g (gauss_pt n i) + e5 + e6) by (rewrite 
 replace (FT2R (gauss_wt_f i)) with (gauss_wt n i + e3) by (rewrite /e3; lra).
 match goal with |- Rabs ?A <= _ =>   ring_simplify A end.
  assert (Rabs (g (gauss_pt n i)) <= fb). {
-   apply Hg. apply Rabs_le_inv. apply gauss_pt_range.
+   apply /RleP;  apply Hg.
+   apply /RrangeP; apply Rabs_le_inv. apply gauss_pt_range.
 }
  assert (Rabs (gauss_wt n i) <= 2). {
     apply gauss_wt_range.
@@ -293,18 +307,40 @@ rewrite Rplus_comm.
 etransitivity. apply H0.
 apply Rplus_le_compat_l.
 assert (Rabs (g (gauss_pt n i)) <= fb).
-  by (apply Hg; apply Rabs_le_inv; apply gauss_pt_range).
+   apply /RleP; apply Hg; apply /RrangeP; apply Rabs_le_inv; apply gauss_pt_range.
 pose proof (gauss_wt_range) i.
 bound_sum_of_products.
 Qed.
 
-Lemma rev_list_rev: @rev = @List.rev.
-Admitted.
+Lemma rev_list_rev: forall t al, @rev t al = @List.rev t al.
+Proof.
+intros.
+unfold rev.
+rewrite rev_alt.
+reflexivity.
+Qed.
 
 Lemma Forall2_forall:
   forall [A B: Type] (P: A -> B -> Prop) (al: list A) (bl: list B),
-    Forall2 P al bl <-> (forall a b, In (a,b) (zip al bl) -> P a b).
-Admitted.
+    Forall2 P al bl <-> (seq.size al = seq.size bl /\ forall a b, In (a,b) (zip al bl) -> P a b).
+Proof.
+split; intros.
+-
+split.
+apply Forall2_length in H; auto.
+intros; induction H; simpl; intros ; inversion H0; clear H0.
+inversion H2; clear H2; subst; auto.
+auto.
+-
+destruct H.
+revert bl H H0; induction al; destruct bl; intros; inversion H; clear H; subst.
+constructor.
+constructor; auto.
+apply H0. simpl; auto.
+apply IHal; auto.
+intros; apply H0; auto.
+simpl; auto.
+Qed.
 
 Definition dotprodF' (v1 v2 : List.list (ftype t)) : ftype t :=
   dotprod_model.dotprod BMULT BPLUS neg_zero v1 v2.
@@ -338,6 +374,11 @@ Lemma finite_integrate_model_aux:
   2 * fb + maxwf <
   @fmax t / (1 + eps) * 1 /
   (1 + INR (nat_of_ord n) * (@common.g t (nat_of_ord n - 1) + 1)).
+Proof.
+red in fb_limit.
+unfold common.g.
+rewrite Rmult_1_r.
+
 Admitted.
 
 Lemma Fsum_gauss_wt_pt_finite: 
@@ -387,7 +428,7 @@ intros.
  rewrite rev_list_rev in H0. rewrite -In_rev in H0.
  rewrite in_map_iff in H0.
  destruct H0 as [[a' b'] [? ?]].
- rewrite Forall2_forall in H. apply H in H1. subst x.
+ rewrite Forall2_forall in H. apply (proj2 H) in H1. subst x.
  destruct H1; split; auto.
  rewrite rev_list_rev length_rev length_map (erefl: @length = @size) size_zip.
  rewrite (erefl: @size = @length)  -EQ /minn ltnn /uncurry //.
@@ -431,6 +472,7 @@ rewrite /finite.
 rewrite -integrate_model_f_alt_eq.
 apply dotprodF_finite_from_bounded.
 apply Forall2_forall.
+split. rewrite ?size_map. reflexivity. 
 intros.
 rewrite zip_map in H.
 rewrite in_map_iff in H. destruct H as [i [? ?]].
@@ -591,6 +633,8 @@ Qed.
 
 
 End FLOAT.
+
+Arguments function_accuracy [t] g f. 
 
 Module Quadmodel_F64_accuracy.
 Import Quadmodel_F64.
