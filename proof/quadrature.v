@@ -6,6 +6,7 @@ From mathcomp.algebra_tactics Require Import ring lra.
 Import classical_sets.
 Import numFieldNormedType.Exports.
 From Stdlib Require Import FunctionalExtensionality.
+Import measurable_realfun. 
 
 Unset Implicit Arguments.
 Unset Strict Implicit.
@@ -1801,19 +1802,19 @@ Qed.
     -
      assert ((i < j)%N \/ i=j \/ (j<i)%N) by Lia.lia.
      destruct H2 as [? |[?|?]]; auto.
-     rewrite <- (sorted_ij rl i j ((i + 1)%:R + b)%E ((j + 1)%:R + b)%E H0 Hi Hj) in H2.
+     rewrite <- (sorted_ij rl i j ((i + 1)%:R + b)%R ((j + 1)%:R + b)%R H0 Hi Hj) in H2.
      rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
-     rewrite <- (sorted_ij rl j i ((j + 1)%:R + b)%E ((i + 1)%:R + b)%E H0 Hj Hi) in H2.
+     rewrite <- (sorted_ij rl j i ((j + 1)%:R + b)%R ((i + 1)%:R + b)%R H0 Hj Hi) in H2.
      rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
    - 
-    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((i + 1)%:R + b)%E). rewrite H in H2. inversion H2.
+    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((i + 1)%:R + b)%R). rewrite H in H2. inversion H2.
     apply H3 in Hi.
     rewrite H1 in Hi. clear H2 H3.
     rewrite nth_default in Hi; auto.
     assert ((j+1)%:R <= 0%:R) by lra.
     rewrite ler_nat in H2. Lia.lia.
    - 
-    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((j + 1)%:R + b)%E). rewrite H in H2. inversion H2.
+    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((j + 1)%:R + b)%R). rewrite H in H2. inversion H2.
     apply H3 in Hj.
     rewrite -H1 in Hj. clear H2 H3.
     rewrite nth_default in Hj; auto.
@@ -2718,9 +2719,9 @@ Lemma legendre_roots_4c:
 Proof.
 assert (1 < sqrt (6/5)) by (rewrite -{1}sqrtr1 ltr_sqrt;  lra).
 assert (sqrt(6/5)<6/5) by (rewrite -{2}(sqr_sqrt (6/5)); nra).
-assert (0 < sqrt((3%R + (2 * Num.ExtraDef.sqrtr (6 / 5))%R)%E / 7))
+assert (0 < sqrt((3%R + (2 * Num.ExtraDef.sqrtr (6 / 5))%R)%R / 7))
    by (rewrite sqrtr_gt0; lra).
-assert (sqrt((3%R + (2 * Num.ExtraDef.sqrtr (6 / 5))%R)%E / 7) < 1) 
+assert (sqrt((3%R + (2 * Num.ExtraDef.sqrtr (6 / 5))%R)%R / 7) < 1) 
   by ( rewrite -{6}sqrtr1 ltr_sqrt; lra).
 assert (0 < sqrt((3 - (2 * Num.ExtraDef.sqrtr (6 / 5))) / 7))
    by (rewrite sqrtr_gt0; lra).
@@ -2917,7 +2918,7 @@ rewrite ?(@mulrD {poly _}) -?mulrA.
 rewrite ?(pull_left (-c%:P)) ?r_intgal ?r_ring.
 rewrite ?(pull_left (b%:P)) ?r_intgal ?r_ring.
 rewrite ?(pull_left (c%:P)) ?r_intgal ?r_ring.
-transitivity (a * ((- c * (2 / 3))%R + (- b * (2 / 3))%R + ((b * (2 / 3))%R + (- (b * b) * (2 * - c))%R))%E); [ ring | ].
+transitivity (a * ((- c * (2 / 3))%R + (- b * (2 / 3))%R + ((b * (2 / 3))%R + (- (b * b) * (2 * - c))%R))%R); [ ring | ].
 rewrite sqr_sqrt; try lra. 
 rewrite addrA. 
 rewrite (mulNr b).
@@ -3039,9 +3040,9 @@ rewrite ?mulrD.
 rewrite -?mulrA.
 rewrite ?r_intgal ?r_ring.
 rewrite ?(pull_left (polyC _)) ?r_intgal ?r_ring.
-replace a with ( (((- c)%R + b)%E * ((- c - c) * (- c - b)))^-1 : R) by (subst a; f_equal; ring).
+replace a with ( (((- c)%R + b)%R * ((- c - c) * (- c - b)))^-1 : R) by (subst a; f_equal; ring).
 clear a; set a := inv _.
-transitivity (a * ((- b * (2 / 3))%R + (- c * (2 / 3))%R + ((b * (2 / 3))%R + (b * (- c * (2 * - b)))%R))%E); [ ring |].
+transitivity (a * ((- b * (2 / 3))%R + (- c * (2 / 3))%R + ((b * (2 / 3))%R + (b * (- c * (2 * - b)))%R))%R); [ ring |].
 simpl in a.
 unfold b,c in a.
 assert (is_true (1 < s3)) by (rewrite -{1}sqrtr1 ltr_sqrt;  lra).

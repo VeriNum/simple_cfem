@@ -269,7 +269,7 @@ Lemma continuously_differentiable_add:
   forall [d] (a b: 'cV_d.+1 -> Real.sort R),
    continuously_differentiable a ->
    continuously_differentiable b ->
-   continuously_differentiable (a \+ b)%E.
+   continuously_differentiable (a \+ b)%R.
 (* begin details *)
 Proof.
 intros.
@@ -300,7 +300,7 @@ simpl in *.
 split; simpl; intros.
 apply differentiableM; auto.
 pose proof @derive_comp_mx d.
-replace (fun _ => _) with (fun z : matrix (Real.sort R) (S d) 1 =>  (a z *: 'D_(delta_mx i zero) b z + b z *: 'D_(delta_mx i zero) a z)%E).
+replace (fun _ => _) with (fun z : matrix (Real.sort R) (S d) 1 =>  (a z *: 'D_(delta_mx i zero) b z + b z *: 'D_(delta_mx i zero) a z)%R).
 2: extensionality z; rewrite deriveM //; apply diff_derivable; auto.
 apply (@continuousD (reals_Real__to__Num_NumField R) (Real_sort__canonical__normed_module_NormedModule R)
   (@normed_module_NormedModule__to__topology_structure_Topological
