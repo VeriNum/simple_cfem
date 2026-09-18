@@ -41,7 +41,31 @@ Lemma within_continuous_cst:
   forall x : @subspace (GRing.regular (Real.sort R))  [set` s],
   @continuous_at _ (GRing_regular__canonical__filter_Nbhs (reals_Real__to__Num_NumDomain R)) x
       (from_subspace [set` s]   (fun=> c)).
-Admitted.
+Proof.
+intros * ? ?.
+hnf; simpl.
+hnf in H; simpl in H.
+destruct H as [a H H0].
+unfold from_subspace in H0.
+unfold from_subspace.
+unfold preimage.
+rewrite {6}/mkset.
+rewrite /globally /=.
+rewrite {4}/mkset /=.
+destruct (in_mem _ _); simpl.
+2:{ intros; apply H0. subst x0.
+set n := Num.norm.
+ replace (fun _ =>   _) with n; [ | extensionality zz; auto].
+subst n.
+simpl.
+rewrite Num.Theory.ger0_norm; try lra.
+}
+exists a; auto.
+intros ? ? ?.
+apply H0.
+hnf.
+rewrite Num.Theory.ger0_norm; try lra.
+Qed.
 
 Lemma within_continuous_subset: 
  forall (s t : set (Real.sort R)) (g: Real.sort R -> Real.sort R),
@@ -52,8 +76,66 @@ Lemma within_continuous_subset:
   (forall x : @subspace (GRing.regular (Real.sort R))  s,
   @continuous_at _ (GRing_regular__canonical__filter_Nbhs (reals_Real__to__Num_NumDomain R)) x
       (from_subspace s g)).
-Admitted.
+Proof.
+intros.
+unfold subspace in x.
+unfold subspace in H0.
+pose proof (H0 x).
+unfold from_subspace in H1|-*.
+intros ? ?.
+simpl in t0.
+specialize (H1 t0).
+apply H1 in H2.
+simpl in *.
+red in H2 |- *.
+simpl in *.
+red in H2|-*.
+simpl in *.
+red in H2|-*.
+assert (H' := H).
+rewrite -subsetP in H.
+specialize (H x).
+set b := in_mem x (mem s) in H|-*.
+destruct b eqn:Hb.
+-
+subst b.
+rewrite H in H2; auto.
+red in H2|-*; simpl in *.
+red in H2|-*.
+red in H2|-*.
+simpl in *.
+red in H2|-*.
+simpl in *.
 
+red in H2|-*.
+simpl in *.
+
+red in H2|-*.
+simpl in *.
+destruct H2 as [a H2 H3].
+exists a; auto.
+intros  ? ? ?. specialize (H3 t1 H4).
+simpl in H3.
+apply H3.
+apply H'; auto.
+-
+hnf; simpl.
+intros.
+subst x0.
+destruct (in_mem _ _) eqn:Hd in H2.
+hnf in H2; simpl in H2.
+destruct H2 as [a H2 H3].
+hnf in H3; simpl in H3.
+apply H3.
+rewrite Num.Theory.ger0_norm; try lra.
+clear - Hd.
+unfold in_mem, mem in Hd. simpl in Hd.
+unfold in_set in Hd.
+unfold boolp.asbool in Hd.
+destruct (boolp.pselect (t x)); auto. discriminate.
+hnf in H2; simpl in H2.
+apply H2. auto.
+Qed.
 
 Lemma within_continuous_derive1_N:
 forall (g: R -> R),
