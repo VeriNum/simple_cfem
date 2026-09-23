@@ -278,9 +278,9 @@ Definition v_gauss_wts := {|
   gvar_init := (Init_float64 (Float.of_bits (Int64.repr 4611686018427387904)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4607182418800017408)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4607182418800017408)) ::
-                Init_float64 (Float.of_bits (Int64.repr 4603179219131243638)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603179219131243634)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4606181618882823965)) ::
-                Init_float64 (Float.of_bits (Int64.repr 4603179219131243638)) ::
+                Init_float64 (Float.of_bits (Int64.repr 4603179219131243634)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4599938015721666155)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4604049220898137291)) ::
                 Init_float64 (Float.of_bits (Int64.repr 4604049220898137291)) ::

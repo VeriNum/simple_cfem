@@ -166,7 +166,7 @@ Definition hughes_point_spec: ident * funspec :=
 Definition hughes_weight: R := 1/6.
 
  Definition hughes_weight_spec : ident * funspec :=
-  DECLARE _gauss2d_weight
+  DECLARE _hughes_weight
   WITH i: 'I_3
   PRE [ tint, tint ]
     PROP()
@@ -177,6 +177,103 @@ Definition hughes_weight: R := 1/6.
     PROP(float_near Tdouble hughes_weight w)
     RETURN ( Vfloat w )
     SEP().
+
+Lemma init_data_tarray_tdouble {cs:compspecs} gv sh b: 
+   forall xs i (Hi: Z.divide (align_chunk Mfloat64) (Ptrofs.unsigned i)) (Hxs: (Ptrofs.unsigned i + 8 * Zlength xs < Ptrofs.modulus)%Z),
+  init_data_list2pred gv (map Init_float64 xs) sh (Vptr b i) |--
+  data_at sh (tarray tdouble (Zlength xs)) (map Vfloat xs) (Vptr b i).
+Proof. induction xs; intros; simpl.
+  - rewrite data_at_zero_array_eq; auto; reflexivity.
+  - replace (8 * Zlength (a :: xs))%Z with (8  + (8 * Zlength xs))%Z in Hxs by list_solve.
+    specialize (Zlength_nonneg xs); intros L.
+    unfold Ptrofs.add. rewrite ! Ptrofs.unsigned_repr; try rep_lia.
+
+    rewrite (split2_data_at_Tarray sh tdouble (Zlength (a :: xs)) 1
+            (Vfloat a :: map Vfloat xs) (Vfloat a :: map Vfloat xs)
+            (sublist 0 1 (Vfloat a :: map Vfloat xs))
+            (sublist 1 (Zlength (a :: xs)) (Vfloat a :: map Vfloat xs)) (Vptr b i)); try list_solve.
+
+   apply sepcon_derives.
+   + rewrite (data_at_singleton_array_eq sh tdouble (Vfloat a)) by trivial.
+     erewrite mapsto_data_at'; auto; trivial.
+     red; simpl; intuition auto with *.
+     econstructor. apply predicates_hered.derives_refl. 
+     split3; [ | | split3] ; simpl; auto. lia. eapply align_compatible_rec_by_value; try reflexivity; auto.
+   + eapply derives_trans. apply IHxs; clear IHxs.
+     * rewrite ! Ptrofs.unsigned_repr; try rep_lia.
+        apply Z.divide_add_r; auto.
+       simpl. first [exists 1%Z; lia | exists 2%Z; lia].
+     * rewrite ! Ptrofs.unsigned_repr; rep_lia.
+     * rewrite Zlength_cons.
+       replace (Z.succ (Zlength xs) - 1)%Z with (Zlength xs) by lia.
+       apply derives_refl'. f_equal. list_solve.
+       unfold field_address0.  rewrite Coqlib2.if_true; simpl; trivial.
+       red; intuition auto with *.
+       -- reflexivity.
+       -- red. rewrite sizeof_Tarray, Z.max_r. simpl sizeof; rep_lia. list_solve.
+       -- eapply align_compatible_rec_Tarray; intros.
+          econstructor. reflexivity.
+          apply Z.divide_add_r; auto. simpl.
+         first [exists i0; lia | exists (2*i0)%Z; lia].
+Qed.
+
+Lemma gauss_pts_match: forall gv,
+   (exists rho, gv = globals_of_env rho) ->
+   init_data_list2pred gv (gvar_init v_gauss_pts) Ers (gv _gauss_pts)
+  |-- gauss_pts_pred gv.
+Proof.
+intros gv [rho Hrho].
+unfold gauss_pts_pred.
+assert_PROP(exists b, gv _gauss_pts = Vptr b (Ptrofs.repr 0)). {
+rewrite Hrho.
+simpl gvar_init.
+unfold init_data_list2pred. 
+match goal with |- ?A * ?B |-- ?C => forget B as foo end.
+simpl.
+unfold mapsto, globals_of_env; simpl.
+destruct (Map.get _ _); simpl; [ | rewrite FF_sepcon; apply FF_left].
+rewrite Coqlib2.if_true by auto.
+entailer!!.
+exists b; reflexivity.
+}
+destruct H as [b H].
+assert (H0: gvar_init v_gauss_pts = map Init_float64 gauss_pts_list).
+ simpl; repeat f_equal; with_strategy transparent [Float.of_bits] compute; f_equal; apply proof_irr.
+rewrite H0.
+rewrite H.
+apply init_data_tarray_tdouble; auto.
+apply Z.divide_0_r.
+simpl. rep_lia.
+Qed.
+
+Lemma gauss_wts_match: forall gv,
+   (exists rho, gv = globals_of_env rho) ->
+   init_data_list2pred gv (gvar_init v_gauss_wts) Ers (gv _gauss_wts)
+  |-- gauss_wts_pred gv.
+Proof.
+intros gv [rho Hrho].
+unfold gauss_wts_pred.
+assert_PROP(exists b, gv _gauss_wts = Vptr b (Ptrofs.repr 0)). {
+rewrite Hrho.
+simpl gvar_init.
+unfold init_data_list2pred. 
+match goal with |- ?A * ?B |-- ?C => forget B as foo end.
+simpl.
+unfold mapsto, globals_of_env; simpl.
+destruct (Map.get _ _); simpl; [ | rewrite FF_sepcon; apply FF_left].
+rewrite Coqlib2.if_true by auto.
+entailer!!.
+exists b; reflexivity.
+}
+destruct H as [b H].
+assert (H0: gvar_init v_gauss_wts = map Init_float64 gauss_wts_list).
+ simpl; repeat f_equal; with_strategy transparent [Float.of_bits] compute; f_equal; apply proof_irr.
+rewrite H0.
+rewrite H.
+apply init_data_tarray_tdouble; auto.
+apply Z.divide_0_r.
+simpl. rep_lia.
+Qed.
 
 (*
 Definition realfun_spec (f: R -> R) (acc: R) : funspec :=
