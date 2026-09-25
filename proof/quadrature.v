@@ -2,10 +2,11 @@
 From mathcomp Require Import all_boot ssralg ssrnum archimedean finfun order.
 From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory GRing.
-From mathcomp.algebra_tactics Require Import ring lra.
+From mathcomp.algebra Require Import ring_tactic.
 Import classical_sets.
 Import numFieldNormedType.Exports.
 From Stdlib Require Import FunctionalExtensionality.
+From mathcomp.zify Require Import ssrZ zify.
 
 Unset Implicit Arguments.
 Unset Strict Implicit.
@@ -42,7 +43,6 @@ pose proof tuple_eta x. symmetry.
 destruct x; simpl in H. inversion  H. simpl. auto.
 Qed.
 
-
 Lemma sorted_ij {R: realType}: 
  forall (rl: list R) (i j: nat) (d1 d2: R),
   is_true (sorted <%R rl) ->
@@ -52,7 +52,7 @@ Lemma sorted_ij {R: realType}:
 Proof.
 intros.
 revert i j H0 H1; induction rl; intros.
-simpl in H0; Lia.lia.
+simpl in H0; lia.
 simpl in H0,H1.
 destruct i,j; simpl in *.
 -
@@ -63,10 +63,10 @@ rewrite ltn0Sn.
   pose proof (@all_nthP _  (> a)  rl d2). rewrite H in H2. inversion H2.
   rewrite H3; auto.
 -
- replace (i.+1<0)%N with false by Lia.lia.
+ replace (i.+1<0)%N with false by lia.
  apply order_path_min in H; [ | intros ? ? ?; lra].
   pose proof (@all_nthP _  (> a)  rl d1). rewrite H in H2. inversion H2.
-  assert (is_true (i<size rl)%N). Lia.lia.
+  assert (is_true (i<size rl)%N). lia.
   specialize (H3 _ H4). lra.
 -
  rewrite IHrl; auto.
@@ -155,12 +155,12 @@ Qed.
 
 Lemma add_fun0r: forall {U: Type} {V: nmodType} (f: U -> V),
   add_fun (fun=>0) f = f.
-Proof. intros. extensionality x. simpl. apply add0r.
+Proof. intros. extensionality x. rewrite /= add0r //.
 Qed.
 
 Lemma add_funr0: forall {U: Type} {V: nmodType} (f: U -> V),
   add_fun f (fun=>0) = f.
-Proof. intros. extensionality x. simpl. apply addr0.
+Proof. intros. extensionality x. rewrite /= addr0 //.
 Qed.
 
 Lemma mul_funDr: forall  {s : pzSemiRingType} {T: Type},
@@ -251,8 +251,8 @@ Proof.
 intros.
 apply poly_inj.
 rewrite polyseqMX.
-rewrite  /= polyX' //.
 rewrite polyX_eq0 //.
+rewrite  polyX' //.
 Qed.
 
 Lemma polyX3': 'X * ('X * 'X) = @Polynomial R [:: 0; 0; 0; 1] oner_neq0.
@@ -324,7 +324,10 @@ rewrite /= poly0 size_cons_poly nil_poly ?eq_refl /= poly0 polyseq0 //.
 assert (H7: is_true (s`_n != 0))
  by (rewrite (last_nth Algebra.zero) H0 in H; auto).
 rewrite size_cons_poly H0 /nilp size_poly_eq.
-2:{  rewrite ?prednK; try Lia.lia. simpl. 
+2:{
+
+rewrite prednK.
+  rewrite ?prednK; try Lia.lia. simpl. 
 revert H7.
 set d := s`_n. clearbody d.
 apply contraNN.

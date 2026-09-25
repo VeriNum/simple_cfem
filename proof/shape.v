@@ -9,7 +9,7 @@
 From mathcomp Require Import all_ssreflect ssralg ssrnum archimedean finfun.
 From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory GRing.
-From mathcomp.algebra_tactics Require Import ring lra.
+From mathcomp.algebra Require Import ring_tactic.
 From CFEM Require Import matrix_util.
 From LAProof Require Import mv_mathcomp.
 From Stdlib Require Import Lia FunctionalExtensionality.

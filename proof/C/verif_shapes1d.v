@@ -26,7 +26,11 @@ entailer!!.
 apply derives_refl'.
 f_equal.
 unfold shapes1dP1_float.
-replace (x _ _) with x00 by (subst x00; f_equal; apply ord_inj; reflexivity).
+set (z := nmodule.Algebra.zero).
+set (y := fun_of_matrix x z z).
+change (x z z) with y.
+replace y with x00
+ by (subst y z x00; f_equal; apply ord_inj; reflexivity).
 prove_matrices_same.
 -
 forward.
@@ -89,7 +93,10 @@ entailer!!.
 apply derives_refl'.
 f_equal.
 unfold shapes1dP2_float.
-replace (x _ _) with x00 by (subst x00; f_equal; apply ord_inj; reflexivity).
+set (z := nmodule.Algebra.zero).
+set (y := fun_of_matrix x z z).
+change (x z z) with y.
+replace y with x00 by (subst y z x00; f_equal; apply ord_inj; reflexivity).
 prove_matrices_same.
 -
 forward.
@@ -113,7 +120,10 @@ apply derives_refl'.
 f_equal.
 clear.
 unfold shapes1dP2_fderiv.
-replace (x _ _) with x00 by (subst x00; f_equal; apply ord_inj; reflexivity).
+set (z := nmodule.Algebra.zero).
+set (y := fun_of_matrix x z z).
+change (x z z) with y.
+replace y with x00 by (subst y z x00; f_equal; apply ord_inj; reflexivity).
 unfold matrix_util.mx_of_list. simpl. 
 prove_matrices_same.
 +
@@ -153,7 +163,10 @@ entailer!!.
 apply derives_refl'.
 f_equal.
 unfold shapes1dP3_float.
-replace (x _ _) with x00 by (subst x00; f_equal; apply ord_inj; reflexivity).
+set (z := nmodule.Algebra.zero).
+set (y := fun_of_matrix x z z).
+change (x z z) with y.
+replace y with x00 by (subst y z x00; f_equal; apply ord_inj; reflexivity).
 prove_matrices_same.
 -
 forward.
@@ -177,7 +190,10 @@ apply derives_refl'.
 f_equal.
 clear.
 unfold shapes1dP3_fderiv.
-replace (x _ _) with x00 by (subst x00; f_equal; apply ord_inj; reflexivity).
+set (z := nmodule.Algebra.zero).
+set (y := fun_of_matrix x z z).
+change (x z z) with y.
+replace y with x00 by (subst y z x00; f_equal; apply ord_inj; reflexivity).
 unfold matrix_util.mx_of_list. simpl. 
 prove_matrices_same.
 +

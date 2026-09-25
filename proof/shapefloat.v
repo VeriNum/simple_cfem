@@ -26,7 +26,8 @@ Delimit Scope R_scope with Re.
 Local Open Scope order_scope.
 Local Open Scope ring_scope.
 
-From mathcomp.algebra_tactics Require Import ring lra.
+From mathcomp.algebra Require Import ring_tactic.
+(* From mathcomp.algebra_tactics Require Import ring lra. *)
 Import GRing.
 
 From HB Require Import structures.
