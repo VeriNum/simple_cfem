@@ -1,0 +1,38 @@
+opam-version: "2.0"
+synopsis: "CFEM: Finite Element Method in C, proved correct and accurate in Rocq"
+authors: [
+  "Andrew W. Appel"
+  "David Bindel"
+]
+homepage: "https://verinum.org/simple_cfem"
+maintainer: "Andrew W. Appel <appel@princeton.edu>"
+dev-repo: "git+https://github.com/VeriNum/simple_cfem"
+bug-reports: "https://github.com/VeriNum/simple_cfem/issues"
+license: "MIT"
+
+build: [
+  [ make "-j%{jobs}%" ]
+]
+install: [
+  [ make "-j%{jobs}%" "install" ]
+]
+depends: [
+  "coq-core" {>= "9.1~"}
+  "rocq-stdlib"
+  "coq-flocq"
+  "coq-interval"
+  "coq-vcfloat" {>= "2.4.2~"}
+  "rocq-mathcomp-ssreflect" {>= "2.6.0~"}
+  "rocq-mathcomp-algebra"
+  "rocq-mathcomp-analysis"
+  "rocq-mathcomp-reals-stdlib"
+  "rocq-mathcomp-zify"
+  "coq-mathcomp-finmap"
+  "rocq-laproof"
+  "coq-vst" {>= "2.17"}
+  "coq-vst-lib" {>= "2.15.1~"}
+]
+tags: [
+  "date:2026-09-25"
+  "logpath:simple_cfem"
+]
