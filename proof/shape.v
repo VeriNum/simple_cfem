@@ -5,7 +5,26 @@
    continuously differentiable.
 *)
 
-(* begin details : Require Imports and Open Scope, etc. *)
+(* begin details : Require Imports and Open Scope, etc. *)From mathcomp Require Import boot algebra all_classical all_analysis order reals.  
+Import numFieldNormedType.Exports.
+From mathcomp.algebra Require Import ring_tactic.
+From Stdlib Require Import FunctionalExtensionality.
+From mathcomp.zify Require Import ssrZ zify.
+Import measurable_realfun MeasurableRopen.
+Import Order.TTheory GRing.Theory Num.Theory GRing.
+From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
+From CFEM Require Import matrix_util.  (* for Ordn *)
+From LAProof Require Import mv_mathcomp. (* for index_ord_enum *)
+
+Unset Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+Set Bullet Behavior "Strict Subproofs".
+
+Local Open Scope R_scope.
+Local Open Scope order_scope.
+Local Open Scope ring_scope.
+(*
 From mathcomp Require Import all_ssreflect ssralg ssrnum archimedean finfun.
 From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
 Import Order.TTheory GRing.Theory Num.Theory GRing.
@@ -22,6 +41,7 @@ Set Bullet Behavior "Strict Subproofs".
 Local Open Scope R_scope.
 Local Open Scope order_scope.
 Local Open Scope ring_scope.
+*)
 (* end details *)
 
 (** ** Definition of a package of real-valued shape functions.
@@ -34,7 +54,7 @@ Context {R : realType}.
 (** A function from #\(R^n\rightarrow R\)# is continuously differentiable if
    it is differentiable and its derivative (with respect to the i'th direction vector,
    for each i) is continuous.    We use column vectors ['cV[R]_n] to represent #\(R^n\)#.  *)
-Definition continuously_differentiable [n] (f: 'cV[R]_n -> R^o) : Prop :=
+Definition continuously_differentiable [n] (f: 'cV[R]_n -> R) : Prop :=
   (forall x, differentiable f x) /\ forall i, continuous (derive f ^~ (delta_mx i ord0)).
 
 (** This predicate states that dθ really is the derivative of θ *)
@@ -145,7 +165,7 @@ Inductive is_multivariate_polynomial [d] : ('cV[R]_d -> R) -> Prop :=
 
 (**  Next we will prove that any multivariate polynomial is continuously differentiable.
   We start with some helper lemmas. *)
-Lemma derive_comp_mx: forall [n] (f: R^o -> R^o), 
+Lemma derive_comp_mx: forall [n] (f: R -> R), 
    (forall x, differentiable f x) ->
   forall i : 'I_n.+1, 
    'D_(delta_mx i ord0) (f \o (fun m : 'cV[R]_n.+1 => m i 0)) = 
@@ -156,13 +176,13 @@ intros.
 apply functional_extensionality => z.
 set g := (fun _ => _).
 simpl in g.
-change (?A-> ?B) with (A -> R^o) in g.
+change (?A-> ?B) with (A -> R) in g.
 assert (Hg: forall x, differentiable g x).
-intro; apply differentiable_coord.
+intro; apply @differentiable_coord.
 assert (Hfg: forall x, differentiable (f \o g) x).
  move => x. simpl in x.  apply differentiable_comp; auto.
 simpl in *.
-pose proof deriveE (1: R^o) (H (g z)).
+pose proof deriveE (1: R) (H (g z)).
 rewrite (deriveE (delta_mx i 0) (Hfg z)).
 rewrite diff_comp; auto.
 rewrite /comp.
@@ -170,7 +190,7 @@ rewrite -(deriveE (delta_mx i 0) (Hg z)).
 replace ('D_(delta_mx i 0) g z) with (1: R).
 symmetry; apply H0.
 clear - g Hg.
-have @f : {linear 'cV[R]_n.+1 -> R^o}.
+have @f : {linear 'cV[R]_n.+1 -> R}.
   by exists (fun N : 'cV[R]_( _) => N i 0); do 2![eexists]; do ?[constructor];
      rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
 rewrite deriveE //.
@@ -182,7 +202,7 @@ simpl. rewrite eq_refl. reflexivity.
 Qed.
 (* end details *)
 
-Lemma derive_comp_mx_neq: forall [n] (f: R^o -> R^o), 
+Lemma derive_comp_mx_neq: forall [n] (f: R -> R), 
    (forall x, differentiable f x) ->
   forall i j : 'I_n.+1, 
    j != i ->
@@ -192,14 +212,14 @@ Proof.
 intros.
 apply functional_extensionality => z.
 set g := (fun _ => _).
-simpl in g. change (Real.sort R) with (R^o) in g.
+simpl in g.
 assert (Hg: forall x, differentiable g x).
 intro. subst g.
- apply differentiable_coord.
+ apply @differentiable_coord.
 assert (Hfg: forall x, differentiable (f \o g) x).
  move => x. simpl in x.  apply differentiable_comp; auto.
 simpl in *.
-pose proof deriveE (1: R^o) (H (g z)).
+pose proof deriveE (1: R) (H (g z)).
 rewrite (deriveE (delta_mx i 0) (Hfg z)).
 rewrite diff_comp; auto.
 rewrite /comp.
@@ -208,12 +228,12 @@ replace ('D_(delta_mx i 0) g z) with (0: Real.sort R).
 2:{
 rewrite deriveE; auto.
 clear - g Hg H0.
-have @f : {linear 'cV[R]_n.+1 -> R^o}.
+have @f : {linear 'cV[R]_n.+1 -> R}.
   by exists (fun N : 'cV[R]_( _) => N j 0); do 2![eexists]; do ?[constructor];
      rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
 change g with ( Linear.sort f).
 rewrite diff_lin //.
-apply (@coord_continuous (Real.sort R)).
+apply @coord_continuous.
 subst f. simpl. rewrite mxE //.
 destruct (j==i); try discriminate.
 reflexivity.
@@ -240,9 +260,9 @@ symmetry.
 simpl in i.
 subst j.
 change (fun=>c) with ((fun _: R => c) \o (fun m: 'cV[R]_d.+1 => m i 0)).
-change (('D_1 (fun _:R^o =>c)) \o (fun r: 'cV[R]_d.+1 => r i 0) = fun=>0).
+change (('D_1 (fun _:R =>c)) \o (fun r: 'cV[R]_d.+1 => r i 0) = fun=>0).
 set f := (fun=>c).
-assert (forall y, is_derive y (1:R^o) f 0%R).
+assert (forall y, is_derive y (1:R) f 0%R).
 move=> y;  apply: is_derive_eq.  auto.
 extensionality x.
 rewrite /comp.
@@ -269,7 +289,7 @@ Qed.
 
 (** If functions a(x) and b(x) are c.d., then so is (a+b)(x) *)
 Lemma continuously_differentiable_add:
-  forall [d] (a b: 'cV_d.+1 -> R^o),
+  forall [d] (a b: 'cV_d.+1 -> R),
    continuously_differentiable a ->
    continuously_differentiable b ->
    continuously_differentiable (a \+ b).
@@ -290,7 +310,7 @@ Qed.
 
 (** If functions a(x) and b(x) are c.d., then so is (a*b)(x) *)
 Lemma continuously_differentiable_mul:
-  forall [d] (a b: 'cV_d.+1 -> R^o),
+  forall [d] (a b: 'cV_d.+1 -> R),
    continuously_differentiable a ->
    continuously_differentiable b ->
    continuously_differentiable (fun x => a x * b x).
@@ -322,7 +342,7 @@ Proof.
 intros.
 rewrite ord1. clear j.
 split; simpl; intros.
-apply differentiable_coord.
+apply @differentiable_coord.
 rename i0 into j.
 destruct (j == i) eqn:?Hij.
 -
@@ -330,17 +350,17 @@ change (is_true (j==i)) in Hij.
 rewrite boolp.eq_opE in Hij; subst j.
 pose proof @derive_comp_mx d id.
 rewrite {1}/comp in H. rewrite H; auto.
-apply continuous_comp.
-apply (@coord_continuous (Real.sort R)).
-assert (forall y, is_derive y (1 : R^o) id 1).
+apply (@continuous_comp _ _ _).
+apply @coord_continuous.
+assert (forall y, is_derive y (1 : R) id 1).
 move=> y;  apply: is_derive_eq; auto.
 simpl in H0.
 red.
 set y := fun_of_matrix _ _ _.
 replace (fun _ => _) with (fun _: Real.sort R =>  (one R)).
-simpl in y. change (Real.sort R) with R^o in y.
+simpl in y.
 set u := fun _ => _.
-simpl in u. change (_ -> _) with (R -> R^o) in u.
+simpl in u.
 apply @cst_continuous.
 extensionality u.
 symmetry; apply (H0 u).
@@ -422,52 +442,6 @@ Qed.
 
 End S.
 
-(** *** Lemmas needed only until we switch to MathComp-Analysis 1.16 *)
-
-(* begin details *)
-Section pointwise_derivable.
-Local Open Scope classical_set_scope.
-Context  {R: realType}{V : normedModType R} {m n : nat}.
-Implicit Types M : V -> 'M[R]_(m, n).
-
-(* The two admitted lemmas in this section are proved in 
-   https://github.com/math-comp/analysis/pull/1829
-  see also https://rocq-prover.zulipchat.com/#narrow/channel/237666-math-comp-analysis/topic/Gradient.20components
-
-
-Lemma derivable_mxP: forall
-   (M : NormedModule.sort V -> 'M[R]_(m, n))
-   (t : Algebra.Zmodule.sort (normed_module_NormedModule__to__Algebra_Zmodule V))
-   (v : GRing.LSemiModule.sort (normed_module_NormedModule__to__GRing_LSemiModule V)),
-  derivable M t v <-> forall i j, derivable (fun x => M x i j) t v.
-Admitted.
-
-Lemma derive_mx: forall  [M : NormedModule.sort V -> 'M[R]_(m, n)]
-  [t : Algebra.Zmodule.sort (normed_module_NormedModule__to__Algebra_Zmodule V)]
-  [v : GRing.LSemiModule.sort (normed_module_NormedModule__to__GRing_LSemiModule V)],
-derivable M t v ->
-'D_v M t = \matrix_(i, j) 'D_v (fun t0 : NormedModule.sort V => fun_of_matrix (M t0) i j) t.
-Admitted.
-
-(* Delete this one after https://github.com/math-comp/analysis/pull/1891 is in a released mathcomp-analysis *)
-Global Instance is_derive_mx (M : V -> 'M[R]_(m, n))
-    (dM : 'M[R]_(m, n)) (x v : V) :
-  (forall i j, is_derive x v (fun x => M x i j) (dM i j)) ->
-  is_derive x v M dM.
-Proof.
-move=> MdM; apply: DeriveDef; first exact/derivable_mxP.
-apply/matrixP => i j.
-have [_ <-] := MdM i j.
-rewrite derive_mx//.
-  by rewrite mxE.
-apply/derivable_mxP => i0 j0.
-by have [] := MdM i0 j0.
-Qed.
-*)
-
-End pointwise_derivable.
-(* end details *)
-
 (** ** A whole bunch of supporting lemmas and proof-automation tactics *)
 
 Ltac prove_continuously_differentiable :=
@@ -518,7 +492,7 @@ Section S.
 Context {R : realType}.
 
 Lemma is_derive_row: forall [n](x: 'cV_n.+1) (i j: 'I_n.+1),
-  is_derive x (delta_mx i 0) (fun y: 'cV[R^o]_n.+1 => fun_of_matrix (row j y) 0 0) (if i==j then 1 else 0).
+  is_derive x (delta_mx i 0) (fun y: 'cV[R]_n.+1 => fun_of_matrix (row j y) 0 0) (if i==j then 1 else 0).
 (* begin details *)
 Proof.
 intros.
@@ -527,36 +501,36 @@ replace (fun _ => _) with (fun A: 'cV[R]_n.+1 => A j ord0).
 split.
 -
 apply diff_derivable.
-apply differentiable_coord.
+apply @differentiable_coord.
 -
-rewrite deriveE; [ apply differentiable_coord | ].
-have @f : {linear 'cV[R]_n.+1 -> R^o}.
+rewrite deriveE; [ apply @differentiable_coord | ].
+have @f : {linear 'cV[R]_n.+1 -> R}.
   by exists (fun N : 'cV[R]_( _) => N j ord0); do 2![eexists]; do ?[constructor];
      rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
 change (fun _ => fun_of_matrix _ _ _) with (Linear.sort f).
 rewrite diff_lin.
 2: simpl; rewrite mxE; simpl;
 rewrite eq_sym; destruct (_ == _); auto.
-apply (@coord_continuous (Real.sort R)).
+apply @coord_continuous.
 Qed.
 (* end details *)
 
 Lemma is_derive_coord_simple:
- forall [n] (x: 'cV[R^o]_n) i j (z: 'I_1), is_derive x (delta_mx j 0) (fun y : 'M[R^o]_(_,_) => y i z) (if i==j then 1 else 0).
+ forall [n] (x: 'cV[R]_n) i j (z: 'I_1), is_derive x (delta_mx j 0) (fun y : 'M[R]_(_,_) => y i z) (if i==j then 1 else 0).
 (* begin details *)
 Proof.
 intros.
 simpl.
 split.
 apply diff_derivable.
-apply differentiable_coord.
+apply @differentiable_coord.
 -
-rewrite deriveE; [ apply differentiable_coord | ].
-have @f : {linear 'cV[R]_n -> R^o}.
+rewrite deriveE; [ apply @differentiable_coord | ].
+have @f : {linear 'cV[R]_n -> R}.
   by exists (fun N : 'cV[R]_( _) => N i z); do 2![eexists]; do ?[constructor];
      rewrite ?mxE// => ? *; rewrite ?mxE//; move=> ?; rewrite !mxE.
 change (fun _ => fun_of_matrix _ _ _) with (Linear.sort f).
-rewrite diff_lin; [ apply (@coord_continuous R^o) | ].
+rewrite diff_lin; [ apply @coord_continuous | ].
 simpl. rewrite mxE. clear.
 rewrite ?ord1.
 simpl.
@@ -634,7 +608,7 @@ rewrite_matrix; rewrite_matrix_under;
 try (ord_enum_cases i; rewrite_matrix; rewrite_matrix_under);
 try (ord_enum_cases j; rewrite_matrix; rewrite_matrix_under);
 simpl map; simpl size;
-  apply  (@is_derive_mx R 'cV[R^o]__ _ _); intros i j; compute in i,j; ord1;
+  apply  (@is_derive_mx R 'cV[R]__ _ _); intros i j; compute in i,j; ord1;
  rewrite ?trmxE;
   ord_enum_cases j; rewrite_matrix; rewrite_matrix_under;
   simpl NormedModule.sort;

@@ -202,7 +202,8 @@ Proof. induction xs; intros; simpl.
    + eapply derives_trans. apply IHxs; clear IHxs.
      * rewrite ! Ptrofs.unsigned_repr; try rep_lia.
         apply Z.divide_add_r; auto.
-       simpl. first [exists 1%Z; lia | exists 2%Z; lia].
+       set (d := align_chunk _); compute in d; subst d.
+       first [exists 1%Z; lia | exists 2%Z; lia].
      * rewrite ! Ptrofs.unsigned_repr; rep_lia.
      * rewrite Zlength_cons.
        replace (Z.succ (Zlength xs) - 1)%Z with (Zlength xs) by lia.
@@ -213,7 +214,8 @@ Proof. induction xs; intros; simpl.
        -- red. rewrite sizeof_Tarray, Z.max_r. simpl sizeof; rep_lia. list_solve.
        -- eapply align_compatible_rec_Tarray; intros.
           econstructor. reflexivity.
-          apply Z.divide_add_r; auto. simpl.
+          apply Z.divide_add_r; auto. 
+          set (d := align_chunk _); compute in d; subst d; simpl.
          first [exists i0; lia | exists (2*i0)%Z; lia].
 Qed.
 

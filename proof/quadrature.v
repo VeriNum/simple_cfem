@@ -1,14 +1,11 @@
 (** * CFEM.quadrature:  Gaussian quadrature, following G. W. Stewart *)
-From mathcomp Require Import all_boot ssralg ssrnum archimedean finfun order.
-From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
-Import Order.TTheory GRing.Theory Num.Theory GRing.
-From mathcomp.algebra Require Import ring_tactic.
-Import classical_sets.
+From mathcomp Require Import boot algebra all_classical all_analysis order reals.  
 Import numFieldNormedType.Exports.
+From mathcomp.algebra Require Import ring_tactic.
 From Stdlib Require Import FunctionalExtensionality.
 From mathcomp.zify Require Import ssrZ zify.
 Import measurable_realfun MeasurableRopen.
-
+Import Order.TTheory GRing.Theory Num.Theory GRing.
 From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
 
 Unset Implicit Arguments.
@@ -45,6 +42,7 @@ simpl.
 pose proof tuple_eta x. symmetry.
 destruct x; simpl in H. inversion  H. simpl. auto.
 Qed.
+
 
 Lemma sorted_ij {R: realType}: 
  forall (rl: list R) (i j: nat) (d1 d2: R),
@@ -470,29 +468,10 @@ apply H2; auto.
 Qed.
 
 Lemma within_continuous_measurable_fun:
- forall (a b: R^o) (f: R^o -> R^o),
+ forall (a b: R) (f: R -> R),
    is_true (a < b) ->
    {within `[a, b], continuous f}%classic ->
-   @measurable_fun _ _
-  (@measurable_structure_Measurable__to__measurable_structure_SigmaRing
-     (@sigma_display (Real.sort R)
-        (@open
-           (@reverse_coercion Topological.type Real.type
-              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
-                 R)
-              R)))
-     (@measurable_structure_g_sigma_algebraType__canonical__measurable_structure_Measurable
-        (topology_structure_Topological__to__choice_Choice
-           (@reverse_coercion Topological.type Real.type
-              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
-                 R)
-              R))
-        (@open
-           (@reverse_coercion Topological.type Real.type
-              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
-                 R)
-              R))))
-  (@MeasurableRopen.Real_sort__canonical__measurable_structure_SigmaRing R) `[a, b] f.
+   measurable_fun `[a, b] f.
 Proof.
 intros * Hab H.
 rewrite continuous_within_itvP in H; auto.
@@ -513,27 +492,7 @@ Lemma in_continuous_measurable_fun:
  forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
    is_true (a < b) ->
    {in `[a, b], continuous f}%classic ->
-@measurable_fun _ _
-  (@measurable_structure_Measurable__to__measurable_structure_SigmaRing
-     (@sigma_display (Real.sort R)
-        (@open
-           (@reverse_coercion Topological.type Real.type
-              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
-                 R)
-              R)))
-     (@measurable_structure_g_sigma_algebraType__canonical__measurable_structure_Measurable
-        (topology_structure_Topological__to__choice_Choice
-           (@reverse_coercion Topological.type Real.type
-              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
-                 R)
-              R))
-        (@open
-           (@reverse_coercion Topological.type Real.type
-              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
-                 R)
-              R))))
-  (@MeasurableRopen.Real_sort__canonical__measurable_structure_SigmaRing R)
-  `[a,b] f.
+   measurable_fun `[a, b] f.
 Proof.
 intros * Hab H.
 apply within_continuous_measurable_fun; auto.
@@ -752,7 +711,7 @@ end.
 
 Definition append1fun [n][T] (f: 'I_n -> T) (x: T) (i:  'I_(n.+1)) : T.
 rewrite -addn1 in i.
-destruct (split i) as [i' | i'].
+destruct (fintype.split i) as [i' | i'].
 apply (f i').
 apply x.
 Defined.
@@ -764,7 +723,7 @@ rewrite /append1fun /eq_rect /eq_rec.
 destruct n'. simpl in *.
 subst m.
 destruct (addn1 n).
-unfold split. destruct ltnP; auto.
+unfold fintype.split. destruct ltnP; auto.
 simpl in i0.
 Lia.lia.
 Qed.
@@ -775,7 +734,7 @@ Proof.
 intros.
 rewrite /append1fun /eq_rect /eq_rec.
 destruct (addn1 n).
-unfold split. destruct ltnP; auto. f_equal. apply ord_inj; auto.
+unfold fintype.split. destruct ltnP; auto. f_equal. apply ord_inj; auto.
 rewrite H in i0.
 pose proof (ltn_ord j).
 Lia.lia.

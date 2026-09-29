@@ -502,8 +502,8 @@ change (fun i  =>  _)
 clearbody a. clearbody b.
 rewrite /dotprodR /dotprod_model.dotprod.
 rewrite foldl_foldr.
-2: rewrite /Basics.flip; intros x y z; lra.
-2: rewrite /Basics.flip; intros x y; lra.
+rewrite /Basics.flip; intros x y z; lra.
+rewrite /Basics.flip; intros x y; lra.
 rewrite zip_map.
 rewrite -map_comp /comp /uncurry.
 rewrite bigop.unlock /reducebig.
