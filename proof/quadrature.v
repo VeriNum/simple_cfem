@@ -1,12 +1,12 @@
 (** * CFEM.quadrature:  Gaussian quadrature, following G. W. Stewart *)
-From mathcomp Require Import all_boot ssralg ssrnum archimedean finfun order.
-From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
-Import Order.TTheory GRing.Theory Num.Theory GRing.
-From mathcomp.algebra Require Import ring_tactic.
-Import classical_sets.
+From mathcomp Require Import boot algebra all_classical all_analysis order reals.  
 Import numFieldNormedType.Exports.
+From mathcomp.algebra Require Import ring_tactic.
 From Stdlib Require Import FunctionalExtensionality.
 From mathcomp.zify Require Import ssrZ zify.
+Import measurable_realfun MeasurableRopen.
+Import Order.TTheory GRing.Theory Num.Theory GRing.
+From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
 
 Unset Implicit Arguments.
 Unset Strict Implicit.
@@ -42,6 +42,7 @@ simpl.
 pose proof tuple_eta x. symmetry.
 destruct x; simpl in H. inversion  H. simpl. auto.
 Qed.
+
 
 Lemma sorted_ij {R: realType}: 
  forall (rl: list R) (i j: nat) (d1 d2: R),
@@ -120,6 +121,8 @@ Lemma mul_funr1: forall
 Proof.
 intros. extensionality x. simpl. apply mulr1.
 Qed.
+
+Create Rewrite HintDb horner.
 Hint Rewrite @mul1r @mul_fun1r @mulr1 @mul_funr1 : horner.
 
 Lemma mul_fun0r: forall
@@ -325,42 +328,44 @@ assert (H7: is_true (s`_n != 0))
  by (rewrite (last_nth Algebra.zero) H0 in H; auto).
 rewrite size_cons_poly H0 /nilp size_poly_eq.
 2:{
-
-rewrite prednK.
-  rewrite ?prednK; try Lia.lia. simpl. 
+simpl.
+assert (H8: is_true (s`_n / n.+1%:R *+ n.+1 != 0)). {
 revert H7.
-set d := s`_n. clearbody d.
+set d := s`_n. clearbody d. simpl in d. clear.
 apply contraNN.
 intro.
-rewrite mulIr_eq0 in H1; auto.
-intros ? ? ?.
-set (u := natmul _ _) in H1. 
-assert (u > 0)%R by apply ltr0Sn.
-clearbody u.
-assert (x1 / u * u = x2 / u * u)%R. f_equal; auto.
-rewrite -!mulrA in H3.
-rewrite mulVf ?mulr1 in H3; auto.
-apply lt0r_neq0; auto.
+rewrite mulrn_eq0 /= in H.
+set a := inv _ in H. assert (0 < a); [ | nra].
+rewrite invr_gt0.
+apply ltr0Sn.
+}
+apply (@eq_from_nth _ 0).
++
+rewrite size_poly_eq // coefE /= coef_poly /leq /= /subn /= PeanoNat.Nat.sub_diag //.
++
+rewrite size_poly_eq /= ?coefE /=.
+assert (is_true (n < n.+1)%N) by lia. rewrite H1 //.
+intros.
+rewrite coef_poly coefE /= coef_poly H1.
+rewrite -mulrnAr.
+assert (H2: natmul (inv (natmul (GRing.one R) (S i))) (S i) = 1 :> R); [ | rewrite H2; lra].
+clear.
+set j := S i. assert (j!=0) by lia. clearbody j. clear i.
+rewrite -(mul1r (inv _)) -mulrnAl mulfV // pnatr_eq0 //.
 }
 simpl.
-apply (@eq_from_nth _ 0).
-rewrite size_poly_eq //. 
-simpl. 
-rewrite coef_cons. simpl.
-rewrite coefE ltnSn.
-clear - H7; rewrite mulrn_eq0 /= mulf_eq0 negb_or H7 /= invr_neq0 //.
-intros.
-rewrite size_poly_eq in H1.
-2: rewrite coef_cons /= coefE ltnSn mulrn_eq0 /= mulf_eq0 negb_or H7 /= invr_neq0 //.
-rewrite coefE H1 coef_cons /= coefE H1 -mulrnAr -mulr_natr mulVr ?mulr1 //.
-rewrite unitfE mulrn_eq0 /=  oner_eq0 //.
+apply mulf_neq0; auto.
+apply invr_neq0.
+rewrite pnatr_eq0 //.
 Qed.
+
+Import numFieldNormedType.Exports.
 
 Lemma derivable_oo_LRcontinuous_horner: forall P lo hi, @derivable_oo_LRcontinuous R _ (horner P) lo hi.
 Proof.
 intros.
 split.
-- intros ? ?. apply derivable_horner.
+- intros ? ?. apply (@derivable_horner R P x).
 - exact/cvg_at_right_filter/continuous_horner.
 - exact/cvg_at_left_filter/continuous_horner.
 Qed.
@@ -368,7 +373,10 @@ Qed.
 Lemma Rintegral_poly: forall lo hi (lo_lt_hi: lo<hi)
   (P: polynomial (reals_Real__to__GRing_NzSemiRing R)),
 eq
-  (Rintegral (reverse_coercion (lebesgue_measure_lebesgue_measure__canonical__measure_function_Measure R) (@lebesgue_measure R))
+  (Rintegral 
+     (reverse_coercion
+        lebesgue_measure_lebesgue_measure__canonical__measure_function_Measure
+       (@lebesgue_measure R))
      (mkset
         (fun x : Order.POrder.sort (reals_Real__to__Order_POrder R) =>
          is_true (in_mem x (mem (Interval (BSide true lo) (BSide false hi))))))
@@ -377,9 +385,9 @@ eq
  (GRing.add (horner (integ P) hi) (opp (horner (integ P) lo))).
 Proof.
 intros.
-rewrite /Rintegral (@continuous_FTC2 R (horner P) (horner (integ P)) lo hi lo_lt_hi).
-- reflexivity.
-- apply derivable_within_continuous; intros ? ?; apply derivable_horner.
+rewrite /Rintegral (@continuous_FTC2 R (horner P) (horner (integ P)) lo hi lo_lt_hi); try reflexivity.
+- apply (@derivable_within_continuous _ _ (horner P)).
+   intros ? ?; apply (@derivable_horner _ P).
 - apply derivable_oo_LRcontinuous_horner.
 -  intros ? ?. 
 rewrite -derivE. rewrite deriv_integ //.
@@ -460,7 +468,7 @@ apply H2; auto.
 Qed.
 
 Lemma within_continuous_measurable_fun:
- forall (a b: Real.sort R) (f: Real.sort R -> Real.sort R),
+ forall (a b: R) (f: R -> R),
    is_true (a < b) ->
    {within `[a, b], continuous f}%classic ->
    measurable_fun `[a, b] f.
@@ -468,7 +476,7 @@ Proof.
 intros * Hab H.
 rewrite continuous_within_itvP in H; auto.
 destruct H.
-eapply measurable_fun_itv_cc with (b0:=false) (b1:=true).
+eapply measurable_fun_itvbb_itvcc with (b0:=false) (b1:=true).
 apply open_continuous_measurable_fun; auto.
 clear - H.
 simpl in *.
@@ -490,7 +498,6 @@ intros * Hab H.
 apply within_continuous_measurable_fun; auto.
 apply in_within_continuous; auto.
 Qed.
-
 
 Lemma in_continuous_cst: forall (i: set (Order.POrder.sort (reals_Real__to__Order_POrder R))) (c: R),
    {in i, continuous (fun _:  R =>c)}.
@@ -539,11 +546,12 @@ Qed.
 
 Lemma in_continuous_horner: forall (i: set (Order.POrder.sort (reals_Real__to__Order_POrder R))) (f: {poly R}),   {in i, continuous (horner f)}.
 Proof.
-intros * ? ? ?. apply continuous_horner.
+intros * ? ? ?. apply (@continuous_horner R f x).
 Qed.
 
 End R.
 
+Create HintDb continuous.
 Hint Resolve in_continuous_cst in_continuous_horner in_continuousN in_continuousB in_continuousD in_continuousM : continuous.
 
 End Rewriting.
@@ -703,7 +711,7 @@ end.
 
 Definition append1fun [n][T] (f: 'I_n -> T) (x: T) (i:  'I_(n.+1)) : T.
 rewrite -addn1 in i.
-destruct (split i) as [i' | i'].
+destruct (fintype.split i) as [i' | i'].
 apply (f i').
 apply x.
 Defined.
@@ -715,7 +723,7 @@ rewrite /append1fun /eq_rect /eq_rec.
 destruct n'. simpl in *.
 subst m.
 destruct (addn1 n).
-unfold split. destruct ltnP; auto.
+unfold fintype.split. destruct ltnP; auto.
 simpl in i0.
 Lia.lia.
 Qed.
@@ -726,20 +734,20 @@ Proof.
 intros.
 rewrite /append1fun /eq_rect /eq_rec.
 destruct (addn1 n).
-unfold split. destruct ltnP; auto. f_equal. apply ord_inj; auto.
+unfold fintype.split. destruct ltnP; auto. f_equal. apply ord_inj; auto.
 rewrite H in i0.
 pose proof (ltn_ord j).
 Lia.lia.
 Qed.
 
-Lemma Rintegral_gt_0: 
+Lemma Rintegral_gt_0:
 forall {R : realType} (a b: R) (h : Real.sort R -> Real.sort R), 
    {in `[a, b]%classic, continuous h} ->
    {in `[a, b]%classic, forall x, is_true (0 <= h x)} ->
   ~ {in `[a, b]%classic, forall x, is_true (h x == 0)} ->
     (0 <  \int[lebesgue_measure]_(x in `[a, b])  h x).
 Proof.
-Admitted.
+Admitted.  (* See: https://github.com/math-comp/analysis/pull/2086  *)
 
 (* end details *)
 
@@ -784,12 +792,30 @@ Section Integral.
  Notation "∫" := intgal.
  
  Hint Resolve wcontinuous: continuous.
- Lemma wmeasurable: measurable_fun `[a, b] w.
+
+Lemma wmeasurable: @measurable_fun _ _
+  (@measurable_structure_Measurable__to__measurable_structure_SigmaRing
+     (@sigma_display (Real.sort R)
+        (@open
+           (@reverse_coercion Topological.type Real.type
+              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
+                 R)
+              R)))
+     (@measurable_structure_g_sigma_algebraType__canonical__measurable_structure_Measurable
+        (topology_structure_Topological__to__choice_Choice
+           (@reverse_coercion Topological.type Real.type
+              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
+                 R)
+              R))
+        (@open
+           (@reverse_coercion Topological.type Real.type
+              (numFieldTopology.Real_sort__canonical__topology_structure_Topological
+                 R)
+              R))))
+  (@MeasurableRopen.Real_sort__canonical__measurable_structure_SigmaRing R)
+  `[a,b] w.
 Proof. apply in_continuous_measurable_fun; auto with continuous. Qed.
 
-(*
- Definition bounded (f: R -> R) := exists M: R,  forall x, a <= x <= b -> Num.norm (f x) <= M.
-*)
 
 (** 3.  Regarded as an operator on functions, ∫  is linear.  That is, 
 
@@ -817,7 +843,8 @@ apply measurable_bounded_integrable.
 +
 apply measurable_itv.
 +
-rewrite /= lebesgue_measure_itv /=  (_: Order.lt (EFin a) (EFin b) = (a<b)) // Hab. 
+rewrite /=.
+rewrite lebesgue_measure_itv /=  (_: Order.lt (EFin a) (EFin b) = (a<b)) // Hab. 
 rewrite /GRing.add /= /adde /Order.lt /= /has_quality /= /in_mem /=. lra.
 +
 simpl.
@@ -982,7 +1009,8 @@ simpl in H. Lia.lia.
    move /eqP => Hm. rewrite Hm mulr1.
    ring.
   -   
-  rewrite (@nth_default _ _ (polyseq (p n.+1))); [ | rewrite Hd; Lia.lia].
+
+  rewrite (@nth_default _ _ (polyseq (p n.+1))); [ rewrite Hd; lia | ].
   rewrite mulr0 subr0.
   rewrite nth_default //.
   assert (j != n.+1). rewrite H1 //.
@@ -1060,13 +1088,13 @@ assert  (∫ (fun=> z) = u). {
  subst u z.
 replace (fun=> _) with (0 \*: (fun _ : R => 0:R)).
 2: extensionality x; rewrite /scale_fun /scale /= mul0r //.
-rewrite intgal_linear1. ring.
+rewrite intgal_linear1; [ |  ring].
 apply in_continuous_cst.
 }
  clearbody z; clearbody u.
 revert z u H0; induction r; simpl; intros; auto.
 rewrite big_cons in H. destruct H.
-rewrite intgal_linear2; auto. f_equal; auto.
+rewrite intgal_linear2; auto. 2: f_equal; auto.
 clear - H1.
 induction r.
 apply in_continuous_cst.
@@ -1103,20 +1131,19 @@ rewrite mulrC -mulrA (mulrC (p i)) //.
 rewrite horner_sum'.
 simpl.
 rewrite intgal_sum.
-2:{ clear; induction (index_enum _). rewrite big_nil. auto. rewrite big_cons. split; auto. apply in_continuous_horner.
-}
+ clear; induction (index_enum _). rewrite big_nil. auto. rewrite big_cons. split; auto. apply in_continuous_horner.
 transitivity (\sum_(i<n.+1) (0:R)).
 apply eq_big; auto.
 intros i _.
 rewrite hornerM'.
 rewrite hornerC'.
 rewrite intgal_linear1.
-2: apply in_continuous_horner.
+apply in_continuous_horner.
 rewrite hornerM'.
 destruct H.
 rewrite mul_funC.
-rewrite /orthogonal in H1. rewrite H1.
-ring.
+rewrite /orthogonal in H1.
+rewrite H1; [ | ring].
 pose proof ltn_ord i; Lia.lia.
 rewrite sumr_const.
 ring.
@@ -1232,7 +1259,7 @@ assert (Hlead: lead_coef p != 0). {
   simpl in *. rewrite nth_last. destruct p; try discriminate. simpl in *. auto.
 }
 destruct i. {
-   simpl. rewrite size_polyDl. apply size_polyX. rewrite size_polyN.
+   simpl. rewrite size_polyDl. 2: apply size_polyX. rewrite size_polyN.
    rewrite size_polyC size_polyX. Lia.lia.
 }
 set u := _ / _. clearbody u.
@@ -1241,24 +1268,24 @@ assert ((size (- scale_poly u p) < size ('X * p)%R)%N). {
   rewrite size_polyN scale_polyE.
   apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
   rewrite size_proper_mul.
-  rewrite size_polyC size_polyX Hi.  Lia.lia.
+  2: rewrite size_polyC size_polyX Hi;  lia.
   rewrite lead_coefX mul1r //.
 }
 rewrite ?size_polyDl //.
--
-rewrite size_proper_mul.
-rewrite Hi size_polyX. Lia.lia.
-rewrite lead_coefX mul1r //.
--
+2: rewrite size_proper_mul; [ rewrite lead_coefX mul1r //  | rewrite Hi size_polyX; Lia.lia].
+rewrite size_proper_mul; [ rewrite lead_coefX mul1r // | ].
+rewrite Hi size_polyX.
 rewrite size_polyN scale_polyE.
 apply leq_trans with ((size (polyC v) + size p0).-1.+1); [ apply size_polyMleq | ].
-rewrite size_proper_mul.
-rewrite size_polyC Hi size_polyX.
 assert (p0 = (three_term_recurrence i.+1.-1).1). {
  rewrite -ortho_p_prev. simpl Nat.pred. rewrite H3 //.
 }
-rewrite H1. rewrite IHn. Lia.lia. Lia.lia.
-rewrite lead_coefX mul1r //.
+rewrite H1.
+rewrite IHn; try Lia.lia.
+simpl.
+rewrite addnC /=.
+rewrite size_polyC /=.
+lia.
 Qed.
 
 Lemma ortho_p_monic: forall n, monic_pred (ortho_p n).
@@ -1270,38 +1297,41 @@ destruct (three_term_recurrence n) eqn:H3.
 pose proof (ortho_p_size n). rewrite /ortho_p H3 /= in H.
 simpl in *.
 destruct n. {
-  rewrite lead_coefDl. rewrite lead_coefX //. rewrite size_polyN size_polyC size_polyX; Lia.lia.
+  rewrite lead_coefDl. 2: rewrite lead_coefX //. rewrite size_polyN size_polyC size_polyX; Lia.lia.
 }
 set u := _ / _. clearbody u.
 set v := _ / _. clearbody v.
-rewrite ?lead_coefDl.
+rewrite ?lead_coefDl; [ | | rewrite lead_coefM lead_coefX mul1r //].
 *
-rewrite lead_coefM lead_coefX mul1r //.
-*
-rewrite size_polyN scale_polyE.
-apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
-rewrite size_proper_mul ?H.
-rewrite size_polyC size_polyX.  Lia.lia.
-rewrite lead_coefX mul1r //.
-move :IHn => /eqP H0. rewrite H0. apply oner_neq0.
-*
-rewrite size_polyN scale_polyE.
-apply leq_trans with ((size (polyC v) + size p0).-1.+1); [ apply size_polyMleq | ].
-rewrite size_polyDl.
-rewrite size_proper_mul.
-rewrite size_polyC  size_polyX H.
 assert (p0 = (three_term_recurrence n.+1.-1).1). {
  rewrite -ortho_p_prev. simpl Nat.pred. rewrite H3 //.
 }
-simpl Nat.pred in H0. subst p0. rewrite ortho_p_size. Lia.lia.
+rewrite size_polyN scale_polyE.
+apply leq_trans with ((size (polyC v) + size p0).-1.+1); [ apply size_polyMleq | ].
+rewrite size_polyDl.
+2:{ rewrite size_proper_mul; [  | rewrite size_polyC  size_polyX H].
+2: simpl Nat.pred in H0; subst p0; rewrite ortho_p_size; Lia.lia.
 rewrite lead_coefX mul1r //.
 move :IHn => /eqP Hi. rewrite Hi. apply oner_neq0.
+}
 rewrite size_polyN scale_polyE.
 apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
 rewrite ?size_proper_mul ?H.
-rewrite size_polyC size_polyX. Lia.lia.
+2: rewrite size_polyC size_polyX; Lia.lia.
+rewrite lead_coefX mul1r.
+clear - IHn.
+set j := lead_coef p in IHn.
+change (lead_coef p) with j.
+clearbody j.
+move :IHn => /eqP IHn. rewrite IHn.
+apply oner_neq0.
+*
+rewrite ?size_proper_mul ?H ?size_polyC ?size_polyX ?size_polyN ?scale_polyE.
 rewrite lead_coefX mul1r.
 move :IHn => /eqP H0. rewrite H0. apply oner_neq0.
+apply leq_trans with ((size (polyC u) + size p).-1.+1); [ apply size_polyMleq | ].
+rewrite ?size_proper_mul ?H.
+rewrite size_polyC.  Lia.lia.
 Qed.
 
 Lemma ortho_p_nonzero: forall n, ortho_p n != 0.
@@ -1328,7 +1358,7 @@ pose rs := map (fun i => a + (b-a)/(n+n+1)%:R * i%:R) (iota 1 (n+n)).
 assert (is_true (size rs < size (polyseq (p * p)))%N). {
 apply max_poly_roots.
 -
-rewrite - size_poly_eq0 size_proper_mul. change (size p) with n. Lia.lia.
+rewrite - size_poly_eq0 size_proper_mul. 2: change (size p) with n; lia.
 rewrite -lead_coef_eq0 in H. apply mulf_neq0; auto.
 -
 rewrite {}/rs.
@@ -1349,7 +1379,7 @@ rewrite ltr0n. Lia.lia.
 }
 assert ((n + n + 1)%:R^-1 * i%:R < 1 :> R). {
 rewrite ltr_pdivrMl ?mulr1.
-rewrite ltr_nat. Lia.lia.
+2: rewrite ltr_nat; lia.
 rewrite ltr0n. Lia.lia.
 }
 set c :=  ((n + n + 1)%:R^-1 * i%:R)  in H3,H2|-*.
@@ -1388,7 +1418,7 @@ clearbody c.
 simpl in *.
 apply /eqP. rewrite -(@eqr_nat R) /=. apply /eqP. nra.
 }
-rewrite size_proper_mul in H2; [ | rewrite -lead_coef_eq0 in H; apply mulf_neq0; auto].
+rewrite size_proper_mul in H2; [ rewrite -lead_coef_eq0 in H; apply mulf_neq0; auto | ].
 fold n in H2.
 subst rs.
 rewrite size_map in H2.
@@ -1416,7 +1446,7 @@ rewrite /h in H1.
 pose proof (wpos _ H6).
 assert (g x * w x == 0) by lra.
 rewrite mulIr_eq0 in H8.
-lra; auto.
+2: lra; auto.
 apply /rregP.
 lra.
 clearbody h.
@@ -1466,8 +1496,7 @@ rewrite intgal_linear1; auto with continuous.
 rewrite mulrC.
 rewrite mulrN.
 rewrite hornerC'.
-field.
-lra.
+field by lra.
 -
 destruct (three_term_recurrence i.+1) as [p p0] eqn:Hp.
 simpl.
@@ -1495,9 +1524,9 @@ set c :=  ∫ (horner (ortho_p i * ortho_p i)) in Pi|-*.
 set d :=   ∫ (horner (ortho_p i.+1 * ortho_p i.+1)) in Pi1|-*.
 rewrite (hornerM' 'X) hornerX'.
 set e := ∫ (id \* _).
-assert (- (e/d) * d = -e) by (field; lra).
+assert (- (e/d) * d = -e) by (field by lra).
 rewrite {}H0.
-replace (e-e)%R with (0:R) by (field; lra).
+replace (e-e)%R with (0:R) by field.
 rewrite add0r.
 rewrite (mulrC (ortho_p i)).
 rewrite hornerM'.
@@ -1558,16 +1587,16 @@ rewrite -?hornerM'.
 change (∫(horner (ortho_p j * ortho_p j))) with c.
 rewrite hornerM' hornerX'.
 set u := ∫ (id \* horner (ortho_p j.+1 * ortho_p j)).
-rewrite (_:  (- (u / c) * c) = -u :> R); [ | field; lra].
+rewrite (_:  (- (u / c) * c) = -u :> R); [ field by lra | ].
 rewrite (hornerM' _ (ortho_p j)).
-rewrite (IHn j j.+1); [ | Lia.lia].
+rewrite (IHn j j.+1); [lia | ].
 rewrite mulr0.
 ring.
 -
 assert (H2: (i < j < n)%N) by Lia.lia. clear H1 H.
-rewrite (IHn i j); [ | Lia.lia].
+rewrite (IHn i j); [lia| ].
 rewrite mulr0.
-rewrite (IHn i j.+1); [ | Lia.lia].
+rewrite (IHn i j.+1); [lia|].
 rewrite mulr0.
 rewrite ?addr0.
 rewrite -?hornerM'.
@@ -1575,7 +1604,7 @@ rewrite (mulrC (ortho_p j.+1)).
 rewrite mulrA.
 assert (SIZEi := ortho_p_size i).
 assert (SIZExi : size ('X * ortho_p i) = i.+2). {
-rewrite mulrC. rewrite size_mulX. Lia.lia.
+rewrite mulrC. rewrite size_mulX; [ | lia ].
 apply (@contraFneq _ false); [ | auto]. intro.
 pose proof (ortho_p_size i). rewrite H in H0.
 rewrite size_poly0 in H0. discriminate H0.
@@ -1691,11 +1720,11 @@ intros.
     apply order_path_min in Hs1; [ | intros ? ? ?; lra].
     apply order_path_min in Hs2; [ | intros ? ? ?; lra].
    assert (mem_seq al1 a = false). {
-     induction al1; simpl; auto. simpl in Hs1. rewrite IHal1. lra.
+     induction al1; simpl; auto. simpl in Hs1. rewrite IHal1. 2: lra.
      destruct (a<a0); auto.
   } rewrite {}H.
    assert (mem_seq al2 a = false). {
-     induction al2; simpl; auto. simpl in Hs2. rewrite IHal2. lra.
+     induction al2; simpl; auto. simpl in Hs2. rewrite IHal2. 2: lra.
      destruct (a<a0); auto.
   } rewrite {}H.
   tauto.
@@ -1804,19 +1833,19 @@ Qed.
     -
      assert ((i < j)%N \/ i=j \/ (j<i)%N) by Lia.lia.
      destruct H2 as [? |[?|?]]; auto.
-     rewrite <- (sorted_ij rl i j ((i + 1)%:R + b)%E ((j + 1)%:R + b)%E H0 Hi Hj) in H2.
+     rewrite <- (sorted_ij rl i j ((i + 1)%:R + b) ((j + 1)%:R + b) H0 Hi Hj) in H2.
      rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
-     rewrite <- (sorted_ij rl j i ((j + 1)%:R + b)%E ((i + 1)%:R + b)%E H0 Hj Hi) in H2.
+     rewrite <- (sorted_ij rl j i ((j + 1)%:R + b) ((i + 1)%:R + b) H0 Hj Hi) in H2.
      rewrite H1 in H2. apply lt_nsym in H2; auto; contradiction.
    - 
-    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((i + 1)%:R + b)%E). rewrite H in H2. inversion H2.
+    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((i + 1)%:R + b)). rewrite H in H2. inversion H2.
     apply H3 in Hi.
     rewrite H1 in Hi. clear H2 H3.
     rewrite nth_default in Hi; auto.
     assert ((j+1)%:R <= 0%:R) by lra.
     rewrite ler_nat in H2. Lia.lia.
    - 
-    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((j + 1)%:R + b)%E). rewrite H in H2. inversion H2.
+    pose proof (@all_nthP _  (fun x => x  <= b)  rl ((j + 1)%:R + b)). rewrite H in H2. inversion H2.
     apply H3 in Hj.
     rewrite -H1 in Hj. clear H2 H3.
     rewrite nth_default in Hj; auto.
@@ -1902,18 +1931,18 @@ Proof.
   rewrite /G.
   pose proof @lagrange_gen R n.+1 (extend_roots _ roots) erefl (extend_roots_injective _ _) f H.
   rewrite {}H0. rewrite horner_sum' intgal_sum.
- 2:{ clear; induction (index_enum _). rewrite big_nil. auto. rewrite big_cons. split; auto. apply in_continuous_horner.
+ { clear; induction (index_enum _). rewrite big_nil //. rewrite big_cons. simpl. split; auto. apply in_continuous_horner.
   }
  apply eq_big; auto; intros.
  set F := horner _.
  rewrite (_: (fun x => F x)=F).
-  2: extensionality x; auto.
+  extensionality x; auto.
  subst F.
  rewrite hornerM' hornerC' intgal_linear1; auto with continuous.
  rewrite /gauss_weight /L. rewrite mulrC. f_equal.
  transitivity (\sum_j (f.[tnth (ROOTS_vals roots) j] * (i==j)%:R)).
- 2:{ 
-  rewrite big_mkcond_idem. 2: simpl; lra. simpl.
+ 2: { 
+  rewrite big_mkcond_idem. simpl; lra. simpl.
   apply eq_big; auto; intros.
   rewrite {1}/extend_roots.
   set u :=  nth _ _ _.
@@ -1929,15 +1958,13 @@ Proof.
  rewrite extend_rootsE //. 
  }
  transitivity ( \sum_j (if j==i then f.[extend_roots n.+1 roots j] else 0)).
-  rewrite -big_mkcond_idem. 2: simpl; lra. simpl.
+  rewrite -big_mkcond_idem. simpl; lra. simpl.
   rewrite big_pred1_eq_id. lra.
   apply eq_big; auto; intros. rewrite eq_sym. simpl. destruct (_ == _); simpl; try lra.
   rewrite mulr1. f_equal. apply extend_rootsE.
 Qed.
 
   (* Back to paragraph 23.16 *)
-
-From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
 
   Lemma quadrature_exact_for': 
       forall [n] (roots : roots_of_ortho_p n.+1) (f: {poly R}), 
@@ -1962,19 +1989,18 @@ Proof.
     apply ROOTS_zero.
 }
  rewrite -/(G n.+1 roots (horner r)).
- rewrite -quadrature_exact_upto_n ; [ | set j := size r in SIZEr|-*; clearbody j; Lia.lia].
+ rewrite -quadrature_exact_upto_n ; [ set j := size r in SIZEr|-*; clearbody j; Lia.lia | ].
  rewrite hornerD'  intgal_linear2; auto with continuous.
  rewrite mulrC. rewrite hornerM'.
  rewrite polySn_orthogonal_n.
- 2: exact ortho_p_size. 2: exact ortho_p_monic.
- 3:{
+ exact ortho_p_size. exact ortho_p_monic. 3: lra.
+2:{
  assert (size q == 0 \/ size q > 0)%N by Lia.lia.
  destruct H1. move :H1 => /eqP H2. rewrite H2; auto.
   rewrite size_poly_gt0 in H1.
   rewrite SIZEq. set j := size f in H|-*. Lia.lia.
  }
- 2:{ split. exact ortho_p_size. intros. red. rewrite mul_funC. apply ortho_p_orthogonal. Lia.lia. }
- lra.
+ split. exact ortho_p_size. intros. red. rewrite mul_funC. apply ortho_p_orthogonal. Lia.lia.
 Qed.
 
   Lemma quadrature_exact_for: 
@@ -1985,7 +2011,7 @@ destruct n.
    move :H0 => /eqP H0; subst f.
    rewrite -(mulr0 (polyC 0)) hornerM' /G big_ord0 hornerC'. 
    rewrite intgal_linear1; auto with continuous. rewrite mul0r //.
-+ rewrite (_: 2*n.+1 =  2*n+2)%N;[ | Lia.lia]. exact (@quadrature_exact_for' n).
++ rewrite (_: 2*n.+1 =  2*n+2)%N;[ lia | ]. exact (@quadrature_exact_for' n).
 Qed.
 
 (** 17. An important corollary of these results is that the coefficients [A_i] are positive.
@@ -2011,8 +2037,8 @@ Qed.
   }
     pose proof sqr_poly_positive (tnth (L n.+1 roots) i) H1.
    rewrite (quadrature_exact_for roots) in H2.
-    2:{ set u := tnth _ _ in H0,H1|-*. clearbody u.
-        rewrite size_proper_mul. Lia.lia.
+    { set u := tnth _ _ in H0,H1|-*. clearbody u.
+        rewrite size_proper_mul. 2: Lia.lia.
          pose proof (lead_coef_eq0 u). set z := u==0 in H2. change ((lead_coef u == 0) = z) in H2.
          change (_ == _) with z in H1. rewrite -H2 in H1.
          apply mulf_neq0; auto.
@@ -2033,7 +2059,7 @@ Qed.
   set f := gauss_weight _ _. clearbody f. simpl in f.
   transitivity (\sum_(j<n.+1) if (j==i) then f j else 0).
   2: apply eq_big; auto; intros; destruct (_ == _); simpl; lra.  
-  rewrite -big_mkcond_idem. 2: simpl; lra.
+  rewrite -big_mkcond_idem. simpl; lra.
   rewrite big_pred1_eq_id. simpl; lra.
 Qed.
 
@@ -2047,11 +2073,11 @@ Qed.
    intros.
     destruct n. destruct i. Lia.lia.
     rewrite (@quadrature_exact_for _ roots).
-    2: rewrite size_poly1; Lia.lia.
+    rewrite size_poly1; Lia.lia.
     rewrite /G. rewrite hornerC' -mulr_suml mulr1.
     replace (gauss_weight n.+1 roots i) with (\sum_j (if (j==i) then gauss_weight n.+1 roots j else 0)).
     apply ler_sum. intros. destruct (i0==i); auto. pose proof (gauss_weight_positive roots i0). lra.
-    rewrite -big_mkcond_idem. simpl. 2: simpl; lra.
+    rewrite -big_mkcond_idem. simpl. simpl; lra.
   rewrite big_pred1_eq_id. simpl; lra.
  Qed.
 
@@ -2268,7 +2294,7 @@ Definition r_integral:
 
 Lemma intgal_X: ∫ (horner 'X) = 0.
 Proof.
-rewrite polyX' intgal_eq  r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
+rewrite polyX' intgal_eq r_integral /lo /hi /integ /= ?hornerE ?horner_poly.
 repeat expand_bigop.
 ring.
 Qed.
@@ -2392,7 +2418,7 @@ Proof. intros. lra. Qed.
 Lemma opp_sub: forall {s: zmodType} (x y:s), -x-y = -(x+y).
 Proof. intros.
 pose proof (opprB x (-y)).
-rewrite opprK in H. rewrite H. apply addrC.
+rewrite opprK in H. rewrite {}H. rewrite addrC //.
 Qed.
 
 Ltac do_one_integral u := 
@@ -2500,9 +2526,9 @@ simpl; red;
 rewrite /root -/(legendre _);
  rewrite Legendre_poly_2 ?hornerE /=.
  rewrite ?Bool.andb_true_iff; repeat split; apply eq_opI.
- + rewrite ?mulN1r ?mulrNN ?mulr1 -invrM; [ | apply sqrt_exists; lra .. ].
+ + rewrite ?mulN1r ?mulrNN ?mulr1 -invrM; [ apply sqrt_exists; lra .. | ].
     rewrite sqr_sqrt; lra.
- + rewrite mulr1 -invrM; [ | apply sqrt_exists; lra .. ].
+ + rewrite mulr1 -invrM; [ apply sqrt_exists; lra .. | ].
     rewrite sqr_sqrt; lra.
 -
   simpl; red; rewrite ?Bool.andb_true_iff; repeat split.
@@ -2707,8 +2733,7 @@ assert (sqrt (6/5) <= 6/5); [ | lra].
 assert (6/5 = sqrt ((6/5)*(6/5))). 
 rewrite sqrtrM ?sqr_sqrt ; lra.
 rewrite H.
-rewrite ler_sqrt.
-rewrite -H. lra. lra.
+rewrite ler_sqrt; lra.
 +
 rewrite ltr_sqrt; lra.
 Qed.
@@ -2721,13 +2746,13 @@ Lemma legendre_roots_4c:
 Proof.
 assert (1 < sqrt (6/5)) by (rewrite -{1}sqrtr1 ltr_sqrt;  lra).
 assert (sqrt(6/5)<6/5) by (rewrite -{2}(sqr_sqrt (6/5)); nra).
-assert (0 < sqrt((3%R + (2 * Num.ExtraDef.sqrtr (6 / 5))%R)%E / 7))
+assert (0 < sqrt((3%R + (2 * Num.Def.sqrtr (6 / 5))%R) / 7))
    by (rewrite sqrtr_gt0; lra).
-assert (sqrt((3%R + (2 * Num.ExtraDef.sqrtr (6 / 5))%R)%E / 7) < 1) 
+assert (sqrt((3%R + (2 * Num.Def.sqrtr (6 / 5))%R) / 7) < 1) 
   by ( rewrite -{6}sqrtr1 ltr_sqrt; lra).
-assert (0 < sqrt((3 - (2 * Num.ExtraDef.sqrtr (6 / 5))) / 7))
+assert (0 < sqrt((3 - (2 * Num.Def.sqrtr (6 / 5))) / 7))
    by (rewrite sqrtr_gt0; lra).
-assert (sqrt((3 - (2 * Num.ExtraDef.sqrtr (6 / 5))) / 7) < 1) 
+assert (sqrt((3 - (2 * Num.Def.sqrtr (6 / 5))) / 7) < 1) 
   by ( rewrite -{6}sqrtr1 ltr_sqrt; lra).
   simpl; red; rewrite ?Bool.andb_true_iff; repeat split; rewrite /lo /hi; lra.
 Qed.
@@ -2756,11 +2781,11 @@ Definition gauss_weights_0 : gauss_weights 0.
 Lemma gauss_weight_1_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_1) (@Ordinal 1 0 isT) = 2.
 Proof.
 rewrite /gauss_weight /legendre_roots_1 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
+rewrite lagrangeE;  [ Lia.lia | apply extend_roots_injective; apply lo_lt_hi | ].
  cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner invr1 ?r_lift.
   rewrite (_: (fun=>1) = horner (polyC 1)).
-  2: extensionality x; rewrite hornerE //.
+  extensionality x; rewrite hornerE //.
   rewrite -/intgal intgal_C mulr1 //.
 Qed.
 
@@ -2777,7 +2802,7 @@ Defined.
 Lemma gauss_weight_2_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_2) (@Ordinal 2 0 isT) = 1.
 Proof.
 rewrite /gauss_weight /legendre_roots_2 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
+rewrite lagrangeE;  [ Lia.lia | apply extend_roots_injective; apply lo_lt_hi | ].
 cbv zeta; expand_bigop.
 rewrite /extend_roots /= ?r_horner ?r_ring ?r_lift.
 set s3 := Num.sqrt 3. simpl in s3.
@@ -2788,8 +2813,7 @@ f_equal.
 extensionality x.
 simpl.
 rewrite ?hornerE.
-field.
-assert (0 < s3); rewrite ?sqrtr_gt0; lra.
+field by (assert (0 < s3); rewrite ?sqrtr_gt0; lra).
 -
 transitivity ( ∫ (horner (-(s3/2))%:P \* (horner 'X) \+ horner (1/2)%:P)).
 f_equal; extensionality x; rewrite ?hornerE /= ?hornerE;  lra.
@@ -2800,14 +2824,13 @@ Qed.
 Lemma gauss_weight_2_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_2) (@Ordinal 2 1 isT) = 1.
 Proof.
 rewrite /gauss_weight /legendre_roots_2 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
+rewrite lagrangeE;  [ Lia.lia | apply extend_roots_injective; apply lo_lt_hi  | ].
 cbv zeta.
 expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift
         -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''
         -hornerM' ?r_intgal ?r_ring.
-field.
-assert (0 < sqrt 3);  rewrite ?sqrtr_gt0; lra.
+field by (assert (0 < sqrt 3);  rewrite ?sqrtr_gt0; lra).
 Qed.
 
 Definition gauss_weights_2 : gauss_weights 2.
@@ -2825,44 +2848,44 @@ Defined.
 Lemma gauss_weight_3_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 0 isT) = 5/9.
 Proof.
 rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
+rewrite lagrangeE;  [ Lia.lia | apply extend_roots_injective; apply lo_lt_hi | ].
 cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift
   -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
 set s3 := Num.sqrt (3/5). simpl in s3.
 rewrite -?hornerM'.
-rewrite (_: - s3 - s3 = -(s3 * 2) :> R); [ | lra].
+rewrite (_: - s3 - s3 = -(s3 * 2) :> R); [ lra | ].
 rewrite mulrNN (mulrA s3) {1 2}/s3.
-rewrite sqr_sqrt ; [ | lra].
+rewrite sqr_sqrt ; [ lra | ].
 rewrite (mulrC _ 2) mulrA.
 do_one_integral (s3%:P).
-field; auto.
+field by auto.
 Qed.
 
 Lemma gauss_weight_3_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 1 isT) = 8/9.
 Proof.
 rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
+rewrite lagrangeE;  [ Lia.lia | apply extend_roots_injective; apply lo_lt_hi | ].
 cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
 rewrite -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
 set s3 := Num.sqrt (3/5). simpl in s3.
 rewrite -?hornerM'.
 rewrite opprK mulrN.
-rewrite sqr_sqrt; [ | lra].
+rewrite sqr_sqrt; [ lra | ].
 do_one_integral (- s3)%:P.
 do_one_integral s3%:P.
 rewrite mulNr.
 rewrite (mulrC 2 s3).
 rewrite (mulrA s3).
-rewrite sqr_sqrt ; [ | lra].
-field; auto.
+rewrite sqr_sqrt ; [lra|].
+field by auto.
 Qed.
 
 Lemma gauss_weight_3_2: gauss_weight _ _ _ _ (LR_roots legendre_roots_3) (@Ordinal 3 2 isT) = 5/9.
 Proof.
 rewrite /gauss_weight /legendre_roots_3 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
+rewrite lagrangeE;  [ Lia.lia | apply extend_roots_injective; apply lo_lt_hi | ].
 cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
 rewrite -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD''.
@@ -2871,9 +2894,9 @@ rewrite -?hornerM'.
 set u := _ - _. replace u with ((s3 * 2))%R by (subst u; lra). clear u.
 rewrite -(mulrA s3).
 rewrite (mulrC 2 s3) ?mulrA.
-rewrite sqr_sqrt ; [ | lra].
+rewrite sqr_sqrt ; [ lra | ].
 do_one_integral (- s3)%:P.
-field; auto.
+field by auto.
 Qed.
 
 Definition gauss_weights_3 : gauss_weights 3.
@@ -2901,7 +2924,7 @@ Lemma gauss_weight_4_0: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordin
 Proof.
 set RHS := _ - _.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi].
+rewrite lagrangeE;  [ Lia.lia | apply extend_roots_injective; apply lo_lt_hi | ].
 cbv zeta; expand_bigop.
   rewrite /extend_roots /= ?r_horner ?r_lift.
 rewrite -/intgal ?r_ring -hornerX' -?hornerC' -?hornerD' -?hornerD'' ?r_ring.
@@ -2920,7 +2943,7 @@ rewrite ?(@mulrD {poly _}) -?mulrA.
 rewrite ?(pull_left (-c%:P)) ?r_intgal ?r_ring.
 rewrite ?(pull_left (b%:P)) ?r_intgal ?r_ring.
 rewrite ?(pull_left (c%:P)) ?r_intgal ?r_ring.
-transitivity (a * ((- c * (2 / 3))%R + (- b * (2 / 3))%R + ((b * (2 / 3))%R + (- (b * b) * (2 * - c))%R))%E); [ ring | ].
+transitivity (a * ((- c * (2 / 3))%R + (- b * (2 / 3))%R + ((b * (2 / 3))%R + (- (b * b) * (2 * - c))%R))); [ ring | ].
 rewrite sqr_sqrt; try lra. 
 rewrite addrA. 
 rewrite (mulNr b).
@@ -2966,11 +2989,11 @@ replace u with ((4/7)*s3) by (subst u; nra). clear u.
 rewrite ?mulrA.
 rewrite invrN mulNr.
 rewrite invrM; try (rewrite unitfE; lra).
-2: rewrite unitfE; assert (0 < a) by (rewrite sqrtr_gt0; lra);  lra.
+rewrite unitfE; assert (0 < a) by (rewrite sqrtr_gt0; lra);  lra.
 rewrite (mulrC _ a).
 rewrite mulrA.
 rewrite mulfV.
-2: assert (0 < a) by (rewrite sqrtr_gt0; lra);  lra.
+assert (0 < a) by (rewrite sqrtr_gt0; lra);  lra.
 clear a.
 subst d.
 rewrite -(mulNr (2*s3) (inv 7)).
@@ -2980,7 +3003,7 @@ rewrite addrC.
 rewrite -(mulrA _ s3).
 rewrite (mulrC _ (s3 * _)).
 rewrite (mulrA (s3 * 2)).
-rewrite invrM; [  |  rewrite unitfE; lra ..].
+rewrite invrM; [ rewrite unitfE; lra .. | ].
 rewrite invrK.
 rewrite mulNr.
 rewrite (mulrC 7).
@@ -2991,10 +3014,10 @@ rewrite -(mulrA _ (inv 7)).
 rewrite (mulrC (inv 7) 2).
 rewrite -(mulrA _ (2/7)).
 rewrite -(mulrA _ (inv 7) 7).
-rewrite mulVr;  [ | rewrite unitfE; lra ].
+rewrite mulVr;  [rewrite unitfE; lra | ].
 rewrite mulr1.
 rewrite -(mulrA s3).
-rewrite invrM;   [ | rewrite unitfE; lra ..].
+rewrite invrM;   [ rewrite unitfE; lra .. | ].
 rewrite -(mulrA _ (inv s3)).
 rewrite (mulrDl _ _ 2).
 rewrite addrC.
@@ -3004,7 +3027,7 @@ rewrite (mulrDr (inv _)).
 rewrite  mulNr mulrN.
 rewrite (mulrC 2 s3) -(mulrA s3).
 rewrite (mulrA _ s3).
-rewrite mulVr;  [ | rewrite unitfE; lra ].
+rewrite mulVr;  [rewrite unitfE; lra  | ].
 rewrite mul1r.
 rewrite mulrC.
 rewrite (mulrC _ e).
@@ -3029,7 +3052,7 @@ Lemma gauss_weight_4_1: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordin
 Proof.
 set RHS := _ + _. simpl in RHS.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite lagrangeE;  [ | Lia.lia | apply extend_roots_injective; apply lo_lt_hi ].
+rewrite lagrangeE;  [ Lia.lia | apply extend_roots_injective; apply lo_lt_hi  | ].
 cbv zeta; expand_bigop.
   rewrite -/intgal ?r_ring /extend_roots /= ?r_ring. 
 set s3 := Num.sqrt (6/5). simpl in s3.
@@ -3042,17 +3065,16 @@ rewrite ?mulrD.
 rewrite -?mulrA.
 rewrite ?r_intgal ?r_ring.
 rewrite ?(pull_left (polyC _)) ?r_intgal ?r_ring.
-replace a with ( (((- c)%R + b)%E * ((- c - c) * (- c - b)))^-1 : R) by (subst a; f_equal; ring).
+replace a with ( (((- c)%R + b) * ((- c - c) * (- c - b)))^-1 : R) by (subst a; f_equal; ring).
 clear a; set a := inv _.
-transitivity (a * ((- b * (2 / 3))%R + (- c * (2 / 3))%R + ((b * (2 / 3))%R + (b * (- c * (2 * - b)))%R))%E); [ ring |].
+transitivity (a * ((- b * (2 / 3))%R + (- c * (2 / 3))%R + ((b * (2 / 3))%R + (b * (- c * (2 * - b)))%R))); [ ring |].
 simpl in a.
 unfold b,c in a.
 assert (is_true (1 < s3)) by (rewrite -{1}sqrtr1 ltr_sqrt;  lra).
 assert (s3<6/5). rewrite -(sqr_sqrt (6/5)) -/s3; try lra. nra.
 assert (is_true (0 <= (3 - 2 * s3) / 7)) by nra.
-rewrite mulrA ?mulrN ?mulNr ?mulrN.
+rewrite (mulrA  (-c)) ?mulrN ?mulNr ?mulrN opprK.
 rewrite -(mulrA c 2). rewrite (mulrA b c).
-rewrite opprK.
 rewrite (mulrC (b*c)) -(mulrA 2 b) (mulrA b b) sqr_sqrt; try lra.
 rewrite ?(mulrDr a) ?mulrN.
 set u := (a * (b * _)).
@@ -3080,7 +3102,7 @@ rewrite ?mulrDr ?mulNr ?mulrN.
 rewrite ?mulr1.
 rewrite -?(mulrA 2).
 rewrite sqr_sqrt; auto.
-rewrite -sqrtrM; [ | subst c; lra].
+rewrite -sqrtrM; [ subst c; lra | ].
 rewrite ?(addrC (- _)).
 rewrite ?(mulrA _ 2) ?(mulrC _ 2).
 rewrite -?(mulrA 2 _ c).
@@ -3090,19 +3112,19 @@ rewrite ?(mulrDl (2*_) _ (Num.sqrt _)) ?mul1r.
 set bcc := Num.sqrt b * c.
 set ccc := Num.sqrt c * c.
 rewrite -(mulrA 2 (Num.sqrt b) (Num.sqrt (c*b))).
-rewrite -sqrtrM; [ | subst b; lra].
+rewrite -sqrtrM; [ subst b; lra | ].
 rewrite mulNr.
 rewrite -(mulrA 2 (Num.sqrt c) (Num.sqrt (c*b))).
-rewrite -sqrtrM; [ | subst c; lra].
+rewrite -sqrtrM; [ subst c; lra | ].
 rewrite (mulrA c c).
 rewrite (mulrC (c*c)).
-rewrite (@sqrtrM _ b (c*c)); [ | subst b; lra].
+rewrite (@sqrtrM _ b (c*c)); [ subst b; lra | ].
 rewrite (@sqrtrM _ c c); auto.
 rewrite sqr_sqrt; auto.
 rewrite (mulrC b (c*b)) -(mulrA c b b).
 rewrite (@sqrtrM _ c (b*b)); auto.
-rewrite (@sqrtrM _ b b); [ | subst b; lra].
-rewrite sqr_sqrt; [ | subst b; lra].
+rewrite (@sqrtrM _ b b); [ subst b; lra | ].
+rewrite sqr_sqrt; [subst b; lra | ].
 fold bcc.
 set cbb := Num.sqrt c * b.
 rewrite add_mul2.
@@ -3118,21 +3140,21 @@ assert (c > 0). subst c; lra.
 rewrite -sqrtr_gt0 in H2. lra.
 subst b c. lra.
 }
-rewrite invrM; [  |  rewrite unitfE; lra | auto ].
+rewrite invrM; [ rewrite unitfE; lra | auto |  ] .
 set u := (cbb-ccc).
 unfold cbb, ccc in u.
 revert u.
 rewrite -mulrBr. simpl.
-rewrite invrM; [ | rewrite unitfE ..].
-2:{ 
+rewrite invrM; [ rewrite unitfE .. | ].
+{ 
 assert (c > 0). subst c; lra.
 rewrite -sqrtr_gt0 in H3; lra.
 }
-2: subst b c; lra.
+subst b c; lra.
 rewrite !mulrA.
 rewrite (mulrC _ (inv 2)).
 rewrite !mulrA.
-rewrite mulVf; [ | lra].
+rewrite mulVf; [ lra | ].
 rewrite mul1r.
 rewrite (mulrC _ 3).
 rewrite (mulrC _ (inv 3)).
@@ -3140,7 +3162,7 @@ rewrite (mulrC _ (inv 2)).
 rewrite (mulrC _ s3).
 rewrite  -!mulrA.
 rewrite mulVf.
-2: {
+ {
 assert (c > 0). subst c; lra.
 rewrite -sqrtr_gt0 in H3; lra. }
 rewrite mulr1.
@@ -3149,7 +3171,7 @@ rewrite !mulrA.
 subst b c.
 revert RHS.
 rewrite -(invrK (5/6)).
-rewrite sqrtrV; [ |  lra].
+rewrite sqrtrV; [lra | ].
 rewrite invf_div.
 change (Num.sqrt _) with s3.
 intro.
@@ -3160,27 +3182,27 @@ set u := (_ + _)- (_ - _).
 replace u with (4 * s3)%R by (subst u; lra).
 clear u.
 rewrite mulrDr.
-rewrite invrM; [ | rewrite unitfE; lra .. ].
+rewrite invrM; [ rewrite unitfE; lra .. | ].
 rewrite -(mulrA s3 (inv 2)).
 rewrite invrK.
-rewrite mulVf; [ | lra]. rewrite mulr1.
+rewrite mulVf; [ lra | ]. rewrite mulr1.
 rewrite (mulrC _ 7).
 rewrite -(mulrA _ _ 3).
 rewrite (mulrA (inv 7) 7).
-rewrite mulVf; [ | lra].
+rewrite mulVf; [lra | ].
 rewrite mul1r.
 rewrite (mulrC (s3 * 2)).
 rewrite -(mulrA _ _ (s3*2)).
 rewrite (mulrA _ 7).
-rewrite mulVf; [ | lra].
+rewrite mulVf; [lra | ].
 rewrite mul1r.
-rewrite invrM; [ | rewrite unitfE; lra ..].
+rewrite invrM; [rewrite unitfE; lra .. | ].
 rewrite (mulrC _ (inv 4)).
 rewrite -(mulrA _ (inv s3) (_ * 2)).
 rewrite (mulrC (inv 4) (_ * (_ * 2))).
 rewrite mulrA.
 rewrite mulVr.
-2: rewrite unitfE; lra.
+rewrite unitfE; lra.
 rewrite mul1r.
 rewrite (addrC _ (2/4)).
 rewrite -addrA.
@@ -3197,7 +3219,7 @@ Lemma gauss_weight_4_2: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordin
 Proof.
 rewrite -gauss_weight_4_1.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; apply lo_lt_hi .. ].
+rewrite ?lagrangeE;  try Lia.lia ; [ apply extend_roots_injective; apply lo_lt_hi .. | ].
 cbv zeta; repeat expand_bigop.
   rewrite /extend_roots /= ?r_ring.
 set s3 := Num.sqrt (6/5). simpl in s3.
@@ -3225,7 +3247,7 @@ Lemma gauss_weight_4_3: gauss_weight _ _ _ _ (LR_roots legendre_roots_4) (@Ordin
 Proof.
 rewrite -gauss_weight_4_0.
 rewrite /gauss_weight /legendre_roots_4 /LR_roots /L /zeros_of_ortho_p /ROOTS_vals.
-rewrite ?lagrangeE;  try Lia.lia ; [ | apply extend_roots_injective; apply lo_lt_hi .. ].
+rewrite ?lagrangeE;  try Lia.lia ; [ apply extend_roots_injective; apply lo_lt_hi ..  | ].
 cbv zeta; repeat expand_bigop.
   rewrite /extend_roots /=  ?r_ring.
 set s3 := Num.sqrt (6/5). simpl in s3.
@@ -3381,7 +3403,7 @@ clear H2. simpl in H1.
 rewrite -mulrA (mulrC _ u).
 pose proof (divr_gt0 H0 H1).
 rewrite (_: b = b * (u / h%:R) * (h%:R / u)).
- 2: rewrite -mulrA -(invf_div u h%:R) divff; lra.
+rewrite -mulrA -(invf_div u h%:R) divff; lra.
 rewrite -(mulrA _ (u / _)).
 rewrite (mulrC (u / _)).
 rewrite (mulrA _ (_/u)).

@@ -161,14 +161,16 @@ assert (H: prop);  [
 Ltac related_matrix2 f := let x := fresh "x" in intro x; let y := fresh "y" in intro y;
     match type of (f x y) with _ = ?t => let b := eval cbv beta in t in exact b end.
 
+From mathcomp Require algebra.
+
 Ltac realify := 
 try change (@nmodule.Algebra.add _) with Rplus;
 try change (@nmodule.Algebra.opp _) with Ropp;
-try change (@ssralg.GRing.mul _) with Rmult;
-try change (@ssralg.GRing.inv _) with Rinv;
-try change (ssralg.GRing.one _) with 1;
-change (ssralg.GRing.one
-        (ssralg.GRing.PzRing.Exports.join_GRing_PzRing_between_Algebra_BaseZmodule_and_GRing_PzSemiRing
+try change (@rings_modules_and_algebras.GRing.mul _) with Rmult;
+try change (@divalg.GRing.inv _) with Rinv;
+try change (rings_modules_and_algebras.GRing.one _) with 1;
+change (rings_modules_and_algebras.GRing.one
+        (rings_modules_and_algebras.GRing.PzRing.Exports.join_GRing_PzRing_between_Algebra_BaseZmodule_and_GRing_PzSemiRing
            (reals.Real.Exports.reals_Real__to__GRing_PzRing
               RbaseSymbolsImpl_R__canonical__reals_Real))) with 1;
 try change (@nmodule.Algebra.zero _) with 0;
@@ -250,7 +252,7 @@ repeat f_equal; apply ord_inj; auto.
 
 Ltac apply_roundoff_bound B := 
  simplify_ordinals; rewrite_matrix;
- try change (ssralg.GRing.one _) with 1; try change (nmodule.Algebra.zero _) with 0;
+ try change (rings_modules_and_algebras.GRing.one _) with 1; try change (nmodule.Algebra.zero _) with 0;
  let H := fresh in intro H;
  generalize (B _ H); clear H;
  realify; 
@@ -265,7 +267,7 @@ end.
 
 Ltac prepare_apply_roundoff_bound := 
  change_StdLib_to_Core;
- try change (ssralg.GRing.one _) with 1; try change (nmodule.Algebra.zero _) with 0;
+ try change (rings_modules_and_algebras.GRing.one _) with 1; try change (nmodule.Algebra.zero _) with 0;
  match goal with VALID: valmap_valid _, vmap:= _ : valmap  |-  _  => 
    revert VALID vmap; simplify_ordinals; intros VALID vmap
  end;

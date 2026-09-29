@@ -1,11 +1,12 @@
-(** * CFEM.quadrature2:  Computation of quadrature error bounds *)
-From mathcomp Require Import all_boot ssralg ssrnum archimedean finfun order.
-From mathcomp Require Import all_algebra  all_field all_analysis all_reals.
-Import Order.TTheory GRing.Theory Num.Theory GRing.
-From mathcomp.algebra_tactics Require Import ring lra.
-Import classical_sets.
+(** * CFEM.quadrature2:  Computation of quadrature error bounds *)From mathcomp Require Import boot algebra all_classical all_analysis order reals.  
 Import numFieldNormedType.Exports.
+From mathcomp.algebra Require Import ring_tactic.
 From Stdlib Require Import FunctionalExtensionality.
+From mathcomp.zify Require Import ssrZ zify.
+Import measurable_realfun MeasurableRopen.
+Import Order.TTheory GRing.Theory Num.Theory GRing.
+From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
+
 From CFEM Require Import quadrature.
 
 Unset Implicit Arguments.
@@ -16,6 +17,7 @@ Set Bullet Behavior "Strict Subproofs".
 Local Open Scope R_scope.
 Local Open Scope order_scope.
 Local Open Scope ring_scope.
+
 
 Import Legendre.
 Require Import Interval.Tactic.
@@ -42,14 +44,11 @@ intros.
 progress simpl.
 rewrite ?derive1E.
 rewrite deriveM.
--
+apply H.  (* this line *)   (* see comment above *)
+apply H0.
 f_equal.
 rewrite mulrC.
 rewrite /scale //.
--
-apply H.  (* this line *)   (* see comment above *)
--
-apply H0.
 Qed.
 
 Definition everywhere_derivable (f: R -> R) := forall x, derivable f x 1.
@@ -64,7 +63,7 @@ extensionality x.
 rewrite derive1M; auto.
 Qed.
 
-Notation d1 := (@derive1 R (Real_sort__canonical__normed_module_NormedModule RbaseSymbolsImpl_R__canonical__reals_Real)).
+Notation d1 := (@derive1 R _).
 
 Lemma derive1_cst': forall [V : normedModType R] (k : V) (t : R), 
    (fun=> k)^`()%classic t = 0.
@@ -74,7 +73,7 @@ Lemma derive1_cos: d1 cos = opp_fun sin.
 Proof.
 extensionality x.
 rewrite derive1E.
-destruct (mathcomp.analysis.trigo.is_derive_cos x).
+destruct (mathcomp.analysis.elementary_functions.trigonometry_functions.is_derive_cos x).
 auto.
 Qed.
 
@@ -82,7 +81,7 @@ Lemma derive1_sin: d1 sin = cos.
 Proof.
 extensionality x.
 rewrite derive1E.
-destruct (mathcomp.analysis.trigo.is_derive_sin x).
+destruct (mathcomp.analysis.elementary_functions.trigonometry_functions.is_derive_sin x).
 auto.
 Qed.
 
@@ -94,10 +93,7 @@ Proof.
 intros.
 extensionality x.
 rewrite /= ?derive1E.
-rewrite deriveD.
-auto.
-apply H.
-apply H0.
+rewrite deriveD; auto.
 Qed.
 
 Lemma derive1_opp: forall (f : R -> R), 
@@ -145,7 +141,7 @@ Proof. intros. symmetry. apply derivE. Qed.
 
 Lemma ev_deriv_horner: forall p: {poly R}, everywhere_derivable (horner p).
 Proof.
-intros. intro. apply derivable_horner.
+intros. intro. apply @derivable_horner.
 Qed.
 
 Lemma ev_derivD: forall  (f g: R -> R),
@@ -163,13 +159,13 @@ Qed.
 Lemma ev_derivN: forall (f : R -> R),
     everywhere_derivable f -> everywhere_derivable (\- f).
 Proof.
-intros. intro. apply derivableN; auto.
+intros. intro. apply @derivableN; auto.
 Qed.
 
 Lemma ev_derivM: forall (f g: R -> R),
     everywhere_derivable f -> everywhere_derivable g -> everywhere_derivable (f \* g).
 Proof.
-intros. intro. apply derivableM; auto.
+intros. intro. apply @derivableM; auto.
 Qed.
 
 Lemma ev_deriv_cst: forall (c: R),
@@ -204,14 +200,14 @@ Ltac rewrite_derive1_bottom_up :=
   |  |- context [derive1 (mul_fun ?f ?g)] => 
          lazymatch f with context [derive1] => fail | _ => idtac end;
          lazymatch g with context [derive1] => fail | _ => idtac end;
-         rewrite (derive1M_ f g); [ | derivable ..]
+         rewrite (derive1M_ f g); [ derivable .. | ]
   |  |- context [derive1 (add_fun ?f ?g)] => 
          lazymatch f with context [derive1] => fail | _ => idtac end;
          lazymatch g with context [derive1] => fail | _ => idtac end;
-         rewrite (derive1_add f g); [ | derivable ..]
+         rewrite (derive1_add f g); [ derivable .. | ]
   |  |- context [derive1 (opp_fun ?f)] => 
          lazymatch f with context [derive1] => fail | _ => idtac end;
-         rewrite (derive1_opp f); [ | derivable ..]
+         rewrite (derive1_opp f); [ derivable .. | ]
  end.
 
 Ltac rewrite_derive := 
@@ -261,7 +257,7 @@ lazymatch goal with |- is_true (?A <= ?B <= ?C) =>
  end;
 rewrite ?trigo_cos_e ?trigo_sin_e; 
 change nmodule.Algebra.zero with (Raxioms.INR O)  in *;
-repeat change (ssralg.GRing.mul ?A ?B) with (Rdefinitions.Rmult A B) in *;
+repeat change (GRing.mul ?A ?B) with (Rdefinitions.Rmult A B) in *;
 repeat change (nmodule.Algebra.opp ?A) with (Rdefinitions.Ropp A) in *;
 repeat change (nmodule.Algebra.add ?A ?B) with (Rdefinitions.Rplus A  B) in *;
 repeat change (GRing.one _) with (Raxioms.INR 1%nat) in *;
@@ -386,8 +382,7 @@ Lemma g_max_deriv:
        forall x y : R, lo <= x <= hi -> lo <= x + y <= hi -> `| g (x + y) - g x | <= `| y | * d.
 Proof.
 move => fb d g Hfb Hd x y Hx Hy.
-Check Rintegral_cst.
-Admitted.
+Admitted.  (* This one is not provable, but see the one in g_max_deriv.v *)
 
 
 
