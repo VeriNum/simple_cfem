@@ -56,20 +56,18 @@ Definition everywhere_derivable (f: R -> R) := forall x, derivable f x 1.
 Lemma derive1M_ (f g: R -> R) :
   everywhere_derivable f ->
   everywhere_derivable g ->
-  (mul_fun f g)^`()%classic = add_fun (mul_fun f (g^`()%classic)) (mul_fun (f^`()%classic) g).
+   (  (f \* g)^`() =  f \* g^`() \+  f^`()  \* g )%classic.
 Proof.
 intros.
 extensionality x.
 rewrite derive1M; auto.
 Qed.
 
-Notation d1 := (@derive1 R _).
-
 Lemma derive1_cst': forall [V : normedModType R] (k : V) (t : R), 
    (fun=> k)^`()%classic t = 0.
 Proof. intros; apply derive1_cst. Qed.
 
-Lemma derive1_cos: d1 cos = opp_fun sin.
+Lemma derive1_cos: @derive1 R _ cos = opp_fun sin.
 Proof.
 extensionality x.
 rewrite derive1E.
@@ -77,10 +75,10 @@ destruct (mathcomp.analysis.elementary_functions.trigonometry_functions.is_deriv
 auto.
 Qed.
 
-Lemma derive1_sin: d1 sin = cos.
+Lemma derive1_sin: @derive1 R _ sin = cos.
 Proof.
 extensionality x.
-rewrite derive1E.
+rewrite derive1E.  
 destruct (mathcomp.analysis.elementary_functions.trigonometry_functions.is_derive_sin x).
 auto.
 Qed.
@@ -88,7 +86,7 @@ Qed.
 Lemma derive1_add: forall (f g : R -> R), 
   everywhere_derivable f ->
   everywhere_derivable g ->
-  d1 (f \+ g) = (d1 f \+ d1 g).
+  @derive1 R _ (f \+ g) =  @derive1 R _ f \+ @derive1 R _ g.
 Proof.
 intros.
 extensionality x.
@@ -98,7 +96,7 @@ Qed.
 
 Lemma derive1_opp: forall (f : R -> R), 
   everywhere_derivable f->
-  d1 (\- f) = \- (d1 f).
+  @derive1 R _ (\- f) = \- (@derive1 R _ f).
 Proof.
 intros.
 extensionality x.
