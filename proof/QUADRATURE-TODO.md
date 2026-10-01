@@ -1,5 +1,7 @@
 # Suggested improvements to Quadrature proofs
 
+- The lemma g_max_deriv in quadrature2.v is incorrect.  The lemma g_max_deriv in g_max_deriv.v is more likely to be stated correctly, but its proof is incomplete.  Also, some of the premises of that one overlap, there are conjects that say equivalent things redundantly.  This proof needs to be completed.
+- Then, based on the definitions of fbound, etc., the lemmas testfun_fb and testfun_d (in proof/C/verif_quadrules.v) need to be proved. (They could be proved in g_max_deriv.v or quadrature2.v, the lemmas don't need to be in verif_quadrules.v).
 - There are many proofs in the form ``{in `[a,b], continuous f}`` that should perhaps be ``{within `[a,b]``; is it possible to use `within..continuous` everywhere?
 - `Rintegral_gt_0` is proved in Saikawa's [P.R. #2086](https://github.com/math-comp/analysis/pull/2086); should that P.R. be merged into mathcomp-analysis or should we just copy-paste the proof into here?
 - The Admitted lemma `quadrature_error` is incorrect.  Where it has `(2*n+2)`, the correct formula is `(2*n)`.  Solution: state the Taylor-Lagrange theorem explicitly (even if it's Admitted), then prove `quadrature_error` from Taylor-Lagrange.
