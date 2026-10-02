@@ -1,7 +1,7 @@
 (** * CFEM.quadrature:  Gaussian quadrature, following G. W. Stewart *)
 From mathcomp Require Import boot algebra all_classical all_analysis order reals.  
 Import numFieldNormedType.Exports.
-From mathcomp.algebra Require Import ring_tactic.
+From mathcomp.algebra Require Import arithmetic_tactic ring_tactic field_tactic.
 From Stdlib Require Import FunctionalExtensionality.
 From mathcomp.zify Require Import ssrZ zify.
 Import measurable_realfun MeasurableRopen.
@@ -122,7 +122,7 @@ Proof.
 intros. extensionality x. simpl. apply mulr1.
 Qed.
 
-Create Rewrite HintDb horner.
+(* Create Rewrite HintDb horner. *)
 Hint Rewrite @mul1r @mul_fun1r @mulr1 @mul_funr1 : horner.
 
 Lemma mul_fun0r: forall
