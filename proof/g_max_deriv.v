@@ -74,9 +74,10 @@ assert (H11: is_true (mu.-integrable `[x, (x + y)] (EFin \o g^`()%classic))).
 apply admit.
 assert (H12: is_true (mu.-integrable `[x, (x + y)] (EFin \o (fun=> `|d|)))).
 apply admit.
+Open Scope classical_set_scope.
 assert (H13:  forall x0 : @g_sigma_algebraType (ocitv_type R) (R.-ocitv).-measurable,
                    x0 \in `[x, (x + y)] -> g^`()%classic x0 <= `|d|).
-2:{ admit.
+admit.
 simpl in H12, H13.
 apply le_Rintegral; auto.
 apply H8.
@@ -125,6 +126,14 @@ destruct H; (assert (0 < y \/ 0 < -y \/ y=0) by lra; destruct H0 as [? | [? | ?]
   replace (_ - _) with (@GRing.zero R); auto. lra.
 Qed.
 
+Definition testfun_r (x: R) := (/2 * (1-x) * Rtrigo_def.cos x)%R.
 
+Definition testfun_fb : R := 1.
+Lemma testfun_fbound: fbound testfun_r testfun_fb.
+Admitted.
+
+Definition testfun_d: R := 1.
+Lemma testfun_deriv_bound: deriv_bound testfun_r testfun_d.
+Admitted.
 
 
