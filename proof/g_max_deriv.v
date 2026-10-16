@@ -1,4 +1,4 @@
-From mathcomp Require Import boot algebra all_classical all_analysis order reals.  
+From mathcomp Require Import boot algebra all_classical all_analysis order reals.
 Import numFieldNormedType.Exports.
 From mathcomp.algebra Require Import ring_tactic.
 From Stdlib Require Import FunctionalExtensionality.
@@ -22,10 +22,15 @@ Definition fbound (g: R -> R) fb := forall x : R, (lo <= x <= hi) -> ( `| g x | 
 Definition deriv_bound (f: R -> R) (b: R) := forall x, (lo <= x <= hi) ->
    derivable f x 1 /\ (`| derive1 f x | <= b).
 
-Lemma fine_itv: forall x y: R, 0 <= y -> 
- fine (mu (classical_sets.mkset (fun z : Real.sort R => is_true (z \in `[x, (x + y)])))) = y.
-Admitted.
-
+Lemma fine_itv (x y: R) :
+  0 <= y -> fine (mu `[x, x + y]%classic) = y.
+Proof.
+move=> y0.
+rewrite lebesgue_measure_itv/= ltEereal/=.
+move: y0; rewrite le_eqVlt => /orP[/eqP<-|y0].
+  by rewrite addr0 ltxx.
+by rewrite ltrDl y0 -EFinD addrAC subrr add0r.
+Qed.
 
 Local Lemma admit (P: Prop) : P.
 Admitted.
@@ -34,7 +39,8 @@ Lemma g_max_deriv_oneway:
        forall (fb d : R) (g : R -> R),
        fbound g fb ->
        deriv_bound g d ->
-       forall x y : R,  0<y -> g x <= g(x+y) -> lo <= x <= hi -> lo <= x + y <= hi -> `| g (x + y) - g x | <= `| y * d |.
+       forall x y : R,  0<y -> g x <= g(x+y) -> lo <= x <= hi -> lo <= x + y <= hi ->
+       `| g (x + y) - g x | <= `| y * d |.
 Proof.
 move => fb d g Hfb Hd x y Hpos Hpos' Hx Hy.
 
@@ -74,11 +80,12 @@ assert (H11: is_true (mu.-integrable `[x, (x + y)] (EFin \o g^`()%classic))).
 apply admit.
 assert (H12: is_true (mu.-integrable `[x, (x + y)] (EFin \o (fun=> `|d|)))).
 apply admit.
-assert (H13:  forall x0 : @g_sigma_algebraType (ocitv_type R) (R.-ocitv).-measurable,
+assert (H13:  forall x0,
                    x0 \in `[x, (x + y)] -> g^`()%classic x0 <= `|d|).
-2:{ admit.
+  admit.
 simpl in H12, H13.
 apply le_Rintegral; auto.
+}
 apply H8.
 Admitted.
 
