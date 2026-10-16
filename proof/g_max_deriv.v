@@ -1,6 +1,11 @@
-From mathcomp Require Import all_boot all_algebra  all_field all_analysis all_reals.
-From mathcomp.algebra_tactics Require Import ring lra.
-Import derive classical_sets.
+From mathcomp Require Import boot algebra all_classical all_analysis order reals.  
+Import numFieldNormedType.Exports.
+From mathcomp.algebra Require Import ring_tactic.
+From Stdlib Require Import FunctionalExtensionality.
+From mathcomp.zify Require Import ssrZ zify.
+Import measurable_realfun MeasurableRopen.
+Import Order.TTheory GRing.Theory Num.Theory GRing.
+From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
 
 Set Bullet Behavior "Strict Subproofs".
 
@@ -18,7 +23,7 @@ Definition deriv_bound (f: R -> R) (b: R) := forall x, (lo <= x <= hi) ->
    derivable f x 1 /\ (`| derive1 f x | <= b).
 
 Lemma fine_itv: forall x y: R, 0 <= y -> 
- fine (mu (classical_sets.mkset (fun z : Real.sort R => is_true (z \in `[x, (x + y)%E])))) = y.
+ fine (mu (classical_sets.mkset (fun z : Real.sort R => is_true (z \in `[x, (x + y)])))) = y.
 Admitted.
 
 
@@ -42,7 +47,7 @@ assert     (H1: forall  x0,
            _ x0
            (from_subspace `[x, x + y]%classic (derive1 g))).
 apply admit. (* do this instead of simply "admit", otherwise lra tactic will shelve this redundantly. *)
-assert   (H8 : measurable `[x, (x + y)%E]%classic).
+assert   (H8 : measurable `[x, (x + y)]%classic).
 apply admit.
 
 assert (Hd': is_true (0 <= d))
@@ -50,11 +55,12 @@ assert (Hd': is_true (0 <= d))
 
 replace (`|y * d|) with (y * `| d |).
  2: rewrite ?Num.Theory.ger0_norm //; apply Num.Theory.mulr_ge0; auto.
-rewrite Num.Theory.ger0_norm; [ | lra ].
+rewrite Num.Theory.ger0_norm; [ lra | ].
 pose proof @Rintegral_cst _ _  _ mu `[x,  x + y]%classic.
 simpl in H. rewrite fine_itv in H; auto.
 rewrite GRing.mulrC -{}H.
-assert (H2: derivable_oo_LRcontinuous g x (x + y)%E).
+2:{
+assert (H2: derivable_oo_LRcontinuous g x (x + y)).
 apply admit.
 pose proof (@continuous_FTC2 R (derive1 g) g x (x+y) ltac:(lra)) H1 H2 ltac:(intros ? ?; reflexivity).
 rewrite -EFinD in H.
@@ -64,13 +70,13 @@ destruct u eqn:?H; try discriminate.
 subst u.
 injection H; clear H; move => H.
 rewrite -{}H.  change s with (fine (EFin s)). rewrite -{}H0.
-assert (H11: is_true (mu.-integrable `[x, (x + y)%E] (EFin \o g^`()%classic))).
+assert (H11: is_true (mu.-integrable `[x, (x + y)] (EFin \o g^`()%classic))).
 apply admit.
-assert (H12: is_true (mu.-integrable `[x, (x + y)%E] (EFin \o (fun=> `|d|)))).
+assert (H12: is_true (mu.-integrable `[x, (x + y)] (EFin \o (fun=> `|d|)))).
 apply admit.
-assert (H13:   forall x0 : @g_sigma_algebraType (ocitv_type R) (R.-ocitv).-measurable,
-                   x0 \in `[x, (x + y)%E] -> g^`()%classic x0 <= `|d|).
-admit.
+assert (H13:  forall x0 : @g_sigma_algebraType (ocitv_type R) (R.-ocitv).-measurable,
+                   x0 \in `[x, (x + y)] -> g^`()%classic x0 <= `|d|).
+2:{ admit.
 simpl in H12, H13.
 apply le_Rintegral; auto.
 apply H8.
