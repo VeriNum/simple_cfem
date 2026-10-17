@@ -26,6 +26,7 @@ depends: [
   "rocq-mathcomp-algebra"
   "rocq-mathcomp-analysis"
   "rocq-mathcomp-reals-stdlib"
+  "rocq-mathcomp-analysis-stdlib"
   "rocq-mathcomp-zify"
   "coq-mathcomp-finmap"
   "rocq-laproof"
