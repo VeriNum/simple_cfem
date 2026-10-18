@@ -120,7 +120,7 @@ Variables (lo hi : R).
 Definition testfun_r (x: R) := /2 * (1-x) * Rtrigo_def.cos x.
 
 Lemma testfun_rE x : testfun_r x = testfun_mcr x.
-Abort.
+Proof. by rewrite /testfun_r /testfun_mcr -RcosE -!RealsE. Qed.
 
 Definition testfun_fb : R := 1.
 Lemma testfun_fbound: fbound lo hi testfun_r testfun_fb.
