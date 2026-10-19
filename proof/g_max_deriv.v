@@ -74,7 +74,7 @@ have [y0|y0|->]  := ltgtP y 0; last 2 first.
 - exact: (g_max_deriv_oneway _ _ _ Hfb Hd).
 - by rewrite addr0 subrr normr0 normr_ge0.
 - rewrite -[X in g _ - g X]addr0 -(subrr y) addrA distrC.
-  rewrite normrM -[X in _ <= X * _]normrN -normrM.
+  rewrite -[leRHS]normrN -mulNr.
   set x' := x + y; set y' := - y.
   by apply: (g_max_deriv_oneway _ _ _ Hfb Hd); rewrite /x' /y'; lra.
 Qed.
