@@ -42,10 +42,10 @@ Lemma g_max_deriv_oneway:
        forall (fb d : R) (g : R -> R),
        fbound g fb ->
        deriv_bound g d ->
-       forall x y : R,  0<y -> g x <= g(x+y) -> lo <= x <= hi -> lo <= x + y <= hi ->
+       forall x y : R,  0<y -> lo <= x <= hi -> lo <= x + y <= hi ->
        `| g (x + y) - g x | <= `| y * d |.
 Proof.
-move => fb d g Hfb Hd x y Hpos Hpos' Hx Hy.
+move => fb d g Hfb Hd x y Hpos Hx Hy.
 have H1 : forall z, z \in `]x, x + y[%R -> is_derive z 1 g (g^`() z).
   move=> z /[!in_itv]/= zxy.
   have [] := Hd z; [lra|].
@@ -66,42 +66,17 @@ Lemma g_max_deriv:
        forall (fb d : R) (g : R -> R),
        fbound g fb ->
        deriv_bound g d ->
-       forall x y : R, lo <= x <= hi -> lo <= x + y <= hi -> `| g (x + y) - g x | <= `| y * d |.
+       forall x y : R, lo <= x <= hi -> lo <= x + y <= hi ->
+       `| g (x + y) - g x | <= `| y * d |.
 Proof.
 move => fb d g Hfb Hd x y Hx Hy.
-(*pose f := comp GRing.opp g.*)
-pose f := fun x => - g x.
-assert (Hfb': fbound f fb).
-  intros z Hz; specialize (Hfb _ Hz); rewrite /f /comp normrN //.
-assert (Hd': deriv_bound f d). {
-  intros z Hz. destruct (Hd _ Hz).
-  split; first exact: derivableN.
-  by rewrite /f derive1N // normrN.
-}
-assert (Hnegy: `|- y * d| = `|y * d|).
- rewrite GRing.mulNr normrN //.
-assert (g (x+y) >= g(x) \/ g x >= g(x+y)) by lra.
-destruct H; (assert (0 < y \/ 0 < -y \/ y=0) by lra; destruct H0 as [? | [? | ?]]).
-- eapply g_max_deriv_oneway; eauto.
-- rewrite -Hnegy.
-  rewrite -[X in `|X| <= _]opprB opprD -!/(f _) -[X in f X - _](addrK y).
-  eapply (g_max_deriv_oneway fb d f); eauto; try lra.
-  rewrite /f. replace (x + y - y) with x by lra. rewrite /comp. lra.
-- subst. rewrite GRing.mul0r. rewrite GRing.addr0.
-  replace (_ - _) with (@GRing.zero R); auto. lra.
-- replace `|(g (x+y)) - g x| with `|f ((x+y) + -y) - f (x+y)|.
- 2:{ f_equal. rewrite /f /comp /=.  replace (x + y - y) with x by lra. lra. }
-   replace (x + y - y) with x by lra.
-   rewrite distrC. 
-  eapply (g_max_deriv_oneway fb d f); eauto; try lra.
-  rewrite /f /comp. lra.
-- rewrite distrC.
-   replace (g x) with (g (x+y + -y)) by (f_equal; lra).
-  rewrite -Hnegy.
-  eapply (g_max_deriv_oneway fb d g); eauto; try lra.
-  replace (x + y - y) with x by lra. lra.
-- subst. rewrite GRing.mul0r. rewrite GRing.addr0.
-  replace (_ - _) with (@GRing.zero R); auto. lra.
+have [y0|y0|->]  := ltgtP y 0; last 2 first.
+- exact: (g_max_deriv_oneway _ _ _ Hfb Hd).
+- by rewrite addr0 subrr normr0 normr_ge0.
+- rewrite -[X in g _ - g X]addr0 -(subrr y) addrA distrC.
+  rewrite normrM -[X in _ <= X * _]normrN -normrM.
+  set x' := x + y; set y' := - y.
+  by apply: (g_max_deriv_oneway _ _ _ Hfb Hd); rewrite /x' /y'; lra.
 Qed.
 
 Definition testfun_mcr (x : R) := 2^-1 * (1-x) * cos x.
