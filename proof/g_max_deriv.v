@@ -39,13 +39,12 @@ Local Lemma admit (P: Prop) : P.
 Admitted.
 
 Lemma g_max_deriv_oneway:
-       forall (fb d : R) (g : R -> R),
-       fbound g fb ->
+       forall (d : R) (g : R -> R),
        deriv_bound g d ->
        forall x y : R,  0<y -> lo <= x <= hi -> lo <= x + y <= hi ->
        `| g (x + y) - g x | <= `| y * d |.
 Proof.
-move => fb d g Hfb Hd x y Hpos Hx Hy.
+move => d g Hd x y Hpos Hx Hy.
 have H1 : forall z, z \in `]x, x + y[%R -> is_derive z 1 g (g^`() z).
   move=> z /[!in_itv]/= zxy.
   have [] := Hd z; [lra|].
@@ -63,20 +62,19 @@ exact: ler_norm.
 Qed.
 
 Lemma g_max_deriv:
-       forall (fb d : R) (g : R -> R),
-       fbound g fb ->
+       forall (d : R) (g : R -> R),
        deriv_bound g d ->
        forall x y : R, lo <= x <= hi -> lo <= x + y <= hi ->
        `| g (x + y) - g x | <= `| y * d |.
 Proof.
-move => fb d g Hfb Hd x y Hx Hy.
+move => d g Hd x y Hx Hy.
 have [y0|y0|->]  := ltgtP y 0; last 2 first.
-- exact: (g_max_deriv_oneway _ _ _ Hfb Hd).
+- exact: (g_max_deriv_oneway _ _  Hd).
 - by rewrite addr0 subrr normr0 normr_ge0.
 - rewrite -[X in g _ - g X]addr0 -(subrr y) addrA distrC.
   rewrite -[leRHS]normrN -mulNr.
   set x' := x + y; set y' := - y.
-  by apply: (g_max_deriv_oneway _ _ _ Hfb Hd); rewrite /x' /y'; lra.
+  by apply: (g_max_deriv_oneway _ _ Hd); rewrite /x' /y'; lra.
 Qed.
 
 Definition testfun_mcr (x : R) := 2^-1 * (1-x) * cos x.
