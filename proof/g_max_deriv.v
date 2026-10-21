@@ -95,6 +95,9 @@ rewrite (@le_trans _ _ 0) ?subr_le0//=.
 by rewrite (@le_trans _ _ c) ?lerDr.
 Qed.
 
+(* Some numerical computation shows the bound can be actually around 0.6
+   (thus the statement could be like `deriv_bound (-1) 1 testfun_mcr 0.6`)
+   but its proof would need a different strategy. *)
 Lemma testfun_mcr_deriv_bound : deriv_bound (-1) 1 testfun_mcr 1.
 Proof.
 rewrite /testfun_mcr => x /andP[] N1x x1.
