@@ -1,13 +1,14 @@
-From mathcomp Require Import boot algebra all_classical all_analysis order reals.
-Import numFieldNormedType.Exports.
+From mathcomp Require Import boot order algebra all_classical all_analysis reals.
 From mathcomp.algebra Require Import ring_tactic.
-From Stdlib Require Import FunctionalExtensionality.
 From mathcomp.zify Require Import ssrZ zify.
-Import measurable_realfun MeasurableRopen.
-Import Order.TTheory GRing.Theory Num.Theory GRing.
-From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
-From Stdlib Require Reals.
+From mathcomp Require Import polydiv.
 From mathcomp Require Import Rstruct Rstruct_topology.
+From Stdlib Require Reals.
+
+Import Order.TTheory GRing.Theory Num.Theory GRing.Theory.
+Import numFieldNormedType.Exports.
+Import measurable_realfun MeasurableRopen.
+Import Pdiv.CommonRing.
 
 Set Bullet Behavior "Strict Subproofs".
 
@@ -77,9 +78,98 @@ have [y0|y0|->]  := ltgtP y 0; last 2 first.
   by apply: (g_max_deriv_oneway _ _ Hd); rewrite /x' /y'; lra.
 Qed.
 
+End R.
+
+Section testfun_mcr.
+Context {R : realType}.
+
 Definition testfun_mcr (x : R) := 2^-1 * (1-x) * cos x.
 
-End R.
+Lemma ler_pdist (x y c : R) :
+  0 <= x <= c -> 0 <= y <= c -> `| x - y | <= c.
+Proof.
+move=> /andP[] x0 xc /andP[] y0 yc.
+rewrite ler_norml.
+rewrite lerBlDl lerBrDl.
+rewrite (@le_trans _ _ 0) ?subr_le0//=.
+by rewrite (@le_trans _ _ c) ?lerDr.
+Qed.
+
+Lemma testfun_mcr_deriv_bound : deriv_bound (-1) 1 testfun_mcr 1.
+Proof.
+rewrite /testfun_mcr => x /andP[] N1x x1.
+split; first by [].
+  (* this automation might look beautiful but it is much faster to manually apply lemmas: *)
+  (*
+  Profile by [].
+  > major words: 4.41E+05 words
+  > minor words: 4.3E+08 words
+  > major collections: 0
+  > minor collections: 13
+  > instructions: 5330769793
+  > 
+  > Proofview.apply:  761ms 526us, 2 calls
+  > pretyping:        760ms 648us, 2 calls
+  > typeclass search: 758ms 988us, 1 calls
+  > Conversion:       733ms 304us, 803 calls
+  > unification:      530us 005ns, 3 calls
+
+  Profile
+    apply: derivableM; [
+      apply: derivableM; [exact: derivable_cst |
+        apply: derivableD; [exact: derivable_cst |
+          exact: derivable_opp]] |
+      exact: derivable_cos].
+  > major words: 5.29E+04 words
+  > minor words: 4.25E+07 words
+  > major collections: 0
+  > minor collections: 1
+  > instructions: 549927958
+  > 
+  > Proofview.apply: 094ms 872us, 1 calls
+  > unification:     081ms 090us, 90 calls
+  > Conversion:      076ms 094us, 50 calls
+  > pretyping:       050ms 727us, 41 calls
+  > intern:          001ms 130us, 14 calls
+  *)
+rewrite derive1E deriveM//=.
+(* this `//` is essentially repeating the derivability proofs as above (thus slow) *)
+rewrite !deriveM//=.
+rewrite !deriveB//=.
+rewrite !derive_cst derive_id.
+rewrite sub0r scaler0 addr0.
+have [_ ->] := is_derive_cos x.
+rewrite /GRing.scale/=.
+rewrite (mulrC (cos x)) -!mulrA -mulrDr !normrM.
+rewrite normfV ger0_norm// -ler_pdivlMl// ?invr_gt0// invrK mulr1.
+rewrite mulrBl mulNr !mulrN !mul1r opprK -addrA.
+rewrite (le_trans (ler_normD _ _))// (_ : 2 = 1 + 1)// lerD//.
+  by rewrite normrN sin_max.
+have Nx1 : - x <= 1 by rewrite -lerN2 opprK.
+have sin_ge0 y : 0 <= y -> y <= 1 -> 0 <= sin y.
+  move=> y0 y1.
+  rewrite sin_ge0_pi// y0/=.
+  rewrite (le_trans _ pi_ge2)// (@le_trans _ _ 1)//.
+  lra.
+have cos_ge0 y : 0 <= y -> y <= 1 -> 0 <= cos y.
+  move=> y0 y1.
+  rewrite cos_ge0_pihalf//.
+  rewrite (@le_trans _ _ 0)//=.
+    by rewrite -lerN2 oppr0 opprK divr_ge0// pi_ge0.
+  by rewrite (le_trans _ pihalf_ge1).
+rewrite ler_pdist//.
+  rewrite -(mulr1 1).
+  have [|x0] := ltP x 0; last first.
+    by rewrite mulr_ge0 ?sin_ge0//= ler_pM// ?sin_ge0// sin_le1.
+  rewrite -oppr_gt0 -mulrNN -sinN => /ltW Nx0.
+  by rewrite mulr_ge0 ?sin_ge0//= ler_pM// ?sin_ge0// sin_le1.
+rewrite cos_le1 andbT.
+have [|x0] := ltP x 0; last by rewrite cos_ge0.
+rewrite -oppr_gt0 -cosN => /ltW Nx0.
+by rewrite cos_ge0.
+Qed.
+
+End testfun_mcr.
 
 Import Reals.
 
@@ -88,19 +178,17 @@ Local Open Scope R_scope.
 
 Local Notation R := Rdefinitions.R.
 
-Variables (lo hi : R).
-
 Definition testfun_r (x: R) := /2 * (1-x) * Rtrigo_def.cos x.
 
 Lemma testfun_rE x : testfun_r x = testfun_mcr x.
 Proof. by rewrite /testfun_r /testfun_mcr -RcosE -!RealsE. Qed.
 
 Definition testfun_fb : R := 1.
-Lemma testfun_fbound: fbound lo hi testfun_r testfun_fb.
+Lemma testfun_fbound: fbound (-1) 1 testfun_r testfun_fb.
 Admitted.
 
 Definition testfun_d: R := 1.
-Lemma testfun_deriv_bound: deriv_bound lo hi testfun_r testfun_d.
-Admitted.
+Lemma testfun_deriv_bound: deriv_bound (-1) 1 testfun_r testfun_d.
+Proof. rewrite (funext testfun_rE); exact: testfun_mcr_deriv_bound. Qed.
 
 End stdlib_testfun.
