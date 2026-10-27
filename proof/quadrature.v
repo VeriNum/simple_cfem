@@ -2083,6 +2083,11 @@ Qed.
        ∫ f - G n roots f =  
        derive1n (2*n+2) f ξ /
         (factorial(2*n+2))%:R * ∫ (fun x => (horner (ortho_p(n.+1)) x)^2).
+
+  Proof.
+  Disable Notation "∫".
+  Print intgal.
+
   Admitted.
 
 (** 20. A consequence of the positivity of the coefficients A_i is that Gaussian

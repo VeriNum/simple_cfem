@@ -36,16 +36,13 @@ move: y0; rewrite le_eqVlt => /orP[/eqP<-|y0].
 by rewrite ltrDl y0 -EFinD addrAC subrr add0r.
 Qed.
 
-Local Lemma admit (P: Prop) : P.
-Admitted.
-
 Lemma g_max_deriv_oneway:
        forall (d : R) (g : R -> R),
        deriv_bound g d ->
        forall x y : R,  0<y -> lo <= x <= hi -> lo <= x + y <= hi ->
        `| g (x + y) - g x | <= `| y * d |.
 Proof.
-move => d g Hd x y Hpos Hx Hy.
+move=> d g Hd x y Hpos Hx Hy.
 have H1 : forall z, z \in `]x, x + y[%R -> is_derive z 1 g (g^`() z).
   move=> z /[!in_itv]/= zxy.
   have [] := Hd z; [lra|].
@@ -68,7 +65,7 @@ Lemma g_max_deriv:
        forall x y : R, lo <= x <= hi -> lo <= x + y <= hi ->
        `| g (x + y) - g x | <= `| y * d |.
 Proof.
-move => d g Hd x y Hx Hy.
+move=> d g Hd x y Hx Hy.
 have [y0|y0|->]  := ltgtP y 0; last 2 first.
 - exact: (g_max_deriv_oneway _ _  Hd).
 - by rewrite addr0 subrr normr0 normr_ge0.
@@ -172,6 +169,16 @@ rewrite -oppr_gt0 -cosN => /ltW Nx0.
 by rewrite cos_ge0.
 Qed.
 
+Lemma testfun_mcr_fbound: fbound (-1) 1 testfun_mcr 1.
+Proof.
+rewrite /testfun_mcr => x /andP[] N1x x1.
+rewrite normrM -[in leRHS](mul1r 1) ler_pM// ?cos_max//.
+rewrite normrM normfV mulrC ler_pdivrMr ?ger0_norm// ?subr_ge0//.
+rewrite mul1r lerBlDr -lerBlDl.
+rewrite (le_trans _ N1x)//.
+lra.
+Qed.
+
 End testfun_mcr.
 
 Import Reals.
@@ -188,10 +195,10 @@ Proof. by rewrite /testfun_r /testfun_mcr -RcosE -!RealsE. Qed.
 
 Definition testfun_fb : R := 1.
 Lemma testfun_fbound: fbound (-1) 1 testfun_r testfun_fb.
-Admitted.
+Proof. by rewrite (funext testfun_rE); exact: testfun_mcr_fbound. Qed.
 
 Definition testfun_d: R := 1.
 Lemma testfun_deriv_bound: deriv_bound (-1) 1 testfun_r testfun_d.
-Proof. rewrite (funext testfun_rE); exact: testfun_mcr_deriv_bound. Qed.
+Proof. by rewrite (funext testfun_rE); exact: testfun_mcr_deriv_bound. Qed.
 
 End stdlib_testfun.

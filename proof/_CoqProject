@@ -25,6 +25,7 @@ matrix_util.v
 shape.v
 shapefloat.v
 shape_accuracy.v
+g_max_deriv.v
 quadrature.v
 quadrature2.v
 quadmodel.v

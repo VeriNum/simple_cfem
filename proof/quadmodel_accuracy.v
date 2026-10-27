@@ -121,7 +121,7 @@ Qed.
   intros.
  rewrite ?RabsE.
  apply /RleP.
- apply (g_max_deriv _ _ _ Hg Hd).
+ apply (g_max_deriv _ _ Hd).
  apply /RrangeP; apply H.
  apply /RrangeP; apply H0.
 Qed.
@@ -517,10 +517,19 @@ change Algebra.add with Rplus.
 f_equal; auto.
 Qed.
 
-Lemma perturb_sum: forall (a b: 'I_n ->R) (c: R) ,
+Lemma perturb_sum: forall (n : nat) (a b: 'I_n ->R) (c: R) ,
   (forall i, Rabs (a i - b i) <= c) ->
   Rabs ((\sum_(i<n) a i) - (\sum_(i<n) b i)) <= (Rmult (INR n) c).
-Admitted.
+Proof.
+elim.
+   by move=> ? ? ? _; rewrite !big_ord0/= !RealsE subrr normr0 mul0r; exact/RleP.
+move=> n' /[!RealsE]/= IHn' a b0 c abc.
+apply/RleP; rewrite !RealsE.
+rewrite !big_ord_recl/=.
+rewrite opprD addrACA (le_trans (ler_normD _ _))//.
+rewrite -nat1r mulrDl mul1r lerD//; first exact/RleP/abc.
+by apply/RleP/IHn' => i; exact/abc.
+Qed.
 
 Lemma big_sum_const_seq I (r : seq I) x : (\sum_(i <- r) x = INR (size r) * x)%Re.
 Proof.

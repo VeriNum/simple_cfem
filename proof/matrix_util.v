@@ -136,10 +136,21 @@ rewrite rowKd.
 f_equal. apply ord_inj; simpl; auto.
 Qed.
 
-Lemma col_mx_of_list: forall [t: baseAddUMagmaType] (rl: seq (seq t)) (j: 'I_(size (head [::] rl))),
-     col j (mx_of_list rl) = trmx (rowmx_of_listn (map (fun r => nth zero r (nat_of_ord j)) rl)).
+Lemma col_mx_of_list
+  [t: baseAddUMagmaType] (rl: seq (seq t)) (j: 'I_(size (head [::] rl))) :
+  col j (mx_of_list rl) = trmx (rowmx_of_listn (map (fun r => nth zero r (nat_of_ord j)) rl)).
 Proof.
-Admitted.
+apply/colP => k.
+rewrite !mxE mx_of_listE/=.
+case: j => j/= _.
+elim: rl  k => /=.
+  by move=> k; exact: from_'I0_any.
+move=> r rl IHrl [] k/= k_rl.
+rewrite nth_cons mxE.
+case: splitP => l/=.
+   by rewrite ord1 => ->; rewrite ltnn mxE.
+by rewrite add1n => ->; rewrite ltn0Sn/= IHrl.
+Qed.
 
 Lemma row_mx_of_tr_list: 
        forall [t: baseAddUMagmaType] (rl: seq (seq t)) (j: 'I_(size (head [::] rl))),

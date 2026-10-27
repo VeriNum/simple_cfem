@@ -19,6 +19,7 @@ Set Bullet Behavior "Strict Subproofs".
 Open Scope logic.
 
 From CFEM.C Require Import quadrules spec_quadrules spec_quadrules_highlevel.
+From CFEM Require g_max_deriv.
 
 Import quadmodel.Quadmodel_F64.
 
@@ -344,11 +345,11 @@ Import quadrature quadrature2 Legendre quadmodel_accuracy.
 
 Definition testfun_fb : R := 1.
 Lemma testfun_fbound: fbound testfun_r testfun_fb.
-Admitted.
+Proof. exact g_max_deriv.testfun_fbound. Qed.
 
 Definition testfun_d: R := 1.
 Lemma testfun_deriv_bound: deriv_bound testfun_r testfun_d.
-Admitted.
+Proof. exact g_max_deriv.testfun_deriv_bound. Qed.
 
 Definition testfun_f_acc : R := (10 * @common.default_rel Tdouble).
 

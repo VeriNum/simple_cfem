@@ -8,6 +8,7 @@ Import Order.TTheory GRing.Theory Num.Theory GRing.
 From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
 
 From CFEM Require Import quadrature.
+From CFEM Require g_max_deriv.
 
 Unset Implicit Arguments.
 Unset Strict Implicit.
@@ -25,6 +26,8 @@ From mathcomp Require Import Rstruct.
 Import trigo.
 
 Local Notation R := (RbaseSymbolsImpl_R__canonical__reals_Real).
+(* Local Notation R := (Rdefinitions.R : realType).
+   this looks better but breaks Ltac gauss_legendre_error_bounder *)
 
  Notation "∫" := intgal.
 
@@ -368,20 +371,22 @@ apply quadrature_error_bound_is_bound.
 time "error_1_0_2" gauss_legendre_error_bounder.  (* 31.7 seconds *)
 Qed.
 
- Definition deriv_bound (f: R -> R) (b: R) :=
+Definition deriv_bound (f: R -> R) (b: R) :=
   forall x, (-1 <= x <= 1) -> derive.derivable f x 1 /\ (`| derive.derive1 f x | <= b).
 
 Definition fbound (g: R -> R) fb := forall x : R, (lo <= x <= hi) -> ( `| g x | <= fb ).
 
 Lemma g_max_deriv:
-       forall (fb d : R) (g : R -> R),
-       fbound g fb ->
+       forall (d : R) (g : R -> R),
        deriv_bound g d ->
        forall x y : R, lo <= x <= hi -> lo <= x + y <= hi -> `| g (x + y) - g x | <= `| y | * d.
 Proof.
-move => fb d g Hfb Hd x y Hx Hy.
-Admitted.  (* This one is not provable, but see the one in g_max_deriv.v *)
-
-
-
-
+move => d g Hd x y Hx Hy.
+have [d0|d0] := ltP d 0.
+  have [] := Hd 0; first by lra.
+  move=> ?.
+  have /[apply] := le_lt_trans _ d0.
+  by rewrite normr_lt0.
+rewrite -(ger0_norm d0) -normrM.
+exact: (g_max_deriv.g_max_deriv lo hi).
+Qed.
