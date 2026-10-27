@@ -1,6 +1,10 @@
 From LAProof Require Import preamble common dotprod_model.
 From CFEM Require Import quadrature quadrature2. Import Legendre.
 From VST Require Import floyd.functional_base.
+Require VSTlib.spec_math.
+From vcfloat Require Import FPStdCompCert FPStdLib.
+Require vcfloat.VCFloat.
+Definition cos := ltac:(Reify.apply_func (FPCore.Build_floatfunc_package _ _ _ _ spec_math.MF.cos)).
 
 Open Scope R_scope.
 
@@ -192,5 +196,9 @@ Definition gauss_weight_f (n: 'I_5) (i: 'I_n) :=
 
 Definition gauss_point_f (n: 'I_5) (i: 'I_n) := 
     Znth ((Z.of_nat n)*(Z.of_nat n - 1)/2 + Z.of_nat i) gauss_pts_list.
+
+Definition testfun_f (x: ftype Tdouble) := 
+   (0.5 * (1-x) * cos x)%F64.
+
 
 End Quadmodel_F64.

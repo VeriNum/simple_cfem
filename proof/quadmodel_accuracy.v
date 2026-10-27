@@ -111,17 +111,17 @@ Qed.
  Variable(g: R -> R).
 
  (* Definition fbound g fb := forall x : R, -1 <= x <= 1 -> Rabs (g x) <= fb.*)
- Variable Hg: fbound g fb.
+ Variable Hg: fbound (-1)%Re 1 g fb.
 
  Variable (b: R) (Hb: quadrature_error_bound g n b).
- Variable (d: R) (Hd: deriv_bound g d).
+ Variable (d: R) (Hd: deriv_bound (-1)%Re 1 g d).
 
   Lemma g_max_deriv: forall x y, -1 <= x <= 1 -> -1 <= x+y <= 1 -> Rabs (g(x+y) - g x) <= Rabs y * d.
  Proof.
   intros.
  rewrite ?RabsE.
  apply /RleP.
- apply (g_max_deriv _ _ Hd).
+ apply (g_max_deriv_specialized _ _ Hd).
  apply /RrangeP; apply H.
  apply /RrangeP; apply H0.
 Qed.
@@ -794,3 +794,177 @@ compute; lra.
 Qed.
 
 End Quadmodel_F64_accuracy.
+
+From mathcomp Require Import boot order algebra reals.
+From mathcomp.algebra Require Import ring_tactic.
+From mathcomp.zify Require Import ssrZ zify.
+From mathcomp Require Import polydiv.
+From mathcomp Require Import Rstruct Rstruct_topology.
+
+Import Order.TTheory GRing.Theory Num.Theory GRing.Theory.
+Import derive.
+(*Import numFieldNormedType.Exports.*)
+(*Import measurable_realfun MeasurableRopen.*)
+(*Import Pdiv.CommonRing.*)
+
+Set Bullet Behavior "Strict Subproofs".
+
+Open Scope ring_scope.
+Open Scope classical_set_scope.
+
+
+Section testfun_mcr.
+Context {R : realType}.
+Import trigonometry_functions.
+
+Definition testfun_mcr (x : R) := 2^-1 * (1-x) * cos x.
+
+Lemma ler_pdist (x y c : R) :
+  0 <= x <= c -> 0 <= y <= c -> `| x - y | <= c.
+Proof.
+move=> /andP[] x0 xc /andP[] y0 yc.
+rewrite ler_norml.
+rewrite lerBlDl lerBrDl.
+rewrite (@le_trans _ _ 0) ?subr_le0//=.
+by rewrite (@le_trans _ _ c) ?lerDr.
+Qed.
+
+(* Some numerical computation shows the bound can be actually around 0.6
+   (thus the statement could be like `deriv_bound (-1) 1 testfun_mcr 0.6`)
+   but its proof would need a different strategy. *)
+Lemma testfun_mcr_deriv_bound : deriv_bound (-1) 1 testfun_mcr 1.
+Proof.
+rewrite /testfun_mcr => x /andP[] N1x x1.
+split; first by [].
+  (* this automation might look beautiful but it is much faster to manually apply lemmas: *)
+  (*
+  Profile by [].
+  > major words: 4.41E+05 words
+  > minor words: 4.3E+08 words
+  > major collections: 0
+  > minor collections: 13
+  > instructions: 5330769793
+  > 
+  > Proofview.apply:  761ms 526us, 2 calls
+  > pretyping:        760ms 648us, 2 calls
+  > typeclass search: 758ms 988us, 1 calls
+  > Conversion:       733ms 304us, 803 calls
+  > unification:      530us 005ns, 3 calls
+
+  Profile
+    apply: derivableM; [
+      apply: derivableM; [exact: derivable_cst |
+        apply: derivableD; [exact: derivable_cst |
+          exact: derivable_opp]] |
+      exact: derivable_cos].
+  > major words: 5.29E+04 words
+  > minor words: 4.25E+07 words
+  > major collections: 0
+  > minor collections: 1
+  > instructions: 549927958
+  > 
+  > Proofview.apply: 094ms 872us, 1 calls
+  > unification:     081ms 090us, 90 calls
+  > Conversion:      076ms 094us, 50 calls
+  > pretyping:       050ms 727us, 41 calls
+  > intern:          001ms 130us, 14 calls
+  *)
+rewrite derive1E deriveM//=.
+(* this `//` is essentially repeating the derivability proofs as above (thus slow) *)
+rewrite !deriveM//=.
+rewrite !deriveB//=.
+rewrite !derive_cst derive_id.
+rewrite sub0r scaler0 addr0.
+have [_ ->] := is_derive_cos x.
+rewrite /GRing.scale/=.
+rewrite (mulrC (cos x)) -!mulrA -mulrDr !normrM.
+rewrite normfV ger0_norm// -ler_pdivlMl// ?invr_gt0// invrK mulr1.
+rewrite mulrBl mulNr !mulrN !mul1r opprK -addrA.
+rewrite (le_trans (ler_normD _ _))// (_ : 2 = 1 + 1)// lerD//.
+  by rewrite normrN sin_max.
+have Nx1 : - x <= 1 by rewrite -lerN2 opprK.
+have sin_ge0 y : 0 <= y -> y <= 1 -> 0 <= sin y.
+  move=> y0 y1.
+  rewrite sin_ge0_pi// y0/=.
+  rewrite (le_trans _ pi_ge2)// (@le_trans _ _ 1)//.
+  lra.
+have cos_ge0 y : 0 <= y -> y <= 1 -> 0 <= cos y.
+  move=> y0 y1.
+  rewrite cos_ge0_pihalf//.
+  rewrite (@le_trans _ _ 0)//=.
+    by rewrite -lerN2 oppr0 opprK divr_ge0// pi_ge0.
+  by rewrite (le_trans _ pihalf_ge1).
+rewrite ler_pdist//.
+  rewrite -(mulr1 1).
+  have [|x0] := ltP x 0; last first.
+    by rewrite mulr_ge0 ?sin_ge0//= ler_pM// ?sin_ge0// sin_le1.
+  rewrite -oppr_gt0 -mulrNN -sinN => /ltW Nx0.
+  by rewrite mulr_ge0 ?sin_ge0//= ler_pM// ?sin_ge0// sin_le1.
+rewrite cos_le1 andbT.
+have [|x0] := ltP x 0; last by rewrite cos_ge0.
+rewrite -oppr_gt0 -cosN => /ltW Nx0.
+by rewrite cos_ge0.
+Qed.
+
+Lemma testfun_mcr_fbound: fbound (-1) 1 testfun_mcr 1.
+Proof.
+rewrite /testfun_mcr => x /andP[] N1x x1.
+rewrite normrM -[in leRHS](mul1r 1) ler_pM// ?cos_max//.
+rewrite normrM normfV mulrC ler_pdivrMr ?ger0_norm// ?subr_ge0//.
+rewrite mul1r lerBlDr -lerBlDl.
+rewrite (le_trans _ N1x)//.
+lra.
+Qed.
+
+End testfun_mcr.
+
+Section stdlib_testfun.
+Local Open Scope R_scope.
+
+Local Notation R := Rdefinitions.R.
+
+Import boolp.
+
+Definition testfun_r (x: R) := /2 * (1-x) * Rtrigo_def.cos x.
+
+Lemma testfun_rE x : testfun_r x = testfun_mcr x.
+Proof. by rewrite /testfun_r /testfun_mcr -RcosE -!RealsE. Qed.
+
+Definition testfun_fb : R := 1.
+Lemma testfun_fbound: fbound (-1) 1 testfun_r testfun_fb.
+Proof. by rewrite (funext testfun_rE); exact: testfun_mcr_fbound. Qed.
+
+Definition testfun_d: R := 1.
+Lemma testfun_deriv_bound: deriv_bound (-1) 1 testfun_r testfun_d.
+Proof. by rewrite (funext testfun_rE); exact: testfun_mcr_deriv_bound. Qed.
+
+End stdlib_testfun.
+
+Import Quadmodel_F64.
+
+Definition testfun_f_acc : R := (10 * @common.default_rel Tdouble).
+
+Lemma testfun_function_accuracy: function_accuracy testfun_r testfun_f testfun_f_acc.
+Admitted.
+
+Definition testfun_b := IZR 223 / IZR 100000.
+
+Definition n := @Ordinal 5 2 ssrbool.isT.
+
+Lemma testfun_quadrature_error_bound: 
+  @quadrature_error_bound Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real
+      testfun_r n testfun_b.
+Proof.
+pose proof error_1_0_2.
+simpl in H.
+Admitted.
+
+Lemma testfun_parameter_limits: parameter_limits Tdouble  (@Ordinal 5 2 ssrbool.isT) testfun_fb testfun_f_acc.
+Proof.
+unfold parameter_limits, testfun_fb, testfun_f_acc, common.default_rel, common.default_abs.
+prepare_for_interval.
+simpl.
+interval.
+Qed.
+
+

@@ -158,8 +158,8 @@ Definition integrate_spec : ident * funspec :=
  WITH f: ftype Tdouble -> ftype Tdouble, g : R -> R, fb: R, f_acc: R, d: R, p: val, n : 'I_5, b: R, gv: globals
  PRE [ tptr (Tfunction [tdouble] tdouble cc_default), tint ]
     PROP (quadrature_error_bound g n b; 
-                  fbound g fb; 
-                  deriv_bound g d; 
+                  fbound (-1)%Re 1 g fb; 
+                  deriv_bound (-1)%Re 1 g d; 
                   function_accuracy g f f_acc;
                   parameter_limits Tdouble n  fb f_acc)
     PARAMS ( p; Vint (Int.repr (Z.of_nat n)))

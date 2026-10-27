@@ -19,7 +19,7 @@ Set Bullet Behavior "Strict Subproofs".
 Open Scope logic.
 
 From CFEM.C Require Import quadrules spec_quadrules spec_quadrules_highlevel.
-From CFEM Require g_max_deriv.
+(*From CFEM Require g_max_deriv.*)
 
 Import quadmodel.Quadmodel_F64.
 
@@ -343,39 +343,7 @@ Qed.
 
 Import quadrature quadrature2 Legendre quadmodel_accuracy.
 
-Definition testfun_fb : R := 1.
-Lemma testfun_fbound: fbound testfun_r testfun_fb.
-Proof. exact g_max_deriv.testfun_fbound. Qed.
-
-Definition testfun_d: R := 1.
-Lemma testfun_deriv_bound: deriv_bound testfun_r testfun_d.
-Proof. exact g_max_deriv.testfun_deriv_bound. Qed.
-
-Definition testfun_f_acc : R := (10 * @common.default_rel Tdouble).
-
-Lemma testfun_function_accuracy: function_accuracy testfun_r testfun_f testfun_f_acc.
-Admitted.
-
-Definition testfun_b := IZR 223 / IZR 100000.
-
-Definition n := @Ordinal 5 2 ssrbool.isT.
-
-Lemma testfun_quadrature_error_bound: 
-  @quadrature_error_bound Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real
-      testfun_r n testfun_b.
-Proof.
-pose proof error_1_0_2.
-Admitted.
-
 Require Import Interval.Tactic.
-
-Lemma testfun_parameter_limits: parameter_limits Tdouble  (@Ordinal 5 2 ssrbool.isT) testfun_fb testfun_f_acc.
-Proof.
-unfold parameter_limits, testfun_fb, testfun_f_acc, common.default_rel, common.default_abs.
-prepare_for_interval.
-simpl.
-interval.
-Qed.
 
 Lemma body_integrate_testfun: semax_body Vprog Gprog f_integrate_testfun integrate_testfun_spec.
 Proof.
@@ -397,5 +365,6 @@ unfold integrate_model_acc, maxwf, testfun_fb, testfun_b, testfun_d, testfun_f_a
   common.default_rel, common.default_abs.
 simpl.
 clear.
+prepare_for_interval.
 interval.
 Qed.

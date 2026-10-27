@@ -106,14 +106,6 @@ Definition integrate_spec_lowlevel : ident * funspec :=
     RETURN (Vfloat (integrate_model_f Tdouble _ n (gauss_point_f n) (gauss_weight_f _) f))
     SEP( gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p).
 
-
-Require VSTlib.spec_math.
-Require vcfloat.VCFloat.
-Definition cos := ltac:(Reify.apply_func (FPCore.Build_floatfunc_package _ _ _ _ spec_math.MF.cos)).
-
-Definition testfun_f (x: ftype Tdouble) := 
-   (0.5 * (1-x) * cos x)%F64.
-
 Definition testfun_spec : ident * funspec :=
  DECLARE _testfun
   floatfun_spec testfun_f.
