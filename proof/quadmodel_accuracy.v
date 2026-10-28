@@ -942,12 +942,77 @@ End stdlib_testfun.
 
 Import Quadmodel_F64.
 
-Definition testfun_f_acc : R := (10 * @common.default_rel Tdouble).
+Section VCFLOAT.
+Import VCFloat.
+
+Definition _x : ident := 1%positive.  (* Variable name for position *)
+
+Definition testfun_bmap : boundsmap :=
+ ltac:(let z := compute_PTree (boundsmap_of_list [ Build_varinfo Tdouble _x (-1)  1 ]) in exact z).
+
+Definition testfun_reified := ltac:(let e' :=
+  HO_reify_float_expr constr:([_x]) testfun_f in exact e').
+
+Import FPStdCompCert.
+
+Derive testfun_f_acc 
+ in  (forall vmap,  prove_roundoff_bound testfun_bmap vmap testfun_reified testfun_f_acc)
+ as testfun_function_accuracy'.
+Proof.
+intros.
+prove_roundoff_bound.
+-
+ prove_rndval; interval.
+-
+prove_roundoff_bound2.
+match goal with |- Rabs ?a <= _ => field_simplify a end.
+match goal with |- Rabs ?a <= _ => interval_intro (Rabs a) end.
+subst testfun_f_acc; apply H.
+Qed.
+
+Definition testfun_vmap_list (x : ftype Tdouble) :=
+   [(_x, existT ftype _ x)].
+
+Definition testfun_vmap (x : ftype Tdouble) : valmap :=
+ ltac:(make_valmap_of_list (testfun_vmap_list x)).
+
 
 Lemma testfun_function_accuracy: function_accuracy testfun_r testfun_f testfun_f_acc.
-Admitted.
+Proof.
+intros x [H H0].
+assert (boundsmap_denote testfun_bmap (testfun_vmap x)). {
+  apply boundsmap_denote_i; simpl; auto.
+  eexists; split; [ | split ; [ | split]]; try reflexivity; auto.
+}
+destruct (testfun_function_accuracy' (testfun_vmap x) H1).
+split; auto.
+set (a := _ - _); set (b := _ - _) in H3; replace a with b; auto.
+subst a b.
+f_equal.
+simpl.
+change (env_ _ _ _ _) with x.
+unfold testfun_r.
+f_equal.
+f_equal.
+unfold Defs.F2R; simpl.
+Lra.lra.
+unfold Defs.F2R; simpl.
+f_equal.
+Lra.lra.
+Qed.
 
-Definition testfun_b := IZR 223 / IZR 100000.
+End VCFLOAT.
+
+Open Scope R_scope.
+
+Lemma testfun_f_acc_simple: (testfun_f_acc < @FT2R Tdouble (5.5512e-16%F64)).
+Proof.
+rewrite /testfun_f_acc /FT2R /= /Defs.F2R /Defs.Fnum /Defs.Fexp /bpow /Zaux.radix_val /Zaux.radix2.
+interval.
+Qed.
+
+
+Definition testfun_b := IZR 424 / IZR 100000.
 
 Definition n := @Ordinal 5 2 ssrbool.isT.
 
@@ -955,9 +1020,18 @@ Lemma testfun_quadrature_error_bound:
   @quadrature_error_bound Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real
       testfun_r n testfun_b.
 Proof.
-pose proof error_1_0_2.
-simpl in H.
-Admitted.
+evar (f: R ->R).
+evar (b: R).
+replace testfun_r with f; subst f.
+replace testfun_b with b; subst b.
+apply error_1_0_2.
+reflexivity.
+clear b.
+rewrite /testfun_r.
+apply Axioms.extensionality; intro x.
+simpl.
+rewrite ?hornerE ?RealsE //.
+Qed.
 
 Lemma testfun_parameter_limits: parameter_limits Tdouble  (@Ordinal 5 2 ssrbool.isT) testfun_fb testfun_f_acc.
 Proof.

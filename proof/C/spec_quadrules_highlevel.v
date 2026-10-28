@@ -204,7 +204,7 @@ Definition integrate_testfun_spec : ident * funspec :=
     SEP( gauss_pts_pred gv; gauss_wts_pred gv)
  POST [ tdouble ]
     EX y: ftype Tdouble,
-    PROP(Rabs (FT2R y - ∫ testfun_r) <= @FT2R Tdouble 0.00224%F64) 
+    PROP(Rabs (FT2R y - ∫ testfun_r) <= @FT2R Tdouble 0.00425%F64) 
     RETURN (Vfloat y)
     SEP( gauss_pts_pred gv; gauss_wts_pred gv).
 

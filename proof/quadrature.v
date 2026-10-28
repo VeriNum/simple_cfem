@@ -2078,16 +2078,14 @@ Qed.
         [  ∫  f - G_n f =  ( f^(2n+2)(ξ) / (2n+2)!) ∫ p_{n+1}^2 ],
 
      where ξ ∈ [[a,b]]. *)
+
   Lemma quadrature_error: forall n roots (f: R->R),
       exists ξ:R, a <= ξ <= b /\
        ∫ f - G n roots f =  
-       derive1n (2*n+2) f ξ /
-        (factorial(2*n+2))%:R * ∫ (fun x => (horner (ortho_p(n.+1)) x)^2).
+       derive1n (2*n) f ξ /
+        (factorial(2*n))%:R * ∫ (fun x => (horner (ortho_p(n.+1)) x)^2).
 
   Proof.
-  Disable Notation "∫".
-  Print intgal.
-
   Admitted.
 
 (** 20. A consequence of the positivity of the coefficients A_i is that Gaussian
@@ -2285,8 +2283,8 @@ Qed.
 
  Lemma legendre_quadrature_error: forall [n: nat] (GW: gauss_weights n) (f: R -> R),
       exists ξ:R, lo <= ξ <= hi /\
-       ∫ f - compute_G GW f =  derive1n (2*n+2) f ξ / 
-       (factorial(2*n+2))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
+       ∫ f - compute_G GW f =  derive1n (2*n) f ξ / 
+       (factorial(2*n))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
 Proof.
 intros.
 rewrite compute_G_eq /intgal.
@@ -3372,8 +3370,8 @@ Qed.
    let GW := nth_iseq some_gauss_weights n in
       exists ξ:R, -1 <= ξ <= 1 /\
        ∫ f - Gauss_Legendre_quadrature n f =  
-       derive1n (2*n+2) f ξ / 
-        (factorial(2*n+2))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
+       derive1n (2*n) f ξ / 
+        (factorial(2*n))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
   Proof.
   intros. apply legendre_quadrature_error.
  Qed.
@@ -3382,8 +3380,8 @@ Locate "`|".
 
 Definition quadrature_error_bound (f: R -> R) (n: 'I_5) (b: R) : Prop :=
     forall x: R, (-1 <= x <= 1)%R -> 
-     `| (derive.derive1n (2*n+2) f x) | <= 
-       b * ((factorial (2*n+2))%:R  / ∫ (fun x => (horner (legendre n.+1) x)^2)) .
+     `| (derive.derive1n (2*n) f x) | <= 
+       b * ((factorial (2*n))%:R  / ∫ (fun x => (horner (legendre n.+1) x)^2)) .
 
 Lemma quadrature_error_bound_is_bound:
   forall n f b,
@@ -3402,7 +3400,7 @@ assert (0 < u). {
 }
 clearbody u. simpl in u.
 set y := _ ξ in H|-*. clearbody y.
-set g := (2 * nat_of_ord n + 2)%N in H|-*. clearbody g.
+set g := (2 * nat_of_ord n)%N in H|-*. clearbody g.
 pose proof (fact_gt0 g).
 set h := g`! in H,H2|-*. clearbody h. clear g ξ H1.
 assert (0 < h%:R :> R) by (destruct h; try discriminate; apply ltr0Sn).

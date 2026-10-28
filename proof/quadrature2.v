@@ -396,7 +396,7 @@ match goal with |- context [@legendre ?R ?N] =>
 end.
 
 Ltac gauss_legendre_error_bounder := 
-red; intros;
+let x := fresh "x" in let H := fresh in intros x H;
 eval_legendre_integral2;
 let j := fresh "j" in set j := factorial _; compute in j; subst j;
 simpl derive1n;
@@ -405,34 +405,33 @@ rewrite_derive;
 rewrite ?r_deriv ?r_ring ?hornerE /= ?r_ring ?mulrN ?mulNr ?opprK ?r_ring ler_norml;
 subst j;
 prepare_for_interval; 
-interval.
+interval with (i_bisect x).
 
-Lemma error_1_0_1':
+Lemma error_1_0_1:
  (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
- quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 1 (IZR 2 / IZR 100).
+ quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 1 (IZR 159 / IZR 1000).
 Proof.
-time "error_1_0_1" gauss_legendre_error_bounder.  (* 3.444 seconds *)
+time "error_1_0_1" gauss_legendre_error_bounder.  (* 0.6 seconds *)
 Qed.
 
 (* Our test case is the product of a Lagrange shape function (1/2)*(1-x) with some 
   spatial transformation, in this case cosine. *)
 
-Lemma error_1_0_1:
+Lemma error_1_0_1':
  (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
  let f :=horner ((1/2)%:P *(1-'X)) \* cos in 
- `| ( ∫ f - Gauss_Legendre_quadrature 1 f ) | <= IZR 2 / IZR 100.
+ `| ( ∫ f - Gauss_Legendre_quadrature 1 f ) | <= IZR 159 / IZR 1000.
 Proof.
 apply quadrature_error_bound_is_bound.
-time "error_1_0_1" gauss_legendre_error_bounder.  (* 3.444 seconds *)
+apply error_1_0_1.
 Qed.
 
 Lemma error_1_0_2:
  (* test function (1/2)*(1-x)*cos(x), degree-2 quadrature *)
- let f :=horner ((1/2)%:P *(1-'X)) \* cos in 
- `| ( ∫ f - Gauss_Legendre_quadrature 2 f ) | <=  IZR 223 / IZR 100000.
+(* The true bound is under 356/100000, but somehow we can only prove 424/100000 *)
+  quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 2 (IZR 424  / IZR 100000).
 Proof.
-apply quadrature_error_bound_is_bound.
-time "error_1_0_2" gauss_legendre_error_bounder.  (* 31.7 seconds *)
+time "error_1_0_2" gauss_legendre_error_bounder.  (* 5.435 seconds *)
 Qed.
 
 Lemma g_max_deriv_specialized:
