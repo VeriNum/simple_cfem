@@ -188,13 +188,7 @@ Definition maxwf : R :=
 Lemma sumB (E1 E2 : 'I_n -> R):
   \sum_(i < n) ( (E2 i) - (E1 i)) =
    (\sum_(i < n) E2 i) - (\sum_(i < n) E1 i).
-Proof.
- rewrite bigop.unlock /reducebig.
- induction (index_enum _); simpl.
- prepare_for_interval; lra.
- rewrite {}IHl. set c := foldr _ _ _. set c' := foldr _ _ _. clearbody c. clearbody c'.
- clear. prepare_for_interval; lra.
-Qed.
+Proof. by rewrite big_split/= sumrN RealsE. Qed.
 
 Definition gauss_wt_f_range := forall i, 0 <= FT2R (gauss_wt_f i) <= 2.
 
