@@ -2,11 +2,11 @@
 
 - Are there things in this quadrature development that should be cleaned up and proposed as P.R.s to mathcomp or mathcomp-analysis?
 
-- The lemma g_max_deriv in quadrature2.v is incorrect.  
+- [DONE] The lemma g_max_deriv in quadrature2.v is incorrect.  
 The lemma g_max_deriv in g_max_deriv.v is more likely to be stated correctly, but its proof is incomplete.  
 Also, some of the premises of that one overlap, there are conjects that say equivalent things redundantly.  This proof needs to be completed.
 
-- Then, based on the definitions of fbound, etc., the lemmas testfun_fb and testfun_d (in proof/C/verif_quadrules.v) need to be proved.
+- [DONE] Then, based on the definitions of fbound, etc., the lemmas testfun_fb and testfun_d (in proof/C/verif_quadrules.v) need to be proved.
  (They could be proved in g_max_deriv.v or quadrature2.v, the lemmas don't need to be in verif_quadrules.v).
 
 - In quadrature.v, let the interval [a,b] include the possibility of a= -\infty   and/or  b=+/infty.
@@ -17,15 +17,17 @@ Also, some of the premises of that one overlap, there are conjects that say equi
 - `Rintegral_gt_0` is proved in Saikawa's [P.R. #2086](https://github.com/math-comp/analysis/pull/2086); 
 should that P.R. be merged into mathcomp-analysis or should we just copy-paste the proof into here?
 
-- The Admitted lemma `quadrature_error` is incorrect.  
+- [DONE] The Admitted lemma `quadrature_error` is incorrect.  
 Where it has `(2*n+2)`, the correct formula is `(2*n)`.  
-Solution: state the Taylor-Lagrange theorem explicitly (even if it's Admitted), then prove `quadrature_error` from Taylor-Lagrange.
+Solution: state the Hermite Interpolation theorem explicitly (even if it's Admitted), then prove `quadrature_error` from it.
 
 - Just before the comment beginning `(** 15.  The Gaussian quadrature formula ... ` is a discussion of `the roots of a polynomial`.  ... *)
 Does this accurately describe limitations of mathcomp-analysis?
 
 - The entire `extend_roots_injective` lemma would not be necessary if `mathcomp.algebra.qpoly.lagrange` were defined differently. 
  Instead of argument `(x: nat-> K)`, that function should take an argument `(x: nat -> 'I_n)`, then we wouldn't need this `extend_roots` hack.
+[SOLUTION FOR NOW: https://rocq-prover.zulipchat.com/#narrow/channel/237664-math-comp-users/topic/lagrange_sample.20has.20an.20inconvenient.20type/with/635507424]
+
 
 - In some places, functions are proved derivable and continuous everywhere (from -\infty to \infty), 
 where it would suffice to be derivable and continuous within [lo,hi].  Adjusting this would generalize quadrature so it is applicable to more functions.

@@ -24,7 +24,7 @@ depends: [
   "coq-vcfloat" {>= "2.4.2~"}
   "rocq-mathcomp-ssreflect" {>= "2.6.0~"}
   "rocq-mathcomp-algebra"
-  "rocq-mathcomp-analysis"
+  "rocq-mathcomp-analysis" {>= "1.19.0"}
   "rocq-mathcomp-reals-stdlib"
   "rocq-mathcomp-analysis-stdlib"
   "rocq-mathcomp-zify"

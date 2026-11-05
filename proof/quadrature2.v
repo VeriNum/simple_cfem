@@ -86,7 +86,7 @@ End R.
 
 Import Legendre.
 Require Import Interval.Tactic.
-From mathcomp Require Import Rstruct.
+From mathcomp Require Import Rstruct Rstruct_topology.
 Import trigo.
 
 Local Notation R := (RbaseSymbolsImpl_R__canonical__reals_Real).
@@ -297,22 +297,6 @@ Qed.
 Lemma conj': forall A B C, (A /\ B -> C) -> (A -> B -> C).
 Proof. tauto. Qed.
 
-Ltac massage_constraints := 
-repeat match goal with 
-|  H: is_true (?A ?B) |- _ => 
-   move :(true_andb_e2 H);  first [move /RltbP | move /RlebP];
-   move :(true_andb_e1 H);  first [move /RltbP | move /RlebP];
-   apply conj'; clear H; move => H
-end.
-
-Lemma trigo_cos_e: (@cos.body RbaseSymbolsImpl_R__canonical__reals_Real) = Rtrigo_def.cos.
-(* See: https://rocq-prover.zulipchat.com/#narrow/channel/237666-math-comp-analysis/topic/relating.20trigo.2Ecos.20to.20Rtrigo_def.2Ecos.2C.20etc.2E/with/612420101 *)
-Admitted.
-
-Lemma trigo_sin_e: (@sin.body RbaseSymbolsImpl_R__canonical__reals_Real) = Rtrigo_def.sin.
-(* See: https://rocq-prover.zulipchat.com/#narrow/channel/237666-math-comp-analysis/topic/relating.20trigo.2Ecos.20to.20Rtrigo_def.2Ecos.2C.20etc.2E/with/612420101 *)
-Admitted.
-
 Ltac prepare_for_interval := 
 lazymatch goal with |- is_true (?A <= ?B <= ?C) => 
     let H0 := fresh "H0" in let H1 := fresh "H1" in 
@@ -320,21 +304,25 @@ lazymatch goal with |- is_true (?A <= ?B <= ?C) =>
     [ | destruct H0 as [H0 H1]; move :H0 => /RleP H0; move :H1 => /RleP H1; rewrite H0 H1 // ]
  | _ => idtac
  end;
-rewrite ?trigo_cos_e ?trigo_sin_e; 
-change nmodule.Algebra.zero with (Raxioms.INR O)  in *;
-repeat change (GRing.mul ?A ?B) with (Rdefinitions.Rmult A B) in *;
-repeat change (nmodule.Algebra.opp ?A) with (Rdefinitions.Ropp A) in *;
-repeat change (nmodule.Algebra.add ?A ?B) with (Rdefinitions.Rplus A  B) in *;
-repeat change (GRing.one _) with (Raxioms.INR 1%nat) in *;
-repeat change (GRing.inv ?A) with (Rdefinitions.Rinv A)%R in * ;
-rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE, ?RIneq.Rminus_diag in *;
 lazymatch goal with
  |  |- is_true (@Order.lt _ RbaseSymbolsImpl_R__canonical__Order_Preorder _ _) => apply /RltbP
  |  |- is_true (@Order.le _ RbaseSymbolsImpl_R__canonical__Order_Preorder _ _) => apply /RlebP
  |  |- _ => idtac
 end;
-massage_constraints.
-
+repeat match goal with 
+|  H: is_true (?A ?B) |- _ => 
+   move :(true_andb_e2 H);  first [move /RltbP | move /RlebP];
+   move :(true_andb_e1 H);  first [move /RltbP | move /RlebP];
+   apply conj'; clear H
+end;
+change nmodule.Algebra.zero with (Raxioms.INR O)  in *;
+repeat change (GRing.mul ?A ?B) with (Rdefinitions.Rmult A B) in *;
+repeat change (nmodule.Algebra.opp ?A) with (Rdefinitions.Ropp A) in *;
+repeat change (nmodule.Algebra.add ?A ?B) with (Rdefinitions.Rplus A  B) in *;
+repeat change (GRing.inv ?A) with (Rdefinitions.Rinv A)%R in *;
+rewrite -?Rstruct_topology.RealsE;
+rewrite ?RIneq.INR_IZR_INZ; simpl BinInt.Z.of_nat;
+repeat match goal with |- _ -> _ => intro end.
 
 Definition gauss_pt (n: 'I_5) (i: 'I_n) :=
       tuple.tnth (@ROOTS_vals  R lo hi w n (LR_roots n (nth_iseq some_legendre_roots n))) i.
@@ -345,8 +333,8 @@ Lemma gauss_pt_range: forall n i,  -1 <= gauss_pt n i <= 1.
 destruct n as [ | [ | [ | [ | [ |] ]]]]; try Lia.lia;
 destruct i as [ | [ | [ | [ | [ |] ]]]]; try Lia.lia;
  rewrite /gauss_pt /tnth /=;
- clear; try lra;
- prepare_for_interval; interval.
+ clear; try lra.
+all: prepare_for_interval; interval.
 Qed.
 
 Definition gauss_wt (n: 'I_5) (i: 'I_n) :=

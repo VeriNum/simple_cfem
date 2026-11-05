@@ -94,8 +94,8 @@ Qed.
  Lemma gauss_wt_range: forall i, Rabs (gauss_wt n i) <= 2.
  Proof.
  intros. pose proof (gauss_wt_range n i).
- prepare_for_interval.  set a := gauss_wt _ _ in H|-*. clearbody a.
- apply Rabs_le; auto. simpl in H. lra.
+set a := gauss_wt _ _ in H|-*. clearbody a.
+prepare_for_interval. apply Rabs_le. lra.
 Qed.
 
  Local Definition finite {t} (x: ftype t) := is_true (Binary.is_finite x).
@@ -191,7 +191,7 @@ Lemma sumB (E1 E2 : 'I_n -> R):
 Proof.
  rewrite bigop.unlock /reducebig.
  induction (index_enum _); simpl.
- prepare_for_interval; simpl; auto.
+ prepare_for_interval; lra.
  rewrite {}IHl. set c := foldr _ _ _. set c' := foldr _ _ _. clearbody c. clearbody c'.
  clear. prepare_for_interval; lra.
 Qed.
