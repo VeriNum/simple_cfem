@@ -134,12 +134,13 @@ Qed.
 
  Definition parameter_limits : Prop := 
    (1 + n.-1%:R * (eps / (1 + eps))) * 
-     (n%:R * ((1 + eps / (1 + eps)) * ((2 + eps) * (fb + f_acc)) + eta)) <    bpow Zaux.radix2 (femax t).
+     (n%:R * ((1 + eps / (1 + eps)) * ((2 + eps) * (fb + f_acc)) + eta)) <    
+    /2 * bpow Zaux.radix2 (femax t).
 
  Variable fb_limit:  parameter_limits. 
 
  Lemma fb_limit_simple: 
-     (n%:R * ((1 + eps / (1 + eps)) * ((2 + eps) * (fb + f_acc)) + eta)) <   bpow Zaux.radix2 (femax t).
+     (n%:R * ((1 + eps / (1 + eps)) * ((2 + eps) * (fb + f_acc)) + eta)) <   /2 * bpow Zaux.radix2 (femax t).
  Proof.
   have :(1 <=  (1 + n.-1%:R * (eps / (1 + eps))) ).
   transitivity (1 + 0). lra. apply Rplus_le_compat. reflexivity.
@@ -199,8 +200,109 @@ Definition gauss_wt_f_range := forall i, 0 <= FT2R (gauss_wt_f i) <= 2.
 
 Variable gauss_wt_f_range_ok: gauss_wt_f_range.
 
-Lemma gauss_pt_wt_limit_aux: 2 * (fb + f_acc) * (1 + eps) + eta < @fmax t.
-Admitted. (* should be fine *)
+Lemma gauss_pt_wt_limit_aux: (0 < n)%N -> (0 <= f_acc)%R -> 
+   2 * (fb + f_acc) * (1 + eps) + eta < @fmax t.
+Proof.
+move => Hn Hacc.
+move :fb_limit.
+rewrite /parameter_limits.
+rewrite -/fmax.
+assert (Hfb: 0 <= fb). {
+  move :(Hg 0). intro.
+  etransitivity; [ | apply /RleP; apply Hg0].
+ apply /RleP. apply normr_ge0.
+ apply /RrangeP.
+ clear.
+ split. lra. change (@GRing.one _) with (IZR 1).
+  lra.
+}
+set x := fb + f_acc.
+assert (Hx: 0 <= x). apply Rplus_le_le_0_compat; auto.
+clearbody x.
+move => H.
+match type of H with ?A < _ * ?B => assert (2 * A < B)%R by lra end.
+clear H.
+eapply Rle_lt_trans; [ | apply H0].
+clear H0.
+move :(@default_rel_gt_0 t) =>H1.
+move :(@default_rel_ub t) => H2.
+move :(@default_abs_gt_0 t) =>  H3.
+move :(@default_abs_ub t) => H4.
+rewrite -?Rmult_assoc.
+rewrite (Rmult_plus_distr_l _ _ eta).
+assert (H5: 1 <= (nat_of_ord n)%:R). {
+  set k := nat_of_ord n in Hn|-*. destruct k; try discriminate.
+  clear. rewrite mulrS.
+ set u := Algebra.natmul _ _.
+ assert (0 <= u) by (apply /RleP; apply ler0n).
+ clearbody u. simpl in u. 
+ change (1 <= 1+u)%R.
+ lra.
+}
+assert (H6: 0 <= (nat_of_ord n).-1%:R). {
+ set k := nat_of_ord n in H5|-*.
+  destruct k.
+  change (1<=0)%R in H5. lra.
+ simpl. apply /RleP; apply ler0n.
+}
+assert (H7: 0 <= eps / (1+eps)).
+apply Rle_mult_inv_pos; auto.
+lra.
+lra.
+apply Rplus_le_compat.
+2:{
+rewrite (Rmult_assoc 2).
+rewrite -{1}(Rmult_1_l eta).
+apply Rmult_le_compat_r; try lra.
+rewrite Rmult_plus_distr_r.
+rewrite Rmult_plus_distr_l.
+rewrite -{1}(Rplus_0_r 1).
+apply Rplus_le_compat.
+lra.
+apply Rmult_le_pos.
+lra.
+apply Rmult_le_pos; try lra.
+apply Rle_mult_inv_pos; try lra.
+apply Rmult_le_pos; try lra.
+apply bpow_ge_0.
+}
+rewrite Rmult_assoc.
+rewrite (Rmult_comm x).
+rewrite ?Rmult_assoc.
+apply Rmult_le_compat_l; auto.
+lra.
+rewrite -?Rmult_assoc.
+apply Rmult_le_compat_r; auto.
+rewrite (Rmult_assoc _ (/2)).
+set a := (/ 2 * bpow _ _).
+change a  with (@default_rel t). clear a.
+rewrite Rmult_plus_distr_r.
+rewrite Rmult_plus_distr_l.
+apply Rplus_le_compat.
+-
+rewrite Rmult_plus_distr_r.
+rewrite Rmult_plus_distr_r.
+rewrite -{1}(Rplus_0_r 1).
+apply Rplus_le_compat.
+nra.
+apply Rmult_le_pos; try lra.
+apply Rmult_le_pos; try lra.
+apply Rmult_le_pos; try lra.
+apply Rle_mult_inv_pos; try lra.
+apply Rmult_le_pos; try lra.
+-
+rewrite -{1}(Rmult_1_l eps).
+apply Rmult_le_compat_r; auto.
+lra.
+rewrite Rmult_plus_distr_r.
+rewrite -{1}(Rplus_0_r 1).
+apply Rplus_le_compat.
+nra.
+apply Rmult_le_pos; try lra.
+apply Rmult_le_pos; try lra.
+apply Rle_mult_inv_pos; auto; try lra.
+apply Rmult_le_pos; try lra.
+Qed.
 
 Ltac all_bounded e :=
  lazymatch e with
@@ -255,7 +357,9 @@ destruct (BMULT_correct (gauss_wt_f i) (f (gauss_pt_f i))) as [FIN [e0 [e1 [_ [H
  apply Rabs_le. lra.
  eapply Rle_trans; [ apply Rabs_triang | ].
  rewrite Rabs_R1. lra.
-- apply gauss_pt_wt_limit_aux. 
+- apply gauss_pt_wt_limit_aux.
+destruct i as [i Hi].  lia.
+etransitivity; [ | apply Hacc]. apply Rabs_pos.
 }
  split; auto. clear FIN.
  rewrite {}He01.
@@ -370,20 +474,15 @@ apply dotprodF_dotprodF'_feq.
 Qed.
 
 
-Lemma finite_integrate_model_aux: 
-  2 * fb + maxwf <
-  @fmax t / (1 + eps) * 1 /
-  (1 + INR (nat_of_ord n) * (@common.g t (nat_of_ord n - 1) + 1)).
-Proof.
-red in fb_limit.
-unfold common.g.
-rewrite Rmult_1_r.
-
-Admitted.
+Definition finite_integrate_condition :=
+  (0 < n)%N -> 
+  2 * fb + maxwf <  @fmax t / (1 + eps) * 1 / (1 + INR (nat_of_ord n) * (@common.g t (nat_of_ord n - 1) + 1)).
 
 Lemma Fsum_gauss_wt_pt_finite: 
+  finite_integrate_condition ->
    finite (F.sum (fun i => BMULT (gauss_wt_f i) (f (gauss_pt_f i)))).
 Proof.
+ move => Hicond.
   apply (finite_sum_from_bounded _ _ (rev (map (fun i => BMULT (gauss_wt_f i) (f (gauss_pt_f i))) (ord_enum n)))).
   - red. set a := (fun _ => _). clearbody a.
      rewrite F.sum_sumF /sumF.
@@ -402,7 +501,8 @@ Proof.
 eapply Rle_lt_trans.
 apply gauss_pt_wt_bound.
 rewrite /fun_bnd /=.
-apply finite_integrate_model_aux.
+ apply Hicond.
+destruct y; lia.
 Qed.
 
 Lemma dotprodF_finite_from_bounded: 
@@ -466,8 +566,10 @@ apply IHal. rewrite /Basics.flip H.
 apply BPLUS_mor; auto.
 Qed.
 
-Lemma finite_integrate_model: finite integrate_model_f.
+Lemma finite_integrate_model: 
+    finite_integrate_condition -> finite integrate_model_f.
 Proof.
+move => Hicond.
 rewrite /finite.
 rewrite -integrate_model_f_alt_eq.
 apply dotprodF_finite_from_bounded.
@@ -485,7 +587,8 @@ apply (gauss_pt_wt_acc i).
 eapply Rle_lt_trans.
 apply gauss_pt_wt_bound.
 rewrite /fun_bnd /=.
-apply finite_integrate_model_aux.
+apply Hicond.
+destruct i; lia.
 Qed.
 
 Lemma integrate_model_r_eq: 
@@ -556,9 +659,10 @@ apply /RleP. apply Rplus_le_compat; apply /RleP;  auto. apply /RleP. auto.
 Qed.
 
 Lemma integrate_model_roundoff_err: 
+   finite_integrate_condition ->
      Rabs (FT2R integrate_model_f - integrate_model_r) <= integrate_model_acc.
 Proof.
- intros.
+ intros Hicond.
  assert (FT2R integrate_model_f = FT2R integrate_model_f_alt).
     apply feq_FT2R;  rewrite -integrate_model_f_alt_eq //.
  rewrite {}H.
@@ -572,7 +676,7 @@ Proof.
    apply perturb_sum; intro; apply (proj2 (gauss_pt_wt_acc i)).
  set a1 := \sum_(i < nat_of_ord n) gauss_wt n i * g (gauss_pt n i) in H|-*. clearbody a1. simpl in a1.
   pose proof Fsum_forward_error (fun i => BMULT (gauss_wt_f i) (f (gauss_pt_f i)))
-    Fsum_gauss_wt_pt_finite.
+    (Fsum_gauss_wt_pt_finite Hicond).
  set a2 := bigop _ _ _ in H,H0. clearbody a2.
  set a3 := FT2R (F.sum _) in H0.
  set a3' := FT2R (dotprodF _ _).
@@ -614,15 +718,16 @@ clearbody a4.
 Qed.
 
  Lemma integrate_model_err: 
+   finite_integrate_condition ->
      Rabs (FT2R integrate_model_f - ∫ g) <= integrate_model_acc + b. {
 Proof.
- intros.
+ intros Hicond.
  replace (FT2R integrate_model_f - ∫ g) with
     (FT2R integrate_model_f - integrate_model_r + (integrate_model_r - ∫ g))
   by lra.
  etransitivity; [apply Rabs_triang | ].
  apply Rplus_le_compat.
- apply integrate_model_roundoff_err.
+ apply (integrate_model_roundoff_err Hicond).
  apply quadrature_error_bound_is_bound in Hb.
  rewrite Rabs_minus_sym.
  replace integrate_model_r with (Gauss_Legendre_quadrature n g). 2:{

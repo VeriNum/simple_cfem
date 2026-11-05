@@ -161,7 +161,8 @@ Definition integrate_spec : ident * funspec :=
                   fbound (-1)%Re 1 g fb; 
                   deriv_bound (-1)%Re 1 g d; 
                   function_accuracy g f f_acc;
-                  parameter_limits Tdouble n  fb f_acc)
+                  parameter_limits Tdouble n  fb f_acc;
+                  finite_integrate_condition Tdouble n fb d f_acc)
     PARAMS ( p; Vint (Int.repr (Z.of_nat n)))
     GLOBALS (gv)
     SEP( gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p)
@@ -170,6 +171,7 @@ Definition integrate_spec : ident * funspec :=
     PROP( (Rabs (FT2R y - intgal g) <= integrate_model_acc Tdouble n fb d f_acc + b)%R)
     RETURN (Vfloat y)
     SEP( gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p).
+
 
 Lemma sub_integrate: funspec_sub (snd integrate_spec_lowlevel) (snd integrate_spec).
 (* begin details: Proof. ... Qed. *)
@@ -186,7 +188,7 @@ unfold_for_go_lower; normalize. simpl; entailer!; intros.
 inv H.
 match goal with H: Vfloat ?MODEL <> Vundef |- _ => Exists MODEL end.
 entailer!!.
-clear H9 H8 H7 x1 Pp p H3 H2 gv H7 g0.
+clear H10 H9 H8 x1 Pp p H3 H2 gv g0.
 eapply integrate_model_err; try eassumption.
 intros; apply gauss_point_f_bound.
 apply gauss_point_f_acc.

@@ -344,6 +344,14 @@ Qed.
 Import quadrature quadrature2 Legendre quadmodel_accuracy.
 
 Require Import Interval.Tactic.
+Lemma f_i_cond: finite_integrate_condition Tdouble n testfun_fb testfun_d testfun_f_acc.
+Proof.
+intros _.
+unfold testfun_fb, testfun_f_acc; simpl.
+unfold maxwf, common.g, common.default_rel, common.default_abs, common.fmax.
+simpl.
+interval.
+Qed.
 
 Lemma body_integrate_testfun: semax_body Vprog Gprog f_integrate_testfun integrate_testfun_spec.
 Proof.
@@ -356,6 +364,7 @@ apply testfun_fbound.
 apply testfun_deriv_bound.
 apply testfun_function_accuracy.
 apply testfun_parameter_limits.
+apply f_i_cond.
 Intros y.
 forward.
 Exists y.
