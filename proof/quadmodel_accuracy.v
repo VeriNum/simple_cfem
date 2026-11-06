@@ -121,7 +121,7 @@ Qed.
   intros.
  rewrite ?RabsE.
  apply /RleP.
- apply (g_max_deriv_specialized _ _ Hd).
+ apply (g_max_deriv_specialized _ _ _ _ Hd).
  apply /RrangeP; apply H.
  apply /RrangeP; apply H0.
 Qed.
@@ -1007,12 +1007,10 @@ Qed.
 
 Lemma testfun_mcr_fbound: fbound (-1) 1 testfun_mcr 1.
 Proof.
-rewrite /testfun_mcr => x /andP[] N1x x1.
+rewrite /testfun_mcr => x xN11.
 rewrite normrM -[in leRHS](mul1r 1) ler_pM// ?cos_max//.
-rewrite normrM normfV mulrC ler_pdivrMr ?ger0_norm// ?subr_ge0//.
-rewrite mul1r lerBlDr -lerBlDl.
-rewrite (le_trans _ N1x)//.
-lra.
+rewrite normrM normfV mulrC ler_pdivrMr ?ger0_norm ?subr_ge0 ?(itvP xN11)//.
+by rewrite mul1r (@natrD R 1 1) lerD2l lerNl (itvP xN11).
 Qed.
 
 End testfun_mcr.
@@ -1139,5 +1137,3 @@ prepare_for_interval.
 simpl.
 interval.
 Qed.
-
-
