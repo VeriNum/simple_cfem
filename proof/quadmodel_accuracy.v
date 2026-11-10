@@ -77,10 +77,10 @@ Section FLOAT.
 Notation eps := (@default_rel t).
 Notation eta := (@default_abs t).
 
- Variable n: 'I_5.
+ Variable n: 'I_4.
 
- Variable gauss_pt_f: forall (i: 'I_n), F.
- Variable gauss_wt_f: forall (i: 'I_n), F.
+ Variable gauss_pt_f: forall (i: 'I_n.+1), F.
+ Variable gauss_wt_f: forall (i: 'I_n.+1), F.
 
  Variable gauss_pt_f_range: forall i, Rabs (FT2R (gauss_pt_f i)) <= 1.
 
@@ -100,11 +100,11 @@ Qed.
 
  Local Definition finite {t} (x: ftype t) := is_true (Binary.is_finite x).
 
- Definition gauss_pts_accuracy := forall (i: 'I_n),  finite (gauss_pt_f i) /\ Rabs (FT2R (gauss_pt_f i) - gauss_pt n i) <= eps.
+ Definition gauss_pts_accuracy := forall (i: 'I_n.+1),  finite (gauss_pt_f i) /\ Rabs (FT2R (gauss_pt_f i) - gauss_pt n i) <= eps.
 
  Variable gauss_pts_err: gauss_pts_accuracy.
 
- Definition gauss_wts_accuracy := forall (i: 'I_n), finite (gauss_wt_f i) /\  Rabs (FT2R (gauss_wt_f i) - gauss_wt n i) <= eps.
+ Definition gauss_wts_accuracy := forall (i: 'I_n.+1), finite (gauss_wt_f i) /\  Rabs (FT2R (gauss_wt_f i) - gauss_wt n i) <= eps.
  Variable gauss_wts_err: gauss_wts_accuracy.
 
  Variable (fb: R).
@@ -133,16 +133,16 @@ Qed.
  Variable fun_acc: function_accuracy.
 
  Definition parameter_limits : Prop := 
-   (1 + n.-1%:R * (eps / (1 + eps))) * 
-     (n%:R * ((1 + eps / (1 + eps)) * ((2 + eps) * (fb + f_acc)) + eta)) <    
+   (1 + n%:R * (eps / (1 + eps))) * 
+     (n.+1%:R * ((1 + eps / (1 + eps)) * ((2 + eps) * (fb + f_acc)) + eta)) <    
     /2 * bpow Zaux.radix2 (femax t).
 
  Variable fb_limit:  parameter_limits. 
 
  Lemma fb_limit_simple: 
-     (n%:R * ((1 + eps / (1 + eps)) * ((2 + eps) * (fb + f_acc)) + eta)) <   /2 * bpow Zaux.radix2 (femax t).
+     (n.+1%:R * ((1 + eps / (1 + eps)) * ((2 + eps) * (fb + f_acc)) + eta)) <   /2 * bpow Zaux.radix2 (femax t).
  Proof.
-  have :(1 <=  (1 + n.-1%:R * (eps / (1 + eps))) ).
+  have :(1 <=  (1 + n%:R * (eps / (1 + eps))) ).
   transitivity (1 + 0). lra. apply Rplus_le_compat. reflexivity.
  apply Rmult_le_pos. apply /RleP. apply ler0n.
  apply Stdlib.Rdiv_pos_compat.
@@ -176,25 +176,25 @@ Qed.
  Definition integrate_model_f  : F := quadmodel.integrate_model_f  t _ n gauss_pt_f gauss_wt_f f.
 
  Definition integrate_model_r : R :=
-    \sum_(i<n)  (gauss_wt n i) * g (gauss_pt n i).
+    \sum_(i<n.+1)  (gauss_wt n i) * g (gauss_pt n i).
 
 Definition maxwf : R := 
     fb * eps ^ 2 + 3 * fb * eps + eps ^ 3 * d + 3 * eps ^ 2 * d +
     eps ^ 2 * f_acc + 2 * eps * d + 3 * eps * f_acc + 2 * f_acc + eta.
 
  Definition integrate_model_acc : R := 
-  (((1 + eps) ^ n - 1) * (INR n * (2 * fb + maxwf)) + INR n * maxwf).
+  (((1 + eps) ^ n.+1 - 1) * (INR n.+1 * (2 * fb + maxwf)) + INR n.+1 * maxwf).
 
-Lemma sumB (E1 E2 : 'I_n -> R):
-  \sum_(i < n) ( (E2 i) - (E1 i)) =
-   (\sum_(i < n) E2 i) - (\sum_(i < n) E1 i).
+Lemma sumB (E1 E2 : 'I_n.+1 -> R):
+  \sum_(i < n.+1) ( (E2 i) - (E1 i)) =
+   (\sum_(i < n.+1) E2 i) - (\sum_(i < n.+1) E1 i).
 Proof. by rewrite big_split/= sumrN RealsE. Qed.
 
 Definition gauss_wt_f_range := forall i, 0 <= FT2R (gauss_wt_f i) <= 2.
 
 Variable gauss_wt_f_range_ok: gauss_wt_f_range.
 
-Lemma gauss_pt_wt_limit_aux: (0 < n)%N -> (0 <= f_acc)%R -> 
+Lemma gauss_pt_wt_limit_aux: (0 < n.+1)%N -> (0 <= f_acc)%R -> 
    2 * (fb + f_acc) * (1 + eps) + eta < @fmax t.
 Proof.
 move => Hn Hacc.
@@ -224,8 +224,8 @@ move :(@default_abs_gt_0 t) =>  H3.
 move :(@default_abs_ub t) => H4.
 rewrite -?Rmult_assoc.
 rewrite (Rmult_plus_distr_l _ _ eta).
-assert (H5: 1 <= (nat_of_ord n)%:R). {
-  set k := nat_of_ord n in Hn|-*. destruct k; try discriminate.
+assert (H5: 1 <= (nat_of_ord n).+1%:R). {
+  set k := (nat_of_ord n).+1 in Hn|-*. destruct k; try discriminate.
   clear. rewrite mulrS.
  set u := Algebra.natmul _ _.
  assert (0 <= u) by (apply /RleP; apply ler0n).
@@ -233,12 +233,9 @@ assert (H5: 1 <= (nat_of_ord n)%:R). {
  change (1 <= 1+u)%R.
  lra.
 }
-assert (H6: 0 <= (nat_of_ord n).-1%:R). {
- set k := nat_of_ord n in H5|-*.
-  destruct k.
-  change (1<=0)%R in H5. lra.
- simpl. apply /RleP; apply ler0n.
-}
+assert (H6: 0 <= (nat_of_ord n)%:R).
+ apply /RleP; apply ler0n.
+
 assert (H7: 0 <= eps / (1+eps)).
 apply Rle_mult_inv_pos; auto.
 lra.
@@ -469,15 +466,14 @@ Qed.
 
 
 Definition finite_integrate_condition :=
-  (0 < n)%N -> 
-  2 * fb + maxwf <  @fmax t / (1 + eps) * 1 / (1 + INR (nat_of_ord n) * (@common.g t (nat_of_ord n - 1) + 1)).
+  2 * fb + maxwf <  @fmax t / (1 + eps) / (1 + INR (nat_of_ord n).+1 * (@common.g t (nat_of_ord n) + 1)).
 
 Lemma Fsum_gauss_wt_pt_finite: 
   finite_integrate_condition ->
    finite (F.sum (fun i => BMULT (gauss_wt_f i) (f (gauss_pt_f i)))).
 Proof.
  move => Hicond.
-  apply (finite_sum_from_bounded _ _ (rev (map (fun i => BMULT (gauss_wt_f i) (f (gauss_pt_f i))) (ord_enum n)))).
+  apply (finite_sum_from_bounded _ _ (rev (map (fun i => BMULT (gauss_wt_f i) (f (gauss_pt_f i))) (ord_enum n.+1)))).
   - red. set a := (fun _ => _). clearbody a.
      rewrite F.sum_sumF /sumF.
     set z := neg_zero. clearbody z.
@@ -494,9 +490,9 @@ Proof.
  apply gauss_pt_wt_acc.
 eapply Rle_lt_trans.
 apply gauss_pt_wt_bound.
-rewrite /fun_bnd /=.
- apply Hicond.
-destruct y; lia.
+rewrite /fun_bnd.
+rewrite Rmult_1_r. replace ((nat_of_ord n).+1-1)%nat with (nat_of_ord n) by lia.
+apply Hicond.
 Qed.
 
 Lemma dotprodF_finite_from_bounded: 
@@ -539,7 +535,7 @@ Qed.
 
 
 Definition integrate_model_f_alt  : F :=
-    dotprodF (map gauss_wt_f (ord_enum n)) (map (comp f (gauss_pt_f)) (ord_enum n)).
+    dotprodF (map gauss_wt_f (ord_enum n.+1)) (map (comp f (gauss_pt_f)) (ord_enum n.+1)).
 
 Lemma integrate_model_f_alt_eq: 
    feq integrate_model_f_alt integrate_model_f.
@@ -580,15 +576,15 @@ split.
 apply (gauss_pt_wt_acc i).
 eapply Rle_lt_trans.
 apply gauss_pt_wt_bound.
-rewrite /fun_bnd /=.
+rewrite /fun_bnd.
+rewrite Rmult_1_r. replace ((nat_of_ord n).+1-1)%nat with (nat_of_ord n) by lia.
 apply Hicond.
-destruct i; lia.
 Qed.
 
 Lemma integrate_model_r_eq: 
   integrate_model_r = 
-    dotprodR  (map (gauss_wt n) (ord_enum n))
-               (map (comp g (gauss_pt n)) (ord_enum n)).
+    dotprodR  (map (gauss_wt n) (ord_enum n.+1))
+               (map (comp g (gauss_pt n)) (ord_enum n.+1)).
 Proof.
 clear.
 rewrite /integrate_model_r.
@@ -635,7 +631,7 @@ elim: r=> [|e r IHr].
 by rewrite big_cons S_INR Rplus_comm Rmult_plus_distr_r Rmult_1_l IHr.
 Qed.
 
-Lemma big_sum_const x : (\sum_(i < n) x = INR n * x)%Re.
+Lemma big_sum_const x : (\sum_(i < n.+1) x = INR n.+1 * x)%Re.
 Proof.
 by rewrite big_sum_const_seq /= /index_enum /= -enumT size_enum_ord.
 Qed.
@@ -661,14 +657,14 @@ Proof.
     apply feq_FT2R;  rewrite -integrate_model_f_alt_eq //.
  rewrite {}H.
   rewrite /integrate_model_f  /integrate_model_r.
-  pose c := (INR n * maxwf)%Re.
+  pose c := (INR n.+1 * maxwf)%Re.
   assert (
     Rabs
-       (Rminus (\sum_(i < nat_of_ord n) FT2R (BMULT (gauss_wt_f i) (f (gauss_pt_f i))))
-            (\sum_(i < nat_of_ord n) gauss_wt n i * g (gauss_pt n i)))
+       (Rminus (\sum_(i < (nat_of_ord n).+1) FT2R (BMULT (gauss_wt_f i) (f (gauss_pt_f i))))
+            (\sum_(i < (nat_of_ord n).+1) gauss_wt n i * g (gauss_pt n i)))
             <=   c).
    apply perturb_sum; intro; apply (proj2 (gauss_pt_wt_acc i)).
- set a1 := \sum_(i < nat_of_ord n) gauss_wt n i * g (gauss_pt n i) in H|-*. clearbody a1. simpl in a1.
+ set a1 := \sum_(i < (nat_of_ord n).+1) gauss_wt n i * g (gauss_pt n i) in H|-*. clearbody a1. simpl in a1.
   pose proof Fsum_forward_error (fun i => BMULT (gauss_wt_f i) (f (gauss_pt_f i)))
     (Fsum_gauss_wt_pt_finite Hicond).
  set a2 := bigop _ _ _ in H,H0. clearbody a2.
@@ -689,10 +685,10 @@ Proof.
  clearbody a3.
  set a4 := bigop _ _ _ in H0.
 simpl in a4.
-assert (a4 <= INR n * (2 * fb + maxwf)). {
+assert (a4 <= INR n.+1 * (2 * fb + maxwf)). {
    rewrite /a4.
   apply /RleP.
- eapply le_trans with (\sum_(i < nat_of_ord n) (2 * fb + maxwf)).
+ eapply le_trans with (\sum_(i < (nat_of_ord n).+1) (2 * fb + maxwf)).
  apply /RleP.
  apply Rle_big_compat. 
  intro. apply gauss_pt_wt_bound.
@@ -749,24 +745,22 @@ Import Quadmodel_F64.
 
 Import VST.floyd.functional_base.
 
-Lemma gauss_points_acc: forall (n: 'I_5) (i: 'I_n),  float_near Tdouble (gauss_pt n i) (gauss_point_f n i).
+Lemma gauss_points_acc: forall (n: 'I_4) (i: 'I_n.+1),  float_near Tdouble (gauss_pt n i) (gauss_point_f n i).
 Proof.
 intros [n Hn] [i Hi]; simpl in *.
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
-red;
-set (d := default_rel); hnf in d; simpl in d; subst d;
-unfold gauss_pt, gauss_point_f, tuple.tnth; simpl;
- prepare_for_interval; simpl;
-rewrite <- ?Rstruct.RsqrtE, <- ?Rstruct.INRE, ?Rminus_diag;
+destruct n as [ | [ | [ | [ | ]]]]; try lia;
+destruct i as [ | [ | [ | [ | ]]]]; try lia;
+red; set (d := default_rel); hnf in d; simpl in d; subst d;
+unfold gauss_pt, gauss_weight_f, tuple.tnth; simpl;
+ prepare_for_interval;
 first [rewrite ?Rabs_R0; Lra.lra | interval with (i_prec(110%positive))].
 Qed.
 
-Lemma gauss_weights_acc: forall (n: 'I_5) (i: 'I_n),  float_near Tdouble (gauss_wt n i) (gauss_weight_f n i).
+Lemma gauss_weights_acc: forall (n: 'I_4) (i: 'I_n.+1),  float_near Tdouble (gauss_wt n i) (gauss_weight_f n i).
 Proof.
 intros [n Hn] [i Hi]; simpl in *.
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
+destruct n as [ | [ | [ | [ | ]]]]; try lia;
+destruct i as [ | [ | [ | [ | ]]]]; try lia;
 red;
 set (d := default_rel); hnf in d; simpl in d; subst d;
 unfold gauss_wt, gauss_weight_f, tuple.tnth; simpl;
@@ -776,17 +770,17 @@ Qed.
 
 Open Scope R_scope.
 
-Lemma gauss_point_f_bound [n: 'I_5]: 
-  (forall i : 'I_n, Rabs (FT2R (gauss_point_f n i)) <= 1).
+Lemma gauss_point_f_bound [n: 'I_4]: 
+  (forall i : 'I_n.+1, Rabs (FT2R (gauss_point_f n i)) <= 1).
 Proof.
 revert n.
 intros [n Hn] [i Hi]; simpl in *.
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
+destruct n as [ | [ | [ | [ | ]]]]; try lia;
+destruct i as [ | [ | [ | [ | ]]]]; try lia;
 simpl; interval.
 Qed.
 
-Lemma gauss_point_f_acc [n: 'I_5]: gauss_pts_accuracy Tdouble _ (@gauss_point_f n).
+Lemma gauss_point_f_acc [n: 'I_4]: gauss_pts_accuracy Tdouble _ (@gauss_point_f n).
 Proof.
 red; intros; unfold quadmodel_accuracy.finite.
 pose proof gauss_points_acc n i.
@@ -795,8 +789,8 @@ split.
 -
 clear.
 destruct n as [n Hn]; destruct i as [i Hi];
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
+destruct n as [ | [ | [ | [ | ]]]]; try lia;
+destruct i as [ | [ | [ | [ | ]]]]; try lia;
 simpl; auto.
 -
 unfold default_rel, FPCore.default_rel in *; simpl in *.
@@ -820,7 +814,7 @@ apply Rmult_le_compat_r; auto.
 Qed.
 
 
-Lemma gauss_weight_f_acc [n: 'I_5]: gauss_wts_accuracy Tdouble _ (@gauss_weight_f n).
+Lemma gauss_weight_f_acc [n: 'I_4]: gauss_wts_accuracy Tdouble _ (@gauss_weight_f n).
 Proof.
 red; intros; unfold quadmodel_accuracy.finite.
 pose proof gauss_weights_acc n i.
@@ -829,26 +823,24 @@ split.
 -
 clear.
 destruct n as [n Hn]; destruct i as [i Hi];
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
+destruct n as [ | [ | [ | [ | ]]]]; try lia;
+destruct i as [ | [ | [ | [ | ]]]]; try lia;
 simpl; auto.
 -
 unfold default_rel, FPCore.default_rel in *; simpl in *.
-assert ((n>1)%nat -> (0 <= FT2R (gauss_weight_f n i) <= 1)%R). {
+assert ((n>0)%nat -> (0 <= FT2R (gauss_weight_f n i) <= 1)%R). {
 clear.
-destruct n as [n Hn]; destruct i as [i Hi];
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try lia;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try lia;
-unfold gauss_weight_f; simpl nat_of_ord;
-intro; try discriminate;
-set z := (Znth _ _); hnf in z; subst z;
+destruct n as [n Hn]; destruct i as [i Hi]; simpl nat_of_ord in *;
+destruct n as [ | [ | [ | [ | ]]]]; try lia;
+destruct i as [ | [ | [ | [ | ]]]]; try lia;
+unfold gauss_weight_f; simpl; try discriminate;
+unfold Defs.F2R, Defs.Fnum, Defs.Fexp, bpow;
+set a := Z.pow_pos _ _; compute in a; subst a;
 compute; lra.
 }
 destruct n as [n Hn].
-destruct n as [ | [ | n]].
+destruct n as [ | n].
 + (* n=0 *)
-simpl in i; destruct i; lia.
-+ (* n=1 *)
 clear.
 simpl in i.
 rewrite ord1. clear i.
@@ -887,8 +879,8 @@ Lemma gauss_weight_f_range [n]: gauss_wt_f_range Tdouble _ (@gauss_weight_f n).
 Proof.
 red; intros.
 destruct n as [n Hn]; destruct i as [i Hi];
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try discriminate;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try discriminate;
+destruct n as [ | [ | [ | [ | ]]]]; try discriminate;
+destruct i as [ | [ | [ | [ | ]]]]; try discriminate;
 compute; lra.
 Qed.
 
@@ -1109,9 +1101,9 @@ interval.
 Qed.
 
 
-Definition testfun_b := IZR 424 / IZR 100000.
+Definition testfun_b := IZR 1647 / IZR 100000.
 
-Definition n := @Ordinal 5 2 ssrbool.isT.
+Definition n := @Ordinal 4 1 ssrbool.isT.
 
 Lemma testfun_quadrature_error_bound: 
   @quadrature_error_bound Rstruct.RbaseSymbolsImpl_R__canonical__reals_Real
@@ -1130,7 +1122,7 @@ simpl.
 rewrite ?hornerE ?RealsE //.
 Qed.
 
-Lemma testfun_parameter_limits: parameter_limits Tdouble  (@Ordinal 5 2 ssrbool.isT) testfun_fb testfun_f_acc.
+Lemma testfun_parameter_limits: parameter_limits Tdouble  (@Ordinal 4 1 ssrbool.isT) testfun_fb testfun_f_acc.
 Proof.
 unfold parameter_limits, testfun_fb, testfun_f_acc, common.default_rel, common.default_abs.
 prepare_for_interval.

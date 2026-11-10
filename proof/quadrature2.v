@@ -251,8 +251,7 @@ Ltac derivable :=
 
 Definition r_deriv := (@deriv0, @derivMn, @derivZ, @derivMz, @deriv_mulC, @derivXn, @derivX, @derivC, @derivXsubC, @derivMXaddC, @derivMNn, @derivM, @derivD, @derivB, @derivN, @deriv_exp).
 
-Definition r_derive1 := (derive1_cos, derive1_sin, derivE_rev, derivMXaddC, derivC,
-         @horner0_ext R).
+Definition r_derive1 := (derive1_cos, derive1_sin, derivE_rev, derivMXaddC, derivC,@horner0_ext R).
 
 Import Rewriting. 
 
@@ -274,7 +273,7 @@ Ltac rewrite_derive1_bottom_up :=
 Ltac rewrite_derive := 
   repeat (
   simpl;
-  first [rewrite !(r_derive1, r_ring, r_lift, opp_funK)
+  first [rewrite !(r_derive1, r_ring, r_lift, opp_funK,r_deriv)
          | rewrite_derive1_bottom_up
          ]).
 
@@ -321,27 +320,27 @@ rewrite -?Rstruct_topology.RealsE;
 rewrite ?RIneq.INR_IZR_INZ; simpl BinInt.Z.of_nat;
 repeat match goal with |- _ -> _ => intro end.
 
-Definition gauss_pt (n: 'I_5) (i: 'I_n) :=
-      tuple.tnth (@ROOTS_vals  R lo hi w n (LR_roots n (nth_iseq some_legendre_roots n))) i.
+Definition gauss_pt (n: 'I_4) (i: 'I_n.+1) :=
+      tuple.tnth (@ROOTS_vals  R lo hi w _ (LR_roots _ (nth_iseq some_legendre_roots n))) i.
 
-Lemma gauss_pt_range: forall (n : 'I_5) (i : 'I_n),  -1 <= gauss_pt n i <= 1.
+Lemma gauss_pt_range: forall (n : 'I_4) (i : 'I_n.+1),  -1 <= gauss_pt n i <= 1.
  Proof.
  move => [n Hn] [i Hi]; simpl in *.
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try Lia.lia;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try Lia.lia;
+destruct n as [ | [ | [ | [ |  ]]]]; try Lia.lia;
+destruct i as [ | [ | [ | [ | ]]]]; try Lia.lia;
  rewrite /gauss_pt /tnth /=;
  clear; try lra.
 all: prepare_for_interval; interval.
 Qed.
 
-Definition gauss_wt (n: 'I_5) (i: 'I_n) :=
+Definition gauss_wt (n: 'I_4) (i: 'I_n.+1) :=
  tuple.tnth (@GW_vals R _ (nth_iseq some_gauss_weights n)) i.
 
-Lemma gauss_wt_range: forall (n : 'I_5) (i : 'I_n), 0 <= gauss_wt n i <= 2.
+Lemma gauss_wt_range: forall (n : 'I_4) (i : 'I_n.+1), 0 <= gauss_wt n i <= 2.
  Proof.
  move => [n Hn] [i Hi]; simpl in *.
-destruct n as [ | [ | [ | [ | [ |] ]]]]; try Lia.lia;
-destruct i as [ | [ | [ | [ | [ |] ]]]]; try Lia.lia;
+destruct n as [ | [ | [ | [ | ]]]]; try Lia.lia;
+destruct i as [ | [ | [ | [ | ]]]]; try Lia.lia;
  rewrite /gauss_wt /tnth /=;
  clear; try lra;
  prepare_for_interval;interval.
@@ -349,7 +348,7 @@ Qed.
 
 Definition r_intgal_C := (@intgal_linearN, @r_intgal, @intgal_C, @hornerC').
 
-Definition legendre_integral2 (n: nat) : Type := {s : Real.sort R |  ∫ (fun x : Real.sort R => (legendre n).[x] ^ 2) = s }.
+Definition legendre_integral2 (n: nat) : Type := {s : Real.sort R |  ∫ (fun x : Real.sort R => (legendre n.+1).[x] ^ 2) = s }.
 
 Ltac prove_legendre_integral2 :=
 change (fun x : _ => exprz (?A x) 2) with (mul_fun A A);
@@ -360,23 +359,23 @@ repeat match goal with |- context [ 'X * (polyC ?a * _)] => rewrite ?(pull_left 
 rewrite ?r_intgal;
 lra.
 
-Definition legendre_integral2_iseq : iseq legendre_integral2 5.
+Definition legendre_integral2_iseq : iseq legendre_integral2 4.
 repeat eapply i_cons; try apply i_nil.
 - exists (128/11025); rewrite Legendre_poly_4;  abstract prove_legendre_integral2.
 - exists (8/175); rewrite Legendre_poly_3; abstract prove_legendre_integral2.
 - exists (8/45); rewrite Legendre_poly_2; abstract prove_legendre_integral2.
 - exists (2/3);  rewrite Legendre_poly_1; abstract prove_legendre_integral2.
-- exists 2; rewrite Legendre_poly_0; abstract prove_legendre_integral2.
 Defined.
 
 Import BinInt.
 Notation IZR := (Rdefinitions.IZR).
 
+
 Ltac eval_legendre_integral2 :=
-match goal with |- context [@legendre ?R ?N] => 
-   let n := eval compute in N in change (@legendre R N) with (@legendre R n);
+match goal with |- context [@legendre ?R ?N.+1] => 
+   let n := eval compute in N in change (@legendre R N.+1) with (@legendre R n.+1);
     let x := fresh "x" in let e := fresh "e" in let H := fresh in 
-    destruct (nth_iseq legendre_integral2_iseq (@Ordinal 5 n isT)) as [x e] eqn:H;
+    destruct (nth_iseq legendre_integral2_iseq (@Ordinal 4 n isT)) as [x e] eqn:H;
     injection H; clear H; move => H; rewrite {}e -{}H; clear x
 end.
 
@@ -394,9 +393,9 @@ interval with (i_bisect x).
 
 Lemma error_1_0_1:
  (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
- quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 1 (IZR 159 / IZR 1000).
+ quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 0 (IZR 461 / IZR 1000).
 Proof.
-time "error_1_0_1" gauss_legendre_error_bounder.  (* 0.6 seconds *)
+time "error_1_0_1" gauss_legendre_error_bounder.  (* 0.738 seconds *)
 Qed.
 
 (* Our test case is the product of a Lagrange shape function (1/2)*(1-x) with some 
@@ -405,7 +404,7 @@ Qed.
 Lemma error_1_0_1':
  (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
  let f :=horner ((1/2)%:P *(1-'X)) \* cos in 
- `| ( ∫ f - Gauss_Legendre_quadrature 1 f ) | <= IZR 159 / IZR 1000.
+ `| ( ∫ f - Gauss_Legendre_quadrature 0 f ) | <= IZR 461 / IZR 1000.
 Proof.
 apply quadrature_error_bound_is_bound.
 apply error_1_0_1.
@@ -413,10 +412,16 @@ Qed.
 
 Lemma error_1_0_2:
  (* test function (1/2)*(1-x)*cos(x), degree-2 quadrature *)
-(* The true bound is under 356/100000, but somehow we can only prove 424/100000 *)
-  quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 2 (IZR 424  / IZR 100000).
+  quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 1 (IZR 1647  / IZR 100000).
 Proof.
-time "error_1_0_2" gauss_legendre_error_bounder.  (* 5.435 seconds *)
+time "error_1_0_2" gauss_legendre_error_bounder.  (* 4.281 seconds *)
+Qed.
+
+Lemma error_1_0_3:
+ (* test function (1/2)*(1-x)*cos(x), degree-2 quadrature *)
+  quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 2 (IZR 20  / IZR 100000).
+Proof.
+time "error_1_0_3" gauss_legendre_error_bounder.  (* 10.26 seconds *)
 Qed.
 
 (* NB: lo = -1, hi = 1 *)

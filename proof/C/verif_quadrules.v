@@ -44,25 +44,27 @@ Lemma body_gauss_point: semax_body Vprog Gprog f_gauss_point gauss_point_spec_lo
 Proof.
 start_function.
 unfold gauss_pts_pred.
-assert (0 <= npts * (npts-1) <= 90) by nia.
-assert (0 <= npts * (npts - 1) ÷ 2  <= 45 ). {
+assert (0 <= (npts+1) * npts <= 90) by nia.
+assert (0 <= (npts+1) * npts ÷ 2  <= 45 ). {
   split. apply Z.quot_pos; lia. apply (Z.quot_le_mono _ 90 2); lia.
 }
 assert (0 <=
 Int.signed
-  (Int.add (Int.divs (Int.repr (npts * (npts - 1))) (Int.repr 2))
+  (Int.add (Int.divs (Int.repr ((npts+1) * npts)) (Int.repr 2))
      (Int.repr i)) <
 Zlength gauss_pts_list). {
 set (j := Zlength _); compute in j; subst j.
 rewrite divs_repr; try rep_lia.
 rewrite add_repr. rewrite Int.signed_repr; try rep_lia.
 }
-forward.
+forward; rewrite ?Z.add_simpl_r.
+- entailer!!.
 -
 rewrite Znth_map by auto.
 entailer!!.
 -
 entailer!!.
+rewrite ?Z.add_simpl_r.
 split.
 rewrite divs_repr; try rep_lia.
 rewrite Int.signed_repr; try rep_lia.
@@ -84,25 +86,27 @@ Lemma body_gauss_weight: semax_body Vprog Gprog f_gauss_weight gauss_weight_spec
 Proof.
 start_function.
 unfold gauss_wts_pred.
-assert (0 <= npts * (npts-1) <= 90) by nia.
-assert (0 <= npts * (npts - 1) ÷ 2  <= 45 ). {
+assert (0 <= (npts+1) * npts <= 90) by nia.
+assert (0 <= (npts+1) * npts ÷ 2  <= 45 ). {
   split. apply Z.quot_pos; lia. apply (Z.quot_le_mono _ 90 2); lia.
 }
 assert (0 <=
 Int.signed
-  (Int.add (Int.divs (Int.repr (npts * (npts - 1))) (Int.repr 2))
+  (Int.add (Int.divs (Int.repr ((npts+1) * npts)) (Int.repr 2))
      (Int.repr i)) <
 Zlength gauss_wts_list). {
 set (j := Zlength _); compute in j; subst j.
 rewrite divs_repr; try rep_lia.
 rewrite add_repr. rewrite Int.signed_repr; try rep_lia.
 }
-forward.
+forward; rewrite ?Z.add_simpl_r.
+- entailer!!.
 -
 rewrite Znth_map by auto.
 entailer!!.
 -
 entailer!!.
+rewrite ?Z.add_simpl_r.
 split.
 rewrite divs_repr; try rep_lia.
 rewrite Int.signed_repr; try rep_lia.
@@ -137,19 +141,24 @@ Qed.
 Lemma body_gauss2d_point: semax_body Vprog Gprog f_gauss2d_point gauss2d_point_spec.
 Proof.
 start_function.
-forward_call (Z.of_nat n).
+change (ssrnat.addn ?A ?B) with (A + B)%nat.
+change (ssrnat.muln ?A ?B) with (A*B)%nat.
+set (i := Z.of_nat _).
+set (n1 := Z.pos _).
+forward_call (Z.of_nat (S n)).
 entailer!!. simpl. f_equal. f_equal. f_equal. lia.
 destruct n as [n Hn]; simpl.
-pose proof (@ssrnat.ltP n 5). rewrite Hn in H. inv H.
+pose proof (@ssrnat.ltP n 4). rewrite Hn in H. inv H.
 destruct x as [x Hx]. simpl in Hx.
-pose proof (@ssrnat.ltP x n). rewrite Hx in H. inv H. lia.
+pose proof (@ssrnat.ltP x (S n)). rewrite Hx in H. inv H. lia.
 destruct n as [n Hn].
-pose proof (@ssrnat.ltP n 5). rewrite Hn in H. inv H.
+pose proof (@ssrnat.ltP n 4). rewrite Hn in H. inv H.
 destruct x as [x Hx].
-pose proof (@ssrnat.ltP x n). simpl in Hx; rewrite Hx in H. inv H.
+pose proof (@ssrnat.ltP x (S n)). simpl in Hx; rewrite Hx in H. inv H.
 destruct y as [y Hy].
-pose proof (@ssrnat.ltP y n). simpl in Hy; rewrite Hy in H. inv H.
-assert (H3: 0 <= Z.of_nat (y * n + x) <= 25) by nia.
+pose proof (@ssrnat.ltP y (S n)). simpl in Hy; rewrite Hy in H. inv H.
+assert (H3: 0 <= Z.of_nat (y * (S n) + x) <= 25) by nia.
+simpl  nat_of_ord in i, n1.
 forward.
 entailer!!.
 split.
@@ -165,19 +174,25 @@ apply repr_inj_signed in H; try rep_lia.
 simpl nat_of_ord.
 rewrite divs_repr; try rep_lia.
 rewrite mods_repr; try rep_lia.
-pose (X := existT (fun n => 'I_(nat_of_ord n)) (Ordinal  Hn) (Ordinal Hx)).
+pose (X := existT (fun n => 'I_(S (nat_of_ord n))) (Ordinal  Hn) (Ordinal Hx)).
 forward_call sub_gauss_point (X, gv); clear X.
 entailer!!.
-simpl. f_equal. f_equal. f_equal.
+change (firstn _ ?A) with A. change (eval_cast _ _ ?A) with A. simpl nat_of_ord.
+subst i.
+f_equal. f_equal. f_equal.
 rewrite <- Nat2Z.inj_mod. f_equal.
 rewrite Nat.Div0.add_mod, Nat.Div0.mul_mod, Nat.Div0.mod_same, Nat.mul_0_r, Nat.Div0.mod_0_l, Nat.add_0_l.
-rewrite Nat.Div0.mod_mod, Nat.mod_small; lia.
+rewrite Nat.Div0.mod_mod, Nat.mod_small; try lia.
 Intros x'.
 forward.
-pose (X := existT (fun n => 'I_(nat_of_ord n)) (Ordinal  Hn) (Ordinal Hy)).
+pose (X := existT (fun n => 'I_(S (nat_of_ord n))) (Ordinal  Hn) (Ordinal Hy)).
 forward_call sub_gauss_point (X,gv); clear X.
 entailer!!.
-simpl. f_equal. f_equal. f_equal.
+change (firstn _ ?L) with L.
+f_equal.
+change (eval_cast _ _ ?A) with A.  f_equal. f_equal.
+subst i.
+simpl nat_of_ord.
 rewrite Nat2Z.inj_add, Nat2Z.inj_mul.
 rewrite Z.quot_add_l; try lia.
 rewrite Z.quot_small; try lia.
@@ -190,10 +205,16 @@ Qed.
 Lemma body_gauss2d_weight: semax_body Vprog Gprog f_gauss2d_weight gauss2d_weight_spec.
 Proof.
 start_function.
-destruct n as [n Hn]; destruct i as [i Hi]; destruct j as [j Hj]; simpl in Hn, Hi, Hj; simpl Z.of_nat.
-forward_call (Z.of_nat n).
+change (ssrnat.addn ?A ?B) with (A + B)%nat.
+change (ssrnat.muln ?A ?B) with (A*B)%nat.
+set (i' := Z.of_nat _).
+set (n1 := Z.pos _).
+forward_call (Z.of_nat (S n)).
 entailer!!. simpl. f_equal. f_equal. f_equal. lia.
-assert (H3: 0 <= Z.of_nat (j * n + i) <= 25) by nia. 
+destruct n as [n Hn]; simpl.
+pose proof (@ssrnat.ltP n 4). rewrite Hn in H. inv H. lia.
+destruct i as [i Hi]. destruct j as [j Hj]. destruct n as [n Hn]. simpl nat_of_ord in *.
+assert (H3: 0 <= Z.of_nat (j * (S n) + i) <= 25) by nia.
 forward.
 entailer!!.
 split.
@@ -209,18 +230,24 @@ apply repr_inj_signed in H; try rep_lia.
 simpl nat_of_ord.
 rewrite divs_repr; try rep_lia.
 rewrite mods_repr; try rep_lia.
-pose (X := existT (fun n => 'I_(nat_of_ord n)) (Ordinal  Hn) (Ordinal Hi)).
+pose (X := existT (fun n => 'I_(S (nat_of_ord n))) (Ordinal  Hn) (Ordinal Hi)).
 forward_call sub_gauss_weight (X, gv); clear X.
 entailer!!.
-simpl. f_equal. f_equal. f_equal.
+change (firstn _ ?A) with A. change (eval_cast _ _ ?A) with A. simpl nat_of_ord.
+f_equal. f_equal. f_equal.
+subst i'.
 rewrite <- Nat2Z.inj_mod. f_equal.
 rewrite Nat.Div0.add_mod, Nat.Div0.mul_mod, Nat.Div0.mod_same, Nat.mul_0_r, Nat.Div0.mod_0_l, Nat.add_0_l.
-rewrite Nat.Div0.mod_mod, Nat.mod_small; lia.
+rewrite Nat.Div0.mod_mod, Nat.mod_small; try lia.
 Intros x'.
-pose (X := existT (fun n => 'I_(nat_of_ord n)) (Ordinal  Hn) (Ordinal Hj)).
+pose (X := existT (fun n => 'I_(S (nat_of_ord n))) (Ordinal  Hn) (Ordinal Hj)).
 forward_call sub_gauss_weight (X,gv); clear X.
 entailer!!.
-simpl. f_equal. f_equal. f_equal.
+change (firstn _ ?L) with L.
+f_equal.
+change (eval_cast _ _ ?A) with A.  f_equal. f_equal.
+subst i'.
+simpl nat_of_ord.
 rewrite Nat2Z.inj_add, Nat2Z.inj_mul.
 rewrite Z.quot_add_l; try lia.
 rewrite Z.quot_small; try lia.
@@ -229,7 +256,6 @@ forward.
 Exists x' y'.
 entailer!!.
 Qed.
-
 
 Lemma body_hughes_point: semax_body Vprog Gprog f_hughes_point hughes_point_spec.
 Proof.
@@ -275,13 +301,13 @@ Qed.
 Import quadmodel. Import Quadmodel_F64.
 Import mv_mathcomp.
 
-Definition integrate_upto (f: ftype Tdouble -> ftype Tdouble) (n: 'I_5) (i: Z) :=
+Definition integrate_upto (f: ftype Tdouble -> ftype Tdouble) (n: 'I_4) (i: Z) :=
     seq.foldl (fun s i => BPLUS s (BMULT (gauss_weight_f n i) (f (gauss_point_f n i)))) common.pos_zero 
-           (sublist 0 i (ord_enum n)).
+           (sublist 0 i (ord_enum (S n))).
 
 
 Lemma integrate_upto_n: forall f n,
-  integrate_upto f n (Z.of_nat n) = 
+  integrate_upto f n (Z.of_nat (S n)) = 
    integrate_model_f Tdouble _ n (gauss_point_f n) (gauss_weight_f n) f.
 Proof.
 intros.
@@ -295,39 +321,42 @@ Lemma body_integrate: semax_body Vprog Gprog f_integrate integrate_spec_lowlevel
 Proof.
 start_function.
 forward.
-forward_for_simple_bound (Z.of_nat n)
+forward_for_simple_bound (Z.of_nat (S n))
   (EX i: Z, PROP() 
   LOCAL (temp _s (Vfloat (integrate_upto f n i));
-                 gvars gv; temp _f p; temp _n (Vint (Int.repr (Z.of_nat (nat_of_ord n)))))
+                 gvars gv; temp _f p; temp _n (Vint (Int.repr (Z.of_nat (S (nat_of_ord n))))))
    SEP (gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p)).
 - destruct n as [n Hn]. simpl. clear - Hn. rep_lia.
 - entailer!!.
-- forward_call (Z.of_nat n, i, gv). destruct n as [n Hn]. simpl in H|-*. rep_lia.
-  forward_call (Z.of_nat n, i, gv). destruct n as [n Hn]. simpl in H|-*. rep_lia.
+- destruct n as [n Hn]. simpl nat_of_ord in H|-*.
+  assert  (H0 := @ssrnat.ltP n 4). rewrite Hn in H0. inv H0.
+  rewrite inj_S.
+  forward_call (Z.of_nat n, i, gv). 
+  forward_call (Z.of_nat n, i, gv).
   set (pt := Znth _ gauss_pts_list).
   set (wt := Znth _ gauss_wts_list).
-  assert (Hi': Datatypes.is_true (ssrnat.leq (S (Z.to_nat i)) (nat_of_ord n))).
-  destruct (@ssrnat.ltP (Z.to_nat i)  (nat_of_ord n) ); auto. lia.
-  pose (i' := Ordinal Hi').
-  replace pt with (gauss_point_f n i')
-     by (unfold pt, gauss_point_f; f_equal; f_equal; simpl; lia).
-  replace wt with (gauss_weight_f n i')
-     by (unfold wt, gauss_weight_f; f_equal; f_equal; simpl; lia).
+  assert (Datatypes.is_true (ssrnat.leq (S (Z.to_nat i)) (S n))).
+  destruct (@ssrnat.leP (S (Z.to_nat i))  (S n) ); try reflexivity; try lia. rename H0 into Hi.
+  pose (i' := Ordinal Hi).
+  replace pt with (gauss_point_f (Ordinal Hn) i').
+2:{ unfold pt, gauss_point_f. f_equal; f_equal. simpl nat_of_ord. f_equal. f_equal. simpl. lia. simpl. lia. }
+  replace wt with (gauss_weight_f (Ordinal Hn) i').
+2:{ unfold wt, gauss_weight_f. f_equal; f_equal. simpl nat_of_ord. f_equal. f_equal. simpl. lia. simpl. lia. }
   clear pt wt.
   forward_call.
   forward.
   entailer!!.
-  f_equal.
-  assert (Zlength (ord_enum (nat_of_ord n)) = Z.of_nat n). {
+  f_equal. simpl nat_of_ord. rewrite inj_S. split; auto. f_equal.
+  unfold integrate_upto. simpl nat_of_ord.
+
+  assert (Zlength (ord_enum (S n)) = Z.of_nat (S n)). {
     rewrite Zlength_correct. change @Datatypes.length with @seq.size.
    rewrite size_ord_enum; auto.
  }
-  unfold integrate_upto.
   rewrite (sublist_split 0 i (i+1)) by lia.
-  assert (Inh: Inhabitant 'I_(nat_of_ord n))
-     by (apply (@Ordinal _ (Z.to_nat i)); lia).
-  rewrite sublist_len_1 by lia.
   simpl.
+  assert (Inh: Inhabitant 'I_(S n)) by  apply i'.
+  rewrite sublist_len_1 by lia.
   replace (Znth i _) with i'. 
     2:{ unfold Znth. rewrite if_false by lia. rewrite <- nth_List_nth.
          replace (Z.to_nat i) with (nat_of_ord i') by (simpl; lia).
@@ -346,10 +375,9 @@ Import quadrature quadrature2 Legendre quadmodel_accuracy.
 Require Import Interval.Tactic.
 Lemma f_i_cond: finite_integrate_condition Tdouble n testfun_fb testfun_d testfun_f_acc.
 Proof.
-intros _.
+red.
 unfold testfun_fb, testfun_f_acc; simpl.
 unfold maxwf, common.g, common.default_rel, common.default_abs, common.fmax.
-simpl.
 interval.
 Qed.
 

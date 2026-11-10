@@ -43,13 +43,13 @@ Definition gauss_point_spec_lowlevel : ident * funspec :=
   DECLARE _gauss_point
   WITH npts: Z, i: Z, gv: globals
   PRE [ tint, tint ]
-    PROP((0 <= i < npts)%Z; (1 <= npts <= 10)%Z)
-    PARAMS( Vint (Int.repr i); Vint (Int.repr npts))
+    PROP((0 <= i < npts+1)%Z; (0 <= npts < 10)%Z)
+    PARAMS( Vint (Int.repr i); Vint (Int.repr (npts+1)))
     GLOBALS (gv)
     SEP( gauss_pts_pred gv )
   POST[ tdouble]
     PROP( )
-    RETURN (Vfloat (Znth (npts*(npts-1)/2+i) gauss_pts_list))
+    RETURN (Vfloat (Znth ((npts+1)*npts/2+i) gauss_pts_list))
     SEP( gauss_pts_pred gv ).
 
 (** The C program's gauss_weight function just returns an element from the array.
@@ -59,13 +59,13 @@ Definition gauss_weight_spec_lowlevel : ident * funspec :=
   DECLARE _gauss_weight
   WITH npts: Z, i: Z, gv: globals
   PRE [ tint, tint ]
-    PROP((0 <= i < npts)%Z; (1 <= npts <= 10)%Z)
-    PARAMS( Vint (Int.repr i); Vint (Int.repr npts))
+    PROP((0 <= i < npts+1)%Z; (0 <= npts < 10)%Z)
+    PARAMS( Vint (Int.repr i); Vint (Int.repr (npts+1)))
     GLOBALS (gv)
     SEP( gauss_wts_pred gv )
   POST[ tdouble]
     PROP( )
-    RETURN (Vfloat (Znth (npts*(npts-1)/2+i) gauss_wts_list))
+    RETURN (Vfloat (Znth ((npts+1)*npts/2+i) gauss_wts_list))
     SEP( gauss_wts_pred gv ).
 
 (** This function computes integer square roots by case analysis. *) 
@@ -95,10 +95,10 @@ Definition floatfun_spec (f: ftype Tdouble -> ftype Tdouble) : funspec :=
 
 Definition integrate_spec_lowlevel : ident * funspec :=
  DECLARE _integrate
- WITH f: ftype Tdouble -> ftype Tdouble, p: val, n : 'I_5, gv: globals
+ WITH f: ftype Tdouble -> ftype Tdouble, p: val, n : 'I_4, gv: globals
  PRE [ tptr (Tfunction [tdouble] tdouble cc_default), tint ]
     PROP ()
-    PARAMS ( p; Vint (Int.repr (Z.of_nat n)))
+    PARAMS ( p; Vint (Int.repr (Z.of_nat (S n))))
     GLOBALS (gv)
     SEP( gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p)
  POST [ tdouble ]
@@ -118,7 +118,7 @@ Definition integrate_testfun_spec_lowlevel : ident * funspec :=
     SEP( gauss_pts_pred gv; gauss_wts_pred gv)
  POST [ tdouble ]
     PROP()
-    RETURN (Vfloat (integrate_model_f Tdouble _ (@Ordinal 5 2 ssrbool.isT) 
+    RETURN (Vfloat (integrate_model_f Tdouble _ (@Ordinal 4 1 ssrbool.isT) 
                                      (gauss_point_f _) (gauss_weight_f _) 
                                      testfun_f))
     SEP( gauss_pts_pred gv; gauss_wts_pred gv).

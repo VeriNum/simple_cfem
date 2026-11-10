@@ -37,10 +37,10 @@ Instance InhR : Inhabitant R := 0%R.
    has nothing to say beyond degree 4. *) 
 Definition gauss_point_spec : ident * funspec :=
   DECLARE _gauss_point
-  WITH X: { n: 'I_5 & 'I_n}, gv: globals
+  WITH X: { n: 'I_4 & 'I_n.+1}, gv: globals
   PRE [ tint, tint ] let '(existT _ n i) := X in 
     PROP()
-    PARAMS( Vint (Int.repr (Z.of_nat i)); Vint (Int.repr (Z.of_nat n)))
+    PARAMS( Vint (Int.repr (Z.of_nat i)); Vint (Int.repr (Z.of_nat n.+1)))
     GLOBALS (gv)
     SEP( gauss_pts_pred gv )
   POST[ tdouble] let '(existT _ n i) := X in 
@@ -62,15 +62,18 @@ normalize.
 set (x := Znth _ gauss_pts_list).
 destruct n as [n Hn].
 simpl nat_of_ord.
-pose proof (@ssrnat.ltP n 5). rewrite Hn in H0.
-inv H0.
 simpl in Hi.
-pose proof (@ssrnat.ltP i n). rewrite Hi in H0. inv H0.
-unfold_for_go_lower; normalize. simpl; entailer!; intros.
+unfold_for_go_lower; normalize.
+rewrite Z.add_1_r. rewrite <- Nat2Z.inj_succ.
+simpl; entailer!; intros.
 split; [ | repeat split; auto; try lia].
 entailer!.
-rewrite <- H4. clear rho' H3 H4.
+rewrite <- H2.
+clear rho' H2 H3 H1.
 Exists x.
+subst x.
+simpl nat_of_ord.
+rewrite Z.add_1_r. rewrite <- Nat2Z.inj_succ.
 entailer!!.
 apply gauss_points_acc.
 Qed.
@@ -81,10 +84,10 @@ Qed.
    of the nth Legendre polynomial, provided that n<5.  *) 
 Definition gauss_weight_spec : ident * funspec :=
   DECLARE _gauss_weight
-  WITH X: { n: 'I_5 & 'I_n}, gv: globals
+  WITH X: { n: 'I_4 & 'I_n.+1}, gv: globals
   PRE [ tint, tint ] let '(existT _ n i) := X in 
     PROP()
-    PARAMS( Vint (Int.repr (Z.of_nat i)); Vint (Int.repr (Z.of_nat n)))
+    PARAMS( Vint (Int.repr (Z.of_nat i)); Vint (Int.repr (Z.of_nat n.+1)))
     GLOBALS (gv)
     SEP( gauss_wts_pred gv )
   POST[ tdouble] let '(existT _ n i) := X in 
@@ -106,15 +109,18 @@ normalize.
 set (x := Znth _ gauss_wts_list).
 destruct n as [n Hn].
 simpl nat_of_ord.
-pose proof (@ssrnat.ltP n 5). rewrite Hn in H0.
-inv H0.
 simpl in Hi.
-pose proof (@ssrnat.ltP i n). rewrite Hi in H0. inv H0.
-unfold_for_go_lower; normalize. simpl; entailer!; intros.
+unfold_for_go_lower; normalize.
+rewrite Z.add_1_r. rewrite <- Nat2Z.inj_succ.
+simpl; entailer!; intros.
 split; [ | repeat split; auto; try lia].
 entailer!.
-rewrite <- H4. clear rho' H3 H4.
+rewrite <- H2.
+clear rho' H2 H3 H1.
 Exists x.
+subst x.
+simpl nat_of_ord.
+rewrite Z.add_1_r. rewrite <- Nat2Z.inj_succ.
 entailer!!.
 apply gauss_weights_acc.
 Qed.
@@ -125,10 +131,10 @@ Import Values.
 (** *** 2-dimensional gauss points and weights *)
  Definition gauss2d_point_spec : ident * funspec :=
   DECLARE _gauss2d_point
-  WITH sh: share, p: val, X: {n: 'I_5 & 'I_n * 'I_n}, gv: globals
+  WITH sh: share, p: val, X: {n: 'I_4 & 'I_n.+1 * 'I_n.+1}, gv: globals
   PRE [ tptr tdouble, tint, tint ]  let '(existT _ n (x,y)) := X in
     PROP(writable_share sh)
-    PARAMS(p; Vint (Int.repr (Z.of_nat (y*n+x)%nat)); Vint (Int.repr (Z.of_nat (n*n)%nat)))
+    PARAMS(p; Vint (Int.repr (Z.of_nat (y*n.+1+x)%nat)); Vint (Int.repr (Z.of_nat (n.+1*n.+1)%nat)))
     GLOBALS (gv)
     SEP(data_at_ sh (tarray tdouble 2) p; gauss_pts_pred gv )
   POST[ tvoid ]  let '(existT _ n (i,j)) := X in
@@ -140,10 +146,10 @@ Import Values.
 
  Definition gauss2d_weight_spec : ident * funspec :=
   DECLARE _gauss2d_weight
-  WITH sh:share, X: {n: 'I_5 & 'I_n * 'I_n}, gv: globals
+  WITH sh:share, X: {n: 'I_4 & 'I_n.+1 * 'I_n.+1}, gv: globals
   PRE [ tint, tint ]  let '(existT _ n (i,j)) := X in
     PROP(writable_share sh)
-    PARAMS(Vint (Int.repr (Z.of_nat (j*n+i)%nat)); Vint (Int.repr (Z.of_nat (n*n)%nat)))
+    PARAMS(Vint (Int.repr (Z.of_nat (j*n.+1+i)%nat)); Vint (Int.repr (Z.of_nat (n.+1*n.+1)%nat)))
     GLOBALS (gv)
     SEP(gauss_wts_pred gv )
   POST[ tdouble ]  let '(existT _ n (i,j)) := X in
@@ -155,7 +161,7 @@ Import Values.
 
 Definition integrate_spec : ident * funspec :=
  DECLARE _integrate
- WITH f: ftype Tdouble -> ftype Tdouble, g : R -> R, fb: R, f_acc: R, d: R, p: val, n : 'I_5, b: R, gv: globals
+ WITH f: ftype Tdouble -> ftype Tdouble, g : R -> R, fb: R, f_acc: R, d: R, p: val, n : 'I_4, b: R, gv: globals
  PRE [ tptr (Tfunction [tdouble] tdouble cc_default), tint ]
     PROP (quadrature_error_bound g n b; 
                   fbound (-1)%Re 1 g fb; 
@@ -163,7 +169,7 @@ Definition integrate_spec : ident * funspec :=
                   function_accuracy g f f_acc;
                   parameter_limits Tdouble n  fb f_acc;
                   finite_integrate_condition Tdouble n fb d f_acc)
-    PARAMS ( p; Vint (Int.repr (Z.of_nat n)))
+    PARAMS ( p; Vint (Int.repr (Z.of_nat n.+1)))
     GLOBALS (gv)
     SEP( gauss_pts_pred gv; gauss_wts_pred gv; func_ptr' (floatfun_spec f) p)
  POST [ tdouble ]
@@ -184,8 +190,9 @@ split; auto. intros [[[[[[[[f g] fb] f_acc] d] p] n] b] gv] [? ?].
 simpl prop. Exists (f,p,n,gv) emp.
 normalize.
 inv H. inv H4. inv H5.
-unfold_for_go_lower; normalize. simpl; entailer!; intros.
-inv H.
+unfold_for_go_lower; normalize.
+ simpl; entailer!; intros.
+with_strategy opaque [Z.of_nat] inv H.
 match goal with H: Vfloat ?MODEL <> Vundef |- _ => Exists MODEL end.
 entailer!!.
 clear H10 H9 H8 x1 Pp p H3 H2 gv g0.
@@ -206,7 +213,7 @@ Definition integrate_testfun_spec : ident * funspec :=
     SEP( gauss_pts_pred gv; gauss_wts_pred gv)
  POST [ tdouble ]
     EX y: ftype Tdouble,
-    PROP(Rabs (FT2R y - ∫ testfun_r) <= @FT2R Tdouble 0.00425%F64) 
+    PROP(Rabs (FT2R y - ∫ testfun_r) <= @FT2R Tdouble 0.01648%F64) 
     RETURN (Vfloat y)
     SEP( gauss_pts_pred gv; gauss_wts_pred gv).
 

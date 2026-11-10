@@ -20,17 +20,17 @@ Notation eta := (@default_abs t).
 Definition float_near (r: R) (x: ftype Tdouble) :=
   (Rabs (FT2R x - r) <= Rabs (FT2R x) * eps)%R.
 
- Variable n: 'I_5.
+ Variable n: 'I_4.
 
- Variable gauss_pt_f: forall (i: 'I_n), F.
- Variable gauss_wt_f: forall (i: 'I_n), F.
+ Variable gauss_pt_f: forall (i: 'I_n.+1), F.
+ Variable gauss_wt_f: forall (i: 'I_n.+1), F.
 
  Variable gauss_pt_f_range: forall i, Rabs (FT2R (gauss_pt_f i)) <= 1.
 
  Variable (f: F -> F).
 
  Definition integrate_model_f  : F :=
-    foldl (fun s i => BPLUS s (BMULT (gauss_wt_f i) (f (gauss_pt_f i)))) pos_zero (ord_enum n).
+    foldl (fun s i => BPLUS s (BMULT (gauss_wt_f i) (f (gauss_pt_f i)))) pos_zero (ord_enum n.+1).
 
 End FLOAT.
 
@@ -191,11 +191,11 @@ Definition gauss_wts_list : list (ftype Tdouble) := [
         0.066671344308688
   ]%F64.
 
-Definition gauss_weight_f (n: 'I_5) (i: 'I_n) := 
-    Znth ((Z.of_nat n)*(Z.of_nat n - 1)/2 + Z.of_nat i) gauss_wts_list.
+Definition gauss_weight_f (n: 'I_4) (i: 'I_n.+1) := 
+    Znth ((Z.of_nat n.+1)*(Z.of_nat n)/2 + Z.of_nat i) gauss_wts_list.
 
-Definition gauss_point_f (n: 'I_5) (i: 'I_n) := 
-    Znth ((Z.of_nat n)*(Z.of_nat n - 1)/2 + Z.of_nat i) gauss_pts_list.
+Definition gauss_point_f (n: 'I_4) (i: 'I_n.+1) := 
+    Znth ((Z.of_nat n.+1)*(Z.of_nat n)/2 + Z.of_nat i) gauss_pts_list.
 
 Definition testfun_f (x: ftype Tdouble) := 
    (0.5 * (1-x) * cos x)%F64.
