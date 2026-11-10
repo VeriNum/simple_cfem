@@ -1,4 +1,5 @@
-(** * CFEM.quadrature2:  Computation of quadrature error bounds *)From mathcomp Require Import boot algebra all_classical all_analysis order reals.  
+(** * CFEM.quadrature2:  Computation of quadrature error bounds *)
+From mathcomp Require Import boot order algebra all_classical reals all_analysis.
 Import numFieldNormedType.Exports.
 From mathcomp.algebra Require Import ring_tactic.
 From Stdlib Require Import FunctionalExtensionality.
@@ -8,12 +9,10 @@ Import Order.TTheory GRing.Theory Num.Theory GRing.
 From mathcomp Require Import polydiv. Import Pdiv.CommonRing.
 
 From CFEM Require Import quadrature.
-(*From CFEM Require g_max_deriv.*)
 
-Unset Implicit Arguments.
+(* TODO: try Set Implicit Arguments. *)
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-Set Bullet Behavior "Strict Subproofs".
 
 Local Open Scope R_scope.
 Local Open Scope order_scope.
@@ -29,8 +28,8 @@ Context (Hlo_hi: is_true (lo < hi)).
 
 Notation mu := (@lebesgue_measure R).
 
-Definition fbound (g: R -> R) fb := forall x : R, (lo <= x <= hi) -> ( `| g x | <= fb ).
-Definition deriv_bound (f: R -> R) (b: R) := forall x, (lo <= x <= hi) ->
+Definition fbound (g: R -> R) fb := forall x : R, x \in `[lo, hi]%R -> `| g x | <= fb.
+Definition deriv_bound (f: R -> R) (b: R) := forall x, x \in `[lo, hi]%R ->
    derivable f x 1 /\ (`| derive1 f x | <= b).
 
 Lemma fine_itv (x y: R) :
@@ -43,43 +42,40 @@ move: y0; rewrite le_eqVlt => /orP[/eqP<-|y0].
 by rewrite ltrDl y0 -EFinD addrAC subrr add0r.
 Qed.
 
-Lemma g_max_deriv_oneway:
-       forall (d : R) (g : R -> R),
-       deriv_bound g d ->
-       forall x y : R,  0<y -> lo <= x <= hi -> lo <= x + y <= hi ->
-       `| g (x + y) - g x | <= `| y * d |.
+Let g_max_deriv_oneway (d : R) (g : R -> R) (x y : R) :
+  deriv_bound g d ->
+  0 < y -> x \in `[lo, hi]%R -> x + y \in `[lo, hi]%R ->
+  `| g (x + y) - g x | <= `| y * d |.
 Proof.
-move=> d g Hd x y Hpos Hx Hy.
-have H1 : forall z, z \in `]x, x + y[%R -> is_derive z 1 g (g^`() z).
-  move=> z /[!in_itv]/= zxy.
-  have [] := Hd z; [lra|].
-  by move/derivableP; rewrite !derive1E.
-have H2 : {within  `[x, x+y], continuous g}.
-  apply: derivable_within_continuous => /= z.
-  rewrite in_itv/= => zxy.
-  by have [] := Hd z => //; lra.
-have [] := MVT _ H1 H2; first by lra.
-move=> c /[!in_itv]/= cxy ->.
-rewrite addrAC subrr add0r mulrC !normrM ler_wpM2l//.
-have [|_] := Hd c; first by lra.
-move/le_trans; apply.
-exact: ler_norm.
+move=> Hd Hpos Hx Hy.
+have H1 z : z \in `]x, x + y[%R -> is_derive z 1 g (g^`() z).
+  move=> zxy.
+  have /Hd[/derivableP] : z \in `[lo, hi]%R.
+    by apply: subset_itv zxy; rewrite bnd_simp ?(itvP Hx) ?(itvP Hy).
+  by rewrite derive1E.
+have H2 : {within `[x, x + y], continuous g}.
+  apply: derivable_within_continuous => /= z xzy.
+  have [|//] := Hd z.
+  by apply: subset_itv xzy; rewrite bnd_simp ?(itvP Hx) ?(itvP Hy).
+have [|c cxy ->] := MVT _ H1 H2; first by rewrite ltrDl.
+rewrite (addrC x y) addrK !normrM mulrC ler_wpM2l//.
+have [|_] := Hd c.
+  by apply: subset_itv cxy; rewrite bnd_simp ?(itvP Hx) ?(itvP Hy).
+by move/le_trans; apply; exact: ler_norm.
 Qed.
 
-Lemma g_max_deriv:
-       forall (d : R) (g : R -> R),
-       deriv_bound g d ->
-       forall x y : R, lo <= x <= hi -> lo <= x + y <= hi ->
-       `| g (x + y) - g x | <= `| y * d |.
+Lemma g_max_deriv (d : R) (g : R -> R) (x y : R) :
+  deriv_bound g d ->
+  x \in `[lo, hi]%R -> x + y \in `[lo, hi]%R ->
+  `| g (x + y) - g x | <= `| y * d |.
 Proof.
-move=> d g Hd x y Hx Hy.
-have [y0|y0|->]  := ltgtP y 0; last 2 first.
-- exact: (g_max_deriv_oneway _ _  Hd).
-- by rewrite addr0 subrr normr0 normr_ge0.
-- rewrite -[X in g _ - g X]addr0 -(subrr y) addrA distrC.
+move=> Hd Hx Hy.
+have [y0|y0|->] := ltgtP y 0.
+- rewrite -[in g x](addrK y x) distrC.
   rewrite -[leRHS]normrN -mulNr.
-  set x' := x + y; set y' := - y.
-  by apply: (g_max_deriv_oneway _ _ Hd); rewrite /x' /y'; lra.
+  by rewrite (g_max_deriv_oneway _ _ _ _ Hd) ?oppr_gt0// addrK.
+- exact: g_max_deriv_oneway Hd _ _ _.
+- by rewrite addr0 subrr mul0r.
 Qed.
 
 End R.
@@ -296,7 +292,8 @@ Qed.
 Lemma conj': forall A B C, (A /\ B -> C) -> (A -> B -> C).
 Proof. tauto. Qed.
 
-Ltac prepare_for_interval := 
+(* TODO: shorten using RealsE *)
+Ltac prepare_for_interval :=
 lazymatch goal with |- is_true (?A <= ?B <= ?C) => 
     let H0 := fresh "H0" in let H1 := fresh "H1" in 
    assert (H0: Rdefinitions.Rle A B /\ Rdefinitions.Rle B C);
@@ -326,7 +323,7 @@ repeat match goal with |- _ -> _ => intro end.
 Definition gauss_pt (n: 'I_4) (i: 'I_n.+1) :=
       tuple.tnth (@ROOTS_vals  R lo hi w _ (LR_roots _ (nth_iseq some_legendre_roots n))) i.
 
-Lemma gauss_pt_range: forall n i,  -1 <= gauss_pt n i <= 1.
+Lemma gauss_pt_range: forall (n : 'I_4) (i : 'I_n.+1),  -1 <= gauss_pt n i <= 1.
  Proof.
  move => [n Hn] [i Hi]; simpl in *.
 destruct n as [ | [ | [ | [ |  ]]]]; try Lia.lia;
@@ -339,7 +336,7 @@ Qed.
 Definition gauss_wt (n: 'I_4) (i: 'I_n.+1) :=
  tuple.tnth (@GW_vals R _ (nth_iseq some_gauss_weights n)) i.
 
-Lemma gauss_wt_range: forall n i, 0 <= gauss_wt n i <= 2.
+Lemma gauss_wt_range: forall (n : 'I_4) (i : 'I_n.+1), 0 <= gauss_wt n i <= 2.
  Proof.
  move => [n Hn] [i Hi]; simpl in *.
 destruct n as [ | [ | [ | [ | ]]]]; try Lia.lia;
@@ -427,18 +424,15 @@ Proof.
 time "error_1_0_3" gauss_legendre_error_bounder.  (* 10.26 seconds *)
 Qed.
 
-
-Lemma g_max_deriv_specialized:
-       forall (d : R) (g : R -> R),
-       deriv_bound lo hi g d ->
-       forall x y : R, lo <= x <= hi -> lo <= x + y <= hi -> `| g (x + y) - g x | <= `| y | * d.
+(* NB: lo = -1, hi = 1 *)
+Lemma g_max_deriv_specialized (d : R) (g : R -> R) (x y : R) :
+  deriv_bound lo hi g d ->
+  x \in `[lo, hi]%R -> x + y \in `[lo, hi]%R -> `| g (x + y) - g x | <= `| y | * d.
 Proof.
-move => d g Hd x y Hx Hy.
+move=> Hd Hx Hy.
 have [d0|d0] := ltP d 0.
-  have [] := Hd 0; first by (rewrite /lo /hi; lra).
-  move=> ?.
+  have [|g01] := Hd 0; first by rewrite /lo /hi in_itv/= lerN10 ler01.
   have /[apply] := le_lt_trans _ d0.
   by rewrite normr_lt0.
-rewrite -(ger0_norm d0) -normrM.
-exact: (g_max_deriv lo hi).
+by rewrite -(ger0_norm d0) -normrM; exact: (g_max_deriv lo hi).
 Qed.
