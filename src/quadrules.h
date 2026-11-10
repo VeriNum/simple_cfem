@@ -62,5 +62,7 @@ double gauss2d_weight(int i, int npts);
 void hughes_point(double* xi, int i, int npts);
 double hughes_weight(int i, int npts);
 
+double integrate (double (*f)(double), int n);
+
 //ldoc off
 #endif /* GAUSSQUAD_H */

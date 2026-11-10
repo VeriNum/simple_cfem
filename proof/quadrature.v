@@ -1791,7 +1791,7 @@ Qed.
 
  Section Quadrature.
   Variable n : nat.
-  Variable roots: roots_of_ortho_p n.
+  Variable roots: roots_of_ortho_p n.+1.
   Definition zeros_of_ortho_p := tval (ROOTS_vals roots).
 
 
@@ -1847,10 +1847,10 @@ Qed.
   Qed.
 (* end details *)
 
-  Definition L : n.-tuple {poly_n R} := lagrange n extend_roots.
-  Definition gauss_weight (i: 'I_n) := ∫ (horner (tnth L i)).
+  Definition L : n.+1.-tuple {poly_n.+1 R} := lagrange n.+1 extend_roots.
+  Definition gauss_weight (i: 'I_n.+1) := ∫ (horner (tnth L i)).
 
-  Definition G (f: R->R) := \sum_(i<n) (gauss_weight i * (f (tnth zeros_of_ortho_p i))).
+  Definition G (f: R->R) := \sum_(i<n.+1) (gauss_weight i * (f (tnth zeros_of_ortho_p i))).
 
   (** 16.  To establish this result, first note that by construction the integration formula
     [G_n f] is exact for polynomials of degree less than or equal to n (see section 21.17).
@@ -1905,7 +1905,7 @@ Qed.
 
  *)
 
- Lemma extend_rootsE: forall [n] (roots: roots_of_ortho_p n) (i: 'I_n),
+ Lemma extend_rootsE: forall [n] (roots: roots_of_ortho_p n.+1) (i: 'I_n.+1),
      extend_roots n roots (nat_of_ord i) = tnth (ROOTS_vals roots) i.
 Proof.
  intros.
@@ -1914,7 +1914,7 @@ Proof.
 Qed.
 
   Lemma quadrature_exact_upto_n:
-      forall [n] roots (f: {poly R}), (size f <= n.+1)%N -> ∫ (horner f) = G n.+1 roots (horner f).
+      forall [n] roots (f: {poly R}), (size f <= n.+1)%N -> ∫ (horner f) = G n roots (horner f).
 Proof. 
   intros.
   rewrite /G.
@@ -1935,18 +1935,18 @@ Proof.
   apply eq_big; auto; intros.
   rewrite {1}/extend_roots.
   set u :=  nth _ _ _.
-  replace u with (tnth (zeros_of_ortho_p n.+1 roots) i0).
+  replace u with (tnth (zeros_of_ortho_p n roots) i0).
   2:{ apply set_nth_default.  rewrite /zeros_of_ortho_p size_tuple; apply ltn_ord. }
   clear u.
   rewrite /zeros_of_ortho_p.
   rewrite hornerM. rewrite hornerC.
   f_equal.
   symmetry. rewrite eq_sym.
-  rewrite -(@lagrange_sample R n.+1 (extend_roots n.+1 roots) erefl (extend_roots_injective _ _) i0 i).
+  rewrite -(@lagrange_sample R n.+1 (extend_roots n roots) erefl (extend_roots_injective _ _) i0 i).
   f_equal.
  rewrite extend_rootsE //. 
  }
- transitivity ( \sum_j (if j==i then f.[extend_roots n.+1 roots j] else 0)).
+ transitivity ( \sum_j (if j==i then f.[extend_roots n roots j] else 0)).
   rewrite -big_mkcond_idem. simpl; lra. simpl.
   rewrite big_pred1_eq_id. lra.
   apply eq_big; auto; intros. rewrite eq_sym. simpl. destruct (_ == _); simpl; try lra.
@@ -1955,9 +1955,9 @@ Qed.
 
   (* Back to paragraph 23.16 *)
 
-  Lemma quadrature_exact_for': 
+  Lemma quadrature_exact_for: 
       forall [n] (roots : roots_of_ortho_p n.+1) (f: {poly R}), 
-            (size f <= 2*n+2)%N ->  ∫ (horner f) = G n.+1 roots (horner f).
+            (size f <= 2*n+2)%N ->  ∫ (horner f) = G n roots (horner f).
 Proof.
  intros.
  move :(divp_eq f (ortho_p n.+1)) => H0.
@@ -1967,17 +1967,17 @@ Proof.
  set r := (f %% ortho_p n.+1) in H0 SIZEr. clearbody r.
  rewrite /G H0.
  symmetry.
- transitivity  (\sum_i gauss_weight n.+1 roots i * r.[tnth (zeros_of_ortho_p n.+1 roots) i]). {
+ transitivity  (\sum_i gauss_weight n roots i * r.[tnth (zeros_of_ortho_p n roots) i]). {
     apply eq_big; auto => /= i _. f_equal.
     rewrite hornerD hornerM.
     rewrite -{2}(add0r(horner r _)). f_equal.
-    rewrite -(mulr0 (horner q (tnth (zeros_of_ortho_p n.+1 roots) i))). f_equal.
+    rewrite -(mulr0 (horner q (tnth (zeros_of_ortho_p n roots) i))). f_equal.
     rewrite /zeros_of_ortho_p.
     apply /rootP.
     apply /all_tnthP.
     apply ROOTS_zero.
 }
- rewrite -/(G n.+1 roots (horner r)).
+ rewrite -/(G n roots (horner r)).
  rewrite -quadrature_exact_upto_n ; [ set j := size r in SIZEr|-*; clearbody j; lia | ].
  rewrite hornerD'  intgal_linear2; auto with continuous.
  rewrite mulrC. rewrite hornerM'.
@@ -1992,17 +1992,6 @@ Proof.
  split. exact ortho_p_size. intros. red. rewrite mul_funC. apply ortho_p_orthogonal. lia.
 Qed.
 
-  Lemma quadrature_exact_for: 
-      forall [n] (roots : roots_of_ortho_p n)  (f: {poly R}), (size f <= 2*n)%N ->  ∫ (horner f) = G n roots (horner f).
-Proof.
-destruct n.
-+ intros. assert (size f == 0)%N by lia. rewrite size_poly_eq0 in H0.
-   move :H0 => /eqP H0; subst f.
-   rewrite -(mulr0 (polyC 0)) hornerM' /G big_ord0 hornerC'. 
-   rewrite intgal_linear1; auto with continuous. rewrite mul0r //.
-+ rewrite (_: 2*n.+1 =  2*n+2)%N;[ lia | ]. exact (@quadrature_exact_for' n).
-Qed.
-
 (** 17. An important corollary of these results is that the coefficients [A_i] are positive.
        To see this note that
 
@@ -2015,16 +2004,16 @@ Qed.
    Lemma gauss_weight_positive: forall [n] roots i, gauss_weight n roots i > 0.
    Proof.
     intros.
-    destruct n; [destruct i; lia |].
-    pose proof @lagrange_sample R n.+1 (extend_roots n.+1 roots) ltac:(lia) (extend_roots_injective _ roots).
+(*    destruct n; [destruct i; lia |].*)
+    pose proof @lagrange_sample R n.+1 (extend_roots n roots) ltac:(lia) (extend_roots_injective _ roots).
     fold (L _ roots) in H.
-    assert (size (tnth (L n.+1 roots) i) = n.+1)
+    assert (size (tnth (L n roots) i) = n.+1)
       by (apply size_lagrange_; [reflexivity | apply extend_roots_injective]).
-   assert ( tnth (L n.+1 roots) i != 0 ). {
+   assert ( tnth (L n roots) i != 0 ). {
       rewrite /L.
       apply /eqP. intro. rewrite H1 in H0. rewrite size_poly0 in H0. discriminate.
   }
-    pose proof sqr_poly_positive (tnth (L n.+1 roots) i) H1.
+    pose proof sqr_poly_positive (tnth (L n roots) i) H1.
    rewrite (quadrature_exact_for roots) in H2.
     { set u := tnth _ _ in H0,H1|-*. clearbody u.
         rewrite size_proper_mul. 2: lia.
@@ -2033,12 +2022,12 @@ Qed.
          apply mulf_neq0; auto.
     }
    set u := G _ _ _ in H2.
-   rewrite (_: gauss_weight n.+1 roots i = u); auto; subst u; clear H2.
+   rewrite (_: gauss_weight n roots i = u); auto; subst u; clear H2.
    rewrite /G.
-   transitivity (\sum_(j<n.+1) (gauss_weight n.+1 roots j * (j==i)%:R)).
+   transitivity (\sum_(j<n.+1) (gauss_weight n roots j * (j==i)%:R)).
    2:{ apply eq_big; auto. intros j _. rewrite hornerM. rewrite /L.
         rewrite /L in H. rewrite (eq_sym j i).
-        replace (tnth _ j) with (extend_roots n.+1 roots j).
+        replace (tnth _ j) with (extend_roots n roots j).
         2:{ rewrite /extend_roots. rewrite /tnth. apply set_nth_default.
              rewrite /zeros_of_ortho_p size_tuple. apply ltn_ord.
         }
@@ -2060,11 +2049,10 @@ Qed.
    Lemma gauss_weight_leq_1:  forall [n] roots i, gauss_weight n roots i <= ∫ (horner 1).
    Proof.
    intros.
-    destruct n. destruct i. lia.
     rewrite (@quadrature_exact_for _ roots).
     rewrite size_poly1; lia.
     rewrite /G. rewrite hornerC' -mulr_suml mulr1.
-    replace (gauss_weight n.+1 roots i) with (\sum_j (if (j==i) then gauss_weight n.+1 roots j else 0)).
+    replace (gauss_weight n roots i) with (\sum_j (if (j==i) then gauss_weight n roots j else 0)).
     apply ler_sum. intros. destruct (i0==i); auto. pose proof (gauss_weight_positive roots i0). lra.
     rewrite -big_mkcond_idem. simpl. simpl; lra.
   rewrite big_pred1_eq_id. simpl; lra.
@@ -2082,9 +2070,8 @@ Qed.
   Lemma quadrature_error: forall n roots (f: R->R),
       exists ξ:R, a <= ξ <= b /\
        ∫ f - G n roots f =  
-       derive1n (2*n) f ξ /
-        (factorial(2*n))%:R * ∫ (fun x => (horner (ortho_p(n.+1)) x)^2).
-
+       derive1n (2*n+2) f ξ /
+        (factorial(2*n+2))%:R * ∫ (fun x => (horner (ortho_p n.+1) x)^2).
   Proof.
   Admitted.
 
@@ -2241,8 +2228,8 @@ Definition intgal_linear := (intgal_linear1'', intgal_linear1', intgal_linear1, 
 
 Record legendre_roots (n: nat) := {
    LR_poly: {poly R};
-   LR_poly_eq: legendre n = LR_poly;
-   LR_roots: roots_of_ortho_p lo hi w n
+   LR_poly_eq: legendre n.+1 = LR_poly;
+   LR_roots: roots_of_ortho_p lo hi w n.+1
 }.
 Arguments LR_poly [n].
 Arguments LR_poly_eq [n].
@@ -2253,7 +2240,7 @@ Arguments Build_legendre_roots [n].
     for the nth Legendre polynomial. *)
 Record gauss_weights (n: nat) := {
    GW_legendre: legendre_roots n;
-   GW_vals: n.-tuple R;
+   GW_vals: n.+1.-tuple R;
    GW_good: forall i, gauss_weight _ _ _ _ (LR_roots GW_legendre) i = tnth GW_vals i
 }.
 Arguments GW_legendre [n].
@@ -2264,7 +2251,7 @@ Arguments Build_gauss_weights [n].
 (** The following is a concrete implementation of the formula G_n(f) in Stewart's paragraph 15. *)
 
  Definition compute_G [n] (GW: gauss_weights n) (f: R -> R) :=
-  \sum_i (tnth (GW_vals GW) i) * f (tnth (ROOTS_vals lo hi w n (LR_roots (GW_legendre GW))) i).
+  \sum_i (tnth (GW_vals GW) i) * f (tnth (ROOTS_vals lo hi w n.+1 (LR_roots (GW_legendre GW))) i).
 
 Lemma compute_G_eq: forall n (GW: gauss_weights n) f, 
   compute_G GW f = G lo hi w n (LR_roots (GW_legendre GW)) f.
@@ -2283,8 +2270,8 @@ Qed.
 
  Lemma legendre_quadrature_error: forall [n: nat] (GW: gauss_weights n) (f: R -> R),
       exists ξ:R, lo <= ξ <= hi /\
-       ∫ f - compute_G GW f =  derive1n (2*n) f ξ / 
-       (factorial(2*n))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
+       ∫ f - compute_G GW f =  derive1n (2*n+2) f ξ / 
+       (factorial(2*n+2))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
 Proof.
 intros.
 rewrite compute_G_eq /intgal.
@@ -2448,6 +2435,7 @@ Proof.
 rewrite Legendre_poly_0 ?r_horner //.
 Qed.
 
+(*
 (** Second, package up the [legendre_roots] structure for degree 0 *)
 Definition legendre_roots_0 : legendre_roots 0.
   apply (Build_legendre_roots _ Legendre_poly_0).
@@ -2456,6 +2444,7 @@ Definition legendre_roots_0 : legendre_roots 0.
 - reflexivity.
 - reflexivity.
 Defined.
+*)
 
 (** *** The degree-1 Legendre polynomial *)
 
@@ -2470,7 +2459,7 @@ Proof.
 rewrite Legendre_poly_1 ?r_horner //.
 Qed.
 
-Definition legendre_roots_1: legendre_roots 1.
+Definition legendre_roots_1: legendre_roots 0.
   apply (Build_legendre_roots _ Legendre_poly_1).
  apply (Build_roots_of_ortho_p lo hi _ _ (@Tuple 1 _ [:: 0] isT)).
 -
@@ -2523,7 +2512,7 @@ apply sqr_sqrtr; auto.
 Qed.
 
 (** The roots of the degree-2 Legendre polynomial are  -1/sqrt(3) and +1/sqrt(3).  *)
-Definition legendre_roots_2: legendre_roots 2.
+Definition legendre_roots_2: legendre_roots 1.
   apply (Build_legendre_roots _ Legendre_poly_2).
  apply (Build_roots_of_ortho_p lo hi _ _ (@Tuple 2 _ [:: -1/(sqrt 3); 1/(sqrt 3)]  isT)).
 -
@@ -2593,7 +2582,7 @@ rewrite Legendre_poly_3 ?r_horner //.
 Qed.
 
 (** The roots of the degree-2 Legendre polynomial are  -sqrt(3/5), 0, and +sqrt(3/5).  *)
-Definition legendre_roots_3: legendre_roots 3.
+Definition legendre_roots_3: legendre_roots 2.
   apply (Build_legendre_roots _ Legendre_poly_3).
  apply (Build_roots_of_ortho_p lo hi _ _ (@Tuple 3 _ [:: -(sqrt (3/5)); 0; (sqrt (3/5))]  isT)).
 -
@@ -2763,7 +2752,7 @@ assert (sqrt((3 - (2 * Num.sqrt (6 / 5))) / 7) < 1)
 Qed.
 (* end details *)
 
-Definition legendre_roots_4: legendre_roots 4.
+Definition legendre_roots_4: legendre_roots 3.
   apply (Build_legendre_roots _ Legendre_poly_4).
  apply (Build_roots_of_ortho_p lo hi _ _  legendre_roots_val
    legendre_roots_4a legendre_roots_4b legendre_roots_4c).
@@ -2771,14 +2760,16 @@ Defined.
 
 (** ** Building the Gauss weights of Legendre polynomials *)
 
+(*
 (** *** Gauss weights of degree-0 Legendre polynomials *)
 
 Definition gauss_weights_0 : gauss_weights 0.
- apply (Build_gauss_weights legendre_roots_0 [::]).
+ apply (Build_gauss_weights legendre_roots_1 [:: 2]).
  intros.
  ord_enum_cases i.
   (* no cases *)
  Defined.
+*)
 
 
 (** *** Gauss weights of degree-1 Legendre polynomials *)
@@ -2794,7 +2785,7 @@ rewrite lagrangeE;  [ lia | apply extend_roots_injective; apply lo_lt_hi | ].
   rewrite -/intgal intgal_C mulr1 //.
 Qed.
 
-Definition gauss_weights_1 : gauss_weights 1.
+Definition gauss_weights_1 : gauss_weights 0.
  apply (Build_gauss_weights legendre_roots_1 [:: 2 ]).
  intros. 
  ord_enum_cases i.
@@ -2838,7 +2829,7 @@ expand_bigop.
 field by (assert (0 < sqrt 3);  rewrite ?sqrtr_gt0; lra).
 Qed.
 
-Definition gauss_weights_2 : gauss_weights 2.
+Definition gauss_weights_2 : gauss_weights 1.
  apply (Build_gauss_weights legendre_roots_2 [:: 1; 1]).
 Proof.
 intros.
@@ -2904,7 +2895,7 @@ do_one_integral (- s3)%:P.
 field by auto.
 Qed.
 
-Definition gauss_weights_3 : gauss_weights 3.
+Definition gauss_weights_3 : gauss_weights 2.
  apply (Build_gauss_weights legendre_roots_3 [:: 5/9; 8/9; 5/9]).
 Proof.
 intros.
@@ -3270,7 +3261,7 @@ ring.
 Qed.
 (* end details *)
 
-Definition gauss_weights_4 : gauss_weights 4.
+Definition gauss_weights_4 : gauss_weights 3.
  apply (Build_gauss_weights legendre_roots_4
    [:: 1/2 - Num.sqrt(5/6)/6; 1/2 + Num.sqrt(5/6)/6; 1/2 + Num.sqrt(5/6)/6; 1/2 - Num.sqrt(5/6)/6]).
 Proof.
@@ -3320,22 +3311,20 @@ Infix "::" := i_cons (at level 60, right associativity) : iseq_scope.
 
 (** *** The legendre_roots packages up to degree 4 *)
 
-Definition some_legendre_roots: iseq legendre_roots 5 := 
+Definition some_legendre_roots: iseq legendre_roots 4 := 
    (legendre_roots_4 
     :: legendre_roots_3
     :: legendre_roots_2 
     :: legendre_roots_1
-    :: legendre_roots_0  
     :: i_nil )%iseq.
 
 (** *** The gauss_weights packages up to degree 4 *)
 
-Definition some_gauss_weights: iseq gauss_weights 5 := 
+Definition some_gauss_weights: iseq gauss_weights 4 := 
    (gauss_weights_4 
     :: gauss_weights_3
     :: gauss_weights_2 
     :: gauss_weights_1
-    :: gauss_weights_0  
     :: i_nil )%iseq.
 
 Lemma legendre_roots_unique: forall [n] (r r': legendre_roots n),
@@ -3354,34 +3343,34 @@ Qed.
 
 (** *** Specialization of quadrature error to our instances for degrees up to 4 *)
 
- Definition Gauss_Legendre_quadrature (n: 'I_5):  (R -> R) -> R :=
+ Definition Gauss_Legendre_quadrature (n: 'I_4):  (R -> R) -> R :=
   compute_G (nth_iseq some_gauss_weights n).
 
- Definition Gauss_Legendre_quadrature' (n: 'I_5) (f: R -> R) : R :=
+ Definition Gauss_Legendre_quadrature' (n: 'I_4) (f: R -> R) : R :=
   let GW := nth_iseq some_gauss_weights n in
   let W := tnth (GW_vals GW) in
-  let P := tnth (ROOTS_vals lo hi w n (LR_roots (GW_legendre GW))) in
+  let P := tnth (ROOTS_vals lo hi w n.+1 (LR_roots (GW_legendre GW))) in
   \sum_i   W i * f (P i).
 
   Local Remark GL_same: Gauss_Legendre_quadrature = Gauss_Legendre_quadrature'.
   Proof. reflexivity. Qed.
 
-  Lemma legendre_quadrature_error': forall (n: 'I_5) (f: R->R),
+  Lemma legendre_quadrature_error': forall (n: 'I_4) (f: R->R),
    let GW := nth_iseq some_gauss_weights n in
       exists ξ:R, -1 <= ξ <= 1 /\
        ∫ f - Gauss_Legendre_quadrature n f =  
-       derive1n (2*n) f ξ / 
-        (factorial(2*n))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
+       derive1n (2*n+2) f ξ / 
+        (factorial(2*n+2))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
   Proof.
   intros. apply legendre_quadrature_error.
  Qed.
 
 Locate "`|".
 
-Definition quadrature_error_bound (f: R -> R) (n: 'I_5) (b: R) : Prop :=
+Definition quadrature_error_bound (f: R -> R) (n: 'I_4) (b: R) : Prop :=
     forall x: R, (-1 <= x <= 1)%R -> 
-     `| (derive.derive1n (2*n) f x) | <= 
-       b * ((factorial (2*n))%:R  / ∫ (fun x => (horner (legendre n.+1) x)^2)) .
+     `| (derive.derive1n (2*n+2) f x) | <= 
+       b * ((factorial (2*n+2))%:R  / ∫ (fun x => (horner (legendre n.+1) x)^2)) .
 
 Lemma quadrature_error_bound_is_bound:
   forall n f b,
@@ -3400,7 +3389,7 @@ assert (0 < u). {
 }
 clearbody u. simpl in u.
 set y := _ ξ in H|-*. clearbody y.
-set g := (2 * nat_of_ord n)%N in H|-*. clearbody g.
+set g := (2 * nat_of_ord n+2)%N in H|-*. clearbody g.
 pose proof (fact_gt0 g).
 set h := g`! in H,H2|-*. clearbody h. clear g ξ H1.
 assert (0 < h%:R :> R) by (destruct h; try discriminate; apply ltr0Sn).

@@ -68,10 +68,26 @@ void test_hughes(void)
     }
 }
 
+static double testfun(double x) {
+  return 0.5 * (1-x) * cos(x);
+}
+
+static double integrate_testfun (void) {
+  return integrate(&testfun, 2);
+}
+
+int test_integrate_testfun(void) {
+  double x = integrate_testfun();
+  printf("quadrature value = %f\n", x);
+  printf("quadrature error = %f\n", x - sin(1.0));
+  return 0;
+}
+
 int main(void)
 {
     test_gauss1d();
     test_gauss2d();
     test_hughes();
+    test_integrate_testfun();
     return 0;
 }
