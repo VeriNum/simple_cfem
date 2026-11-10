@@ -312,6 +312,7 @@ rewrite mulrC polyseqMX //.
 rewrite /Algebra.zero /= /eq_op /= polyseqC eq_refl //.
 Qed.
 
+(* takafumi20261027: theory for integ could be cleaned and PRed to mathcomp.poly *)
 Definition integ (p: {poly R}) : {poly R} := cons_poly 0 (\poly_(i < (size p)) (p`_i / ((S i)%:R))).
 
 Lemma deriv_integ: forall p: {poly R}, deriv (integ p) = p.
