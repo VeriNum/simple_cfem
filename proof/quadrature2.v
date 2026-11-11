@@ -98,6 +98,19 @@ Local Notation R := (RbaseSymbolsImpl_R__canonical__reals_Real).
 *)
 
 
+(* NB: lo = -1, hi = 1 *)
+Lemma g_max_deriv_specialized (d : R) (g : R -> R) (x y : R) :
+  deriv_bound lo hi g d ->
+  x \in `[lo, hi]%R -> x + y \in `[lo, hi]%R -> `| g (x + y) - g x | <= `| y | * d.
+Proof.
+move=> Hd Hx Hy.
+have [d0|d0] := ltP d 0.
+  have [|g01] := Hd 0; first by rewrite /lo /hi in_itv/= lerN10 ler01.
+  have /[apply] := le_lt_trans _ d0.
+  by rewrite normr_lt0.
+by rewrite -(ger0_norm d0) -normrM; exact: (g_max_deriv lo hi).
+Qed.
+
 Lemma derive1M (f g: R -> R) (x: R) :
   derivable f x 1 ->
   derivable g x 1 ->
@@ -392,42 +405,99 @@ subst j;
 prepare_for_interval; 
 interval with (i_bisect x).
 
-Lemma error_1_0_1:
- (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
- quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 1 (IZR 159 / IZR 1000).
+From Corelib Require Derive.
+
+
+
+Definition quadrature_error_bound' (f: R -> R) (n: 'I_5) (b: R) : Prop :=
+    forall x: R, (-1 <= x <= 1)%R -> 
+     `| (derive.derive1n (2*n) f x) | /  ((factorial (2*n))%:R *  ∫ (fun x => (horner (legendre n) x)^2))  <= 
+       b.
+
+Lemma qeb_helper: forall x y z : R, 
+   is_true (0 < z) ->
+   is_true (`| x / z | <= y) -> is_true (`| x | <= y * z).
 Proof.
-time "error_1_0_1" gauss_legendre_error_bounder.  (* 0.6 seconds *)
+intros * ?.
+rewrite -{2}(gtr0_norm H).
+rewrite -ler_pdivrMr; auto.
+rewrite normr_gt0.
+lra.
+rewrite /Num.norm /mul /inv /=.
+rewrite Rbasic_fun.Rabs_mult.
+intro H0.
+rewrite -Rbasic_fun.Rabs_inv.
+apply H0.
 Qed.
+
+Lemma qeb_helper2: forall a b c d : Z,
+ 0 <= a -> 0 < b -> 0 <= c -> 0 < d ->
+  a * d <= b * c ->
+ IZR a / IZR b <= IZR c / IZR d.
+Proof.
+intros.
+assert (Order.le (IZR (a * d)) (IZR (b *  c))).
+apply /RleP.
+apply RIneq.IZR_le.
+rewrite -Z.leb_le.
+apply H3.
+rewrite ?RIneq.mult_IZR in H4.
+change (Rdefinitions.RbaseSymbolsImpl.Rmult ?A ?B) with (mul A B) in H4.
+assert (0 <= IZR a).
+rewrite -R0E. apply /RleP. apply RIneq.IZR_le. rewrite -Z.leb_le //.
+assert (0 < IZR b).
+rewrite -R0E. apply /RltP. apply RIneq.IZR_lt. rewrite -Z.ltb_lt //.
+assert (0 <= IZR c).
+rewrite -R0E. apply /RleP. apply RIneq.IZR_le. rewrite -Z.leb_le //.
+assert (0 < IZR d).
+rewrite -R0E. apply /RltP. apply RIneq.IZR_lt. rewrite -Z.ltb_lt //.
+clear H H0 H1 H2 H3.
+rewrite ler_pdivrMr //.
+rewrite mulrC mulrA.
+rewrite ler_pdivlMr //.
+Qed.
+
+Ltac quadrature_error_deriver := 
+let x := fresh "x" in let H := fresh in intros x H;
+eval_legendre_integral2;
+let j := fresh "j" in set j := factorial _; compute in j; subst j;
+apply qeb_helper; [ lra | ];
+simpl derive1n;
+rewrite_derive;
+rewrite ?r_deriv ?r_ring ?hornerE /= ?r_ring ?mulrN ?mulNr ?opprK ?r_ring;
+prepare_for_interval;
+apply /RleP;
+let H0 := fresh in 
+match goal with |- Rdefinitions.Rle ?A ?B => subst B; interval_intro A upper with (i_bisect x, i_depth 15) as H0 end;
+match type of H0 with Rdefinitions.Rle _ (Rdefinitions.Rdiv ?A ?B) =>
+  change (Rdefinitions.Rdiv ?A ?B) with (A/B) in H0
+end;
+apply H0.
+
+Derive error_1_0_1 in (@quadrature_error_bound R (horner ((1/2)%:P *(1-'X)) \* cos) (@Ordinal 5 1 isT) error_1_0_1)
+ as prove_error_1_0_1.
+Proof. quadrature_error_deriver. Qed.
+
+Goal error_1_0_1 <= IZR 461 / IZR 1000.
+Proof. apply qeb_helper2; lia. Qed.
 
 (* Our test case is the product of a Lagrange shape function (1/2)*(1-x) with some 
   spatial transformation, in this case cosine. *)
 
-Lemma error_1_0_1':
- (* test function (1/2)*(1-x)*cos(x), degree-1 quadrature *)
- let f :=horner ((1/2)%:P *(1-'X)) \* cos in 
- `| ( ∫ f - Gauss_Legendre_quadrature 1 f ) | <= IZR 159 / IZR 1000.
-Proof.
-apply quadrature_error_bound_is_bound.
-apply error_1_0_1.
-Qed.
 
-Lemma error_1_0_2:
- (* test function (1/2)*(1-x)*cos(x), degree-2 quadrature *)
-(* The true bound is under 356/100000, but somehow we can only prove 424/100000 *)
-  quadrature_error_bound (horner ((1/2)%:P *(1-'X)) \* cos) 2 (IZR 424  / IZR 100000).
-Proof.
-time "error_1_0_2" gauss_legendre_error_bounder.  (* 5.435 seconds *)
-Qed.
+Derive error_1_0_2 in (@quadrature_error_bound R (horner ((1/2)%:P *(1-'X)) \* cos) (@Ordinal 5 2 isT)  error_1_0_2)
+ as prove_error_1_0_2.
+Proof. quadrature_error_deriver. Qed.
 
-(* NB: lo = -1, hi = 1 *)
-Lemma g_max_deriv_specialized (d : R) (g : R -> R) (x y : R) :
-  deriv_bound lo hi g d ->
-  x \in `[lo, hi]%R -> x + y \in `[lo, hi]%R -> `| g (x + y) - g x | <= `| y | * d.
-Proof.
-move=> Hd Hx Hy.
-have [d0|d0] := ltP d 0.
-  have [|g01] := Hd 0; first by rewrite /lo /hi in_itv/= lerN10 ler01.
-  have /[apply] := le_lt_trans _ d0.
-  by rewrite normr_lt0.
-by rewrite -(ger0_norm d0) -normrM; exact: (g_max_deriv lo hi).
-Qed.
+Goal error_1_0_2 <= IZR 0165 / IZR 10000.
+Proof. apply qeb_helper2; lia. Qed.
+
+Derive error_1_0_3 in (@quadrature_error_bound R (horner ((1/2)%:P *(1-'X)) \* cos) (@Ordinal 5 3 isT)  error_1_0_3)
+ as prove_error_1_0_3.
+Proof. quadrature_error_deriver. Qed.
+
+Goal error_1_0_3 <= IZR 000195 / IZR 1000000.
+Proof. apply qeb_helper2; lia. Qed.
+
+
+

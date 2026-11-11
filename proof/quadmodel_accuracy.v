@@ -1109,7 +1109,7 @@ interval.
 Qed.
 
 
-Definition testfun_b := IZR 424 / IZR 100000.
+Definition testfun_b := error_1_0_2.
 
 Definition n := @Ordinal 5 2 ssrbool.isT.
 
@@ -1118,12 +1118,8 @@ Lemma testfun_quadrature_error_bound:
       testfun_r n testfun_b.
 Proof.
 evar (f: R ->R).
-evar (b: R).
 replace testfun_r with f; subst f.
-replace testfun_b with b; subst b.
-apply error_1_0_2.
-reflexivity.
-clear b.
+apply prove_error_1_0_2.
 rewrite /testfun_r.
 apply Axioms.extensionality; intro x.
 simpl.

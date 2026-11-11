@@ -2083,9 +2083,7 @@ Qed.
   Lemma quadrature_error: forall n roots (f: R->R),
       exists ξ:R, a <= ξ <= b /\
        ∫ f - G n roots f =  
-       derive1n (2*n) f ξ /
-        (factorial(2*n))%:R * ∫ (fun x => (horner (ortho_p(n.+1)) x)^2).
-
+       derive1n (2*n) f ξ / (factorial(2*n))%:R * ∫ (fun x => (horner (ortho_p(n)) x)^2).
   Proof.
   Admitted.
 
@@ -2285,7 +2283,7 @@ Qed.
  Lemma legendre_quadrature_error: forall [n: nat] (GW: gauss_weights n) (f: R -> R),
       exists ξ:R, lo <= ξ <= hi /\
        ∫ f - compute_G GW f =  derive1n (2*n) f ξ / 
-       (factorial(2*n))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
+       (factorial(2*n))%:R * ∫ (fun x => (horner (legendre n) x)^2).
 Proof.
 intros.
 rewrite compute_G_eq /intgal.
@@ -3372,7 +3370,7 @@ Qed.
       exists ξ:R, -1 <= ξ <= 1 /\
        ∫ f - Gauss_Legendre_quadrature n f =  
        derive1n (2*n) f ξ / 
-        (factorial(2*n))%:R * ∫ (fun x => (horner (legendre n.+1) x)^2).
+        (factorial(2*n))%:R * ∫ (fun x => (horner (legendre n) x)^2).
   Proof.
   intros. apply legendre_quadrature_error.
  Qed.
@@ -3382,7 +3380,7 @@ Locate "`|".
 Definition quadrature_error_bound (f: R -> R) (n: 'I_5) (b: R) : Prop :=
     forall x: R, (-1 <= x <= 1)%R -> 
      `| (derive.derive1n (2*n) f x) | <= 
-       b * ((factorial (2*n))%:R  / ∫ (fun x => (horner (legendre n.+1) x)^2)) .
+       b * ((factorial (2*n))%:R  / ∫ (fun x => (horner (legendre n) x)^2)) .
 
 Lemma quadrature_error_bound_is_bound:
   forall n f b,
@@ -3396,7 +3394,7 @@ specialize (H _ H1).
 set u := ∫ _ in H|-*.
 assert (0 < u). {
   assert (H0 := sqr_poly_positive  _ _ lo_lt_hi w w_positive ltac:(auto with continuous)
-    (legendre (nat_of_ord n).+1) (ortho_p_nonzero _ _ lo_lt_hi _ _)).
+    (legendre (nat_of_ord n)) (ortho_p_nonzero _ _ lo_lt_hi _ _)).
  rewrite hornerM' in H0; apply H0.
 }
 clearbody u. simpl in u.

@@ -374,6 +374,7 @@ unfold integrate_model_acc, maxwf, testfun_fb, testfun_b, testfun_d, testfun_f_a
   common.default_rel, common.default_abs.
 simpl.
 clear.
+unfold error_1_0_2.
 prepare_for_interval.
 interval.
 Qed.
