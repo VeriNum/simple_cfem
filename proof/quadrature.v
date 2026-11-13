@@ -771,9 +771,14 @@ Context {R : realType}.
 
 (** 1. The Gauss formula we will actually derive has the form,
 
-      [  ∫_a ^b f(x) w(x) dx ≅ A_0 f(x_0) + A_1 f(x_1) + ⋯ + A_n f(x_n)   ]
+      [  ∫_a ^b f(x) w(x) dx ≅ A_0 f(x_0) + A_1 f(x_1) + ⋯ + A_{n-1} f(x_{n-1})   ]
 
   where w(x) is a weight function that is greater than zero on the interval [[a,b]].
+
+   _Editor's note: Stewart defines the sum going all the way to [A_n f(x_n)], but we
+     use [n] as the number of terms in the summation.  Henceforth we will make this
+     adjustment without further comment, even in formulates directly quoted from
+    Stewart, so many (but not all) instances of [n] in this text are [n+1] in the original._
 
    2. The incorporation of a weight function creates no complications in the theory.
   However, it makes our integrals, which are already too long, even more cumbersome.
@@ -1620,26 +1625,26 @@ Qed.
 (** ** Zeros of orthogonal polynomials *)
 
 (** 13.  It will turn out that the abscissas of our Gaussian quadrature formula will
-        be the zeros of [p_{n+1}].  We will now show that 
+        be the zeros of [p_{n}].  We will now show that 
         
-         The zeros of [p_{n+1}] are real, simple, and lie in the interval [[a,b]].
+         The zeros of [p_{n}] are real, simple, and lie in the interval [[a,b]].
 
-     14.  Let [x_0, x_1, ⋯, x_k]  be the zeros of odd multiplicity of [p_{n+1}] in [[a,b];] i.e.,
-         [x_0, x_1, ⋯, x_k] are the points at which [p_{n+1}] changes sign in [[a,b]].  If k=n, we are 
-         through, since the [x_i] are the n+1 zeros of [p_{n+1}].
+     14.  Let [x_0, x_1, ⋯, x_{k-1}]  be the zeros of odd multiplicity of [p_{n}] in [[a,b];] i.e.,
+         [x_0, x_1, ⋯, x_{k-1}] are the points at which [p_{n}] changes sign in [[a,b]].  If k=n, we are 
+         through, since the [x_i] are the n zeros of [p_{n}].
 
                Suppose then that k<n and consider the polynomial
 
-                    [   q(x) = (x-x_0)(x-x_1)⋯(x-x_k)  ].
+                    [   q(x) = (x-x_0)(x-x_1)⋯(x-x_{k-1})  ].
 
-        Since deg(q) = k+1 < n+1, by orthogonality
+        Since deg(q) = k < n, by orthogonality
 
-                    [  ∫ p_{n+1} q = 0  ].
+                    [  ∫ p_{n} q = 0  ].
 
-        On the other hand, [p_{n+1}(x) q(x)] cannot change sign on [[a,b]] -- each sign change
-        in [p_{n+1}(x)] is cancelled by a corresponding sign change in q(x).  It follows that
+        On the other hand, [p_{n}(x) q(x)] cannot change sign on [[a,b]] -- each sign change
+        in [p_{n}(x)] is cancelled by a corresponding sign change in q(x).  It follows that
 
-                    [ ∫ p_{n+1} q <> 0 ],
+                    [ ∫ p_{n} q <> 0 ],
 
          which is a contradiction.
 *)
@@ -1659,8 +1664,8 @@ Arguments ROOTS_zero [n].
 Arguments ROOTS_sorted [n].
 Arguments ROOTS_inrange [n].
 
-(** _Editor's note: the statement "14.  . . . are the n+1 zeros of [p_{n+1}]" implicitly claims that 
-     there are at most n+1 zeros.  That is any zero of the polynomial is already in the roots list,
+(** _Editor's note: the statement "14.  . . . are the n zeros of [p_{n}]" implicitly claims that 
+     there are at most n zeros.  That is any zero of the polynomial is already in the roots list,
      which is explicitly an n.-tuple_.  Therefore: *)
 
 Lemma roots_of_ortho_p_at_most: forall [n] (roots: roots_of_ortho_p n),
@@ -1915,8 +1920,24 @@ Proof.
 Qed.
 
   Lemma quadrature_exact_upto_n:
-      forall [n] roots (f: {poly R}), (size f <= n.+1)%N -> ∫ (horner f) = G n.+1 roots (horner f).
-Proof. 
+      forall [n] roots (f: {poly R}), (size f <= n)%N -> ∫ (horner f) = G n roots (horner f).
+Proof.
+  destruct n as [ | n].
+- (* n=0 *)
+intros. 
+revert H => /size_poly_leq0P H. subst f.
+rewrite horner0_ext.
+set z := intgal _.
+replace z with (intgal (scale_fun 0 zero)); subst z.
+2:{ f_equal. extensionality x. rewrite /scale_fun /scale /= /zero /= mulr0 //. }
+rewrite intgal_linear1. set z := zero. replace z with (fun _:R => @zero R); subst z.
+apply in_continuous_cst.
+extensionality x; reflexivity.
+rewrite mul0r.
+ rewrite /G.
+expand_bigop.
+auto.
+- (* n.+1 *) 
   intros.
   rewrite /G.
   pose proof @lagrange_gen R n.+1 (extend_roots _ roots) erefl (extend_roots_injective _ _) f H.
@@ -1956,32 +1977,47 @@ Qed.
 
   (* Back to paragraph 23.16 *)
 
-  Lemma quadrature_exact_for': 
-      forall [n] (roots : roots_of_ortho_p n.+1) (f: {poly R}), 
-            (size f <= 2*n+2)%N ->  ∫ (horner f) = G n.+1 roots (horner f).
+  Lemma quadrature_exact_for: 
+      forall [n] (roots : roots_of_ortho_p n) (f: {poly R}), 
+            (size f <= 2*n)%N ->  ∫ (horner f) = G n roots (horner f).
 Proof.
  intros.
- move :(divp_eq f (ortho_p n.+1)) => H0.
- move :(@size_divp _ f (ortho_p n.+1) (ortho_p_nonzero _)); rewrite ortho_p_size => SIZEq.
- move :(@ltn_modpN0 _ f (ortho_p n.+1) (ortho_p_nonzero _)); rewrite ortho_p_size => SIZEr.
- set q := (f %/ ortho_p n.+1) in H0 SIZEq. clearbody q.
- set r := (f %% ortho_p n.+1) in H0 SIZEr. clearbody r.
+ move :(divp_eq f (ortho_p n)) => H0.
+ move :(@size_divp _ f (ortho_p n) (ortho_p_nonzero _)); rewrite ortho_p_size => SIZEq.
+ move :(@ltn_modpN0 _ f (ortho_p n) (ortho_p_nonzero _)); rewrite ortho_p_size => SIZEr.
+ set q := (f %/ ortho_p n) in H0 SIZEq. clearbody q.
+ set r := (f %% ortho_p n) in H0 SIZEr. clearbody r.
  rewrite /G H0.
  symmetry.
- transitivity  (\sum_i gauss_weight n.+1 roots i * r.[tnth (zeros_of_ortho_p n.+1 roots) i]). {
+ transitivity  (\sum_i gauss_weight n roots i * r.[tnth (zeros_of_ortho_p n roots) i]). {
     apply eq_big; auto => /= i _. f_equal.
     rewrite hornerD hornerM.
     rewrite -{2}(add0r(horner r _)). f_equal.
-    rewrite -(mulr0 (horner q (tnth (zeros_of_ortho_p n.+1 roots) i))). f_equal.
+    rewrite -(mulr0 (horner q (tnth (zeros_of_ortho_p n roots) i))). f_equal.
     rewrite /zeros_of_ortho_p.
     apply /rootP.
     apply /all_tnthP.
     apply ROOTS_zero.
 }
- rewrite -/(G n.+1 roots (horner r)).
+ rewrite -/(G n roots (horner r)).
  rewrite -quadrature_exact_upto_n ; [ set j := size r in SIZEr|-*; clearbody j; lia | ].
  rewrite hornerD'  intgal_linear2; auto with continuous.
  rewrite mulrC. rewrite hornerM'.
+destruct n.
+- rewrite /ortho_p /= hornerC' mul_fun1r.
+rewrite muln0 in H.
+set z := size f in H,SIZEq.
+destruct z; try discriminate.
+have :(size q <= 0)%N by lia.
+move => /size_poly_leq0P H1; subst q.
+rewrite hornerC'.
+set z := (fun=>_).
+replace z with (0 \*: z).
+2: rewrite /scale_fun /scale /=; extensionality x; subst z; rewrite mul0r //.
+rewrite intgal_linear1.
+apply in_continuous_cst.
+rewrite mul0r add0r //.
+-
  rewrite polySn_orthogonal_n.
  exact ortho_p_size. exact ortho_p_monic. 3: lra.
 2:{
@@ -1991,17 +2027,6 @@ Proof.
   rewrite SIZEq. set j := size f in H|-*. lia.
  }
  split. exact ortho_p_size. intros. red. rewrite mul_funC. apply ortho_p_orthogonal. lia.
-Qed.
-
-  Lemma quadrature_exact_for: 
-      forall [n] (roots : roots_of_ortho_p n)  (f: {poly R}), (size f <= 2*n)%N ->  ∫ (horner f) = G n roots (horner f).
-Proof.
-destruct n.
-+ intros. assert (size f == 0)%N by lia. rewrite size_poly_eq0 in H0.
-   move :H0 => /eqP H0; subst f.
-   rewrite -(mulr0 (polyC 0)) hornerM' /G big_ord0 hornerC'. 
-   rewrite intgal_linear1; auto with continuous. rewrite mul0r //.
-+ rewrite (_: 2*n.+1 =  2*n+2)%N;[ lia | ]. exact (@quadrature_exact_for' n).
 Qed.
 
 (** 17. An important corollary of these results is that the coefficients [A_i] are positive.
@@ -2053,7 +2078,7 @@ Qed.
   rewrite big_pred1_eq_id. simpl; lra.
 Qed.
 
-(** 18.  Since [ A_0 + A_1 + ⋯ + A_n = ∫ 1 ], no coefficient can be larger than 1.  Consequently,
+(** 18.  Since [ A_0 + A_1 + ⋯ + A_{n-1} = ∫ 1 ], no coefficient can be larger than 1.  Consequently,
      we cannot have a situation in which large coefficients create large intermediate results
       that suffer cancellation when they are added. *)
 
@@ -2076,7 +2101,7 @@ Qed.
 (** 19.  Gaussian quadrature has error formulas similar to the ones for Newton-Cotes
     formulas.  Specifically
 
-        [  ∫  f - G_n f =  ( f^(2n+2)(ξ) / (2n+2)!) ∫ p_{n+1}^2 ],
+        [  ∫  f - G_n f =  ( f^(2n)(ξ) / (2n)!) ∫ p_n^2 ],
 
      where ξ ∈ [[a,b]]. *)
 
